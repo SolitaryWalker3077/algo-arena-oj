@@ -9,13 +9,10 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>oj-modules</artifactId>
+    <artifactId>oj-common</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>oj-friend</module>
-        <module>oj-job</module>
-        <module>oj-judge</module>
-        <module>oj-system</module>
+        <module>oj-common-core</module>
     </modules>
 
     <properties>
@@ -23,21 +20,11 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>oj-common-core</artifactId>
-            <version>${oj-common-core.version}</version>
         </dependency>
     </dependencies>
 </project>
