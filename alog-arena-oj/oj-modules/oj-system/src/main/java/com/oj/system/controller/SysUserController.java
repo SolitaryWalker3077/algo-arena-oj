@@ -1,6 +1,5 @@
 package com.oj.system.controller;
 
-
 import com.oj.common.entity.Result;
 import com.oj.system.entity.dto.LoginDto;
 import com.oj.system.entity.dto.SysUserDto;
@@ -12,7 +11,6 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.bouncycastle.asn1.dvcs.DVCSObjectIdentifiers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +32,11 @@ public class SysUserController {
     public Result<String> login(@RequestBody LoginDto loginDTO) {
         return sysUserService.login(loginDTO.getUserAccount(),loginDTO.getPassword());
     }
+
+
+
+
+
 
     @Operation(summary = "新增管理员",description = "根据用户信息新增管理员")
     @ApiResponse(responseCode = "1000",description = "操作成功")
@@ -65,7 +68,7 @@ public class SysUserController {
             @Parameter(name = "sex",in = ParameterIn.QUERY,description = "用户性别")
     })
     @GetMapping("/detail")
-    public Result<SysUserVo> detail(@RequestParam(required = true) Long userId, @RequestParam(required = true) String sex) {
+    public Result<SysUserVo> detail(@RequestParam(required = true) Long userId, @RequestParam(required = false) String sex) {
         return null;
     }
 }

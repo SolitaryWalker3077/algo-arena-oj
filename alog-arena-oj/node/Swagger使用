@@ -1,0 +1,6 @@
+当在微服务当中使用swagger的时候,
+需要在资源路径包当中加上META-INF.spring包
+在包下加org.springframework.boot.autoconfigure.AutoConfiguration.imports
+然后文件里面内容就是需要交给spring进行管理的
+
+AutoConfiguration.imports 相当于 Spring Boot 自动配置类的“名单”。Starter 把自己的自动配置类名字写进去，Spring Boot 启动时就能发现它

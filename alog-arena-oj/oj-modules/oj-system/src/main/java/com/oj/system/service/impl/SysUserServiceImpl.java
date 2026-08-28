@@ -19,12 +19,20 @@ public class SysUserServiceImpl implements ISysUserService {
         //通过账号去数据库中查询，对应的用户信息
         LambdaQueryWrapper<SysUserInfo> queryWrapper = new LambdaQueryWrapper<>();
         SysUserInfo sysUserInfo = sysUserMapper.selectOne(queryWrapper
-                .select(SysUserInfo::getUserId,SysUserInfo::getPassword,SysUserInfo::getNickName).
-                eq(SysUserInfo::getUserAccount,userAccount));
+                .select(SysUserInfo::getPassword).eq(SysUserInfo::getUserAccount,userAccount));
+        Result loginResult = new Result();
         if(sysUserInfo == null) {
-            return Result.fail(ResultCode.FAILED_USER_NOT_EXISTS);
+            loginResult.setCode(ResultCode.FAILED_USER_NOT_EXISTS.getCode());
+            loginResult.setMsg(ResultCode.FAILED_USER_NOT_EXISTS.getMsg());
+            return loginResult;
         }
-
-        return Result.fail(ResultCode.FAILED_LOGIN);
+        if(sysUserInfo.getPassword().equals(password)) {
+            loginResult.setCode(ResultCode.SUCCESS.getCode());
+            loginResult.setMsg(ResultCode.SUCCESS.getMsg());
+            return loginResult;
+        }
+        loginResult.setCode(ResultCode.FAILED_LOGIN.getCode());
+        loginResult.setMsg(ResultCode.FAILED_LOGIN.getMsg());
+        return loginResult;
     }
 }
