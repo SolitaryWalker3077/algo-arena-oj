@@ -5,28 +5,38 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.example</groupId>
-        <artifactId>alog-arena-oj</artifactId>
+        <artifactId>oj-common</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>oj-common</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>oj-common-core</module>
-        <module>oj-common-swagger</module>
-        <module>oj-common-security</module>
-    </modules>
+    <artifactId>oj-common-security</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>oj-common-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+        </dependency>
     </dependencies>
+
 </project>
