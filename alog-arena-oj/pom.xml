@@ -11,6 +11,7 @@
     <modules>
         <module>oj-modules</module>
         <module>oj-common</module>
+        <module>oj-gateway</module>
     </modules>
 
     <properties>
