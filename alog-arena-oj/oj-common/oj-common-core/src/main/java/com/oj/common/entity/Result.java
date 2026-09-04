@@ -19,11 +19,11 @@ public class Result<T> {
      */
     private T data;
 
-    public static <T> Result<T> ok() {
+    public static <T> Result<T> success() {
         return assembleResult(null, ResultCode.SUCCESS);
     }
 
-    public static <T> Result<T> ok(T data) {
+    public static <T> Result<T> success(T data) {
         return assembleResult(data, ResultCode.SUCCESS);
     }
 
