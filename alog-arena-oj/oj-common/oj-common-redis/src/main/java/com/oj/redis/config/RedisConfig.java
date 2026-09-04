@@ -17,12 +17,14 @@ public class RedisConfig {
     public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<Object, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-        RedisSerializer<String> keySerializer = new StringRedisSerializer();
         JsonRedisSerializer<Object> valueSerializer = new JsonRedisSerializer<>(Object.class);
 
-        // Key 使用字符串序列化，Value 使用 JSON 序列化
+
+        RedisSerializer<String> keySerializer = new StringRedisSerializer();
+        // 使⽤StringRedisSerializer来序列化和反序列化redis的key值
         template.setKeySerializer(keySerializer);
         template.setValueSerializer(valueSerializer);
+        //Hash也使用StringRedisSerializer来实现序列化和反序列化redis的key值
         template.setHashKeySerializer(keySerializer);
         template.setHashValueSerializer(valueSerializer);
         template.afterPropertiesSet();

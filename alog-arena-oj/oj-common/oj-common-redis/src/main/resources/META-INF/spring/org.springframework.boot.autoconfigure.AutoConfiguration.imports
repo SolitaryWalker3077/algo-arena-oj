@@ -1,1 +1,2 @@
 com.oj.redis.config.RedisConfig
+com.oj.redis.service.RedisService
