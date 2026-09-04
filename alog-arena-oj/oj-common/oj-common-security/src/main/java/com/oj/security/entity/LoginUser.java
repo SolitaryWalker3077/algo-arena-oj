@@ -1,6 +1,5 @@
-package com.oj.system.entity;
+package com.oj.security.entity;
 
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.Data;
 
 @Data
