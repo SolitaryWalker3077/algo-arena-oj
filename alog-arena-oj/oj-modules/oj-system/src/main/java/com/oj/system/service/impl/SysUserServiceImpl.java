@@ -1,14 +1,14 @@
 package com.oj.system.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.oj.common.constants.CacheConstants;
-import com.oj.common.constants.JwtConstants;
 import com.oj.common.entity.Result;
 import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
-import com.oj.redis.service.RedisService;
+import com.oj.security.expection.ServiceException;
 import com.oj.security.service.TokenService;
 import com.oj.system.entity.SysUserInfo;
+import com.oj.system.entity.dto.SysUserDto;
 import com.oj.system.mapper.SysUserMapper;
 import com.oj.system.service.ISysUserService;
 import com.oj.system.utils.BCryptUtils;
@@ -16,6 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.List;
 
 @Service
 @RefreshScope
@@ -47,5 +51,29 @@ public class SysUserServiceImpl implements ISysUserService {
         }
 
         return Result.fail(ResultCode.FAILED_LOGIN);
+    }
+
+    @Override
+    public int add(SysUserDto sysUserSaveDTO) {
+//        checkParams(sysUserSaveDTO);
+        //重复
+        //将dto转为实体
+        List<SysUserInfo> sysUserList = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserInfo>()
+                .eq(SysUserInfo::getUserAccount, sysUserSaveDTO.getUserAccount()));
+        //isNotEmpty  不为空返回true
+//        if (sysUserList == null || sysUserList.size() == 0) {
+//
+//        }
+        if (CollectionUtil.isNotEmpty(sysUserList)) {
+            //用户已经存在
+            //自定义的异常   公共的异常类
+            throw new ServiceException(ResultCode.AILED_USER_EXISTS);
+        }
+        SysUserInfo sysUser = new SysUserInfo();
+        sysUser.setUserAccount(sysUserSaveDTO.getUserAccount());
+        sysUser.setPassword(BCryptUtils.encryptPassword(sysUserSaveDTO.getPassword()));
+        sysUser.setCreateBy(1L);
+        sysUser.setCreateTime(LocalDateTime.now());
+        return sysUserMapper.insert(sysUser);
     }
 }

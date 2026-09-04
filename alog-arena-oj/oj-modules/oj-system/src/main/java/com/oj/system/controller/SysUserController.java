@@ -1,5 +1,6 @@
 package com.oj.system.controller;
 
+import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.system.entity.dto.LoginDto;
 import com.oj.system.entity.dto.SysUserDto;
@@ -18,24 +19,22 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/sysuser")
 @Tag(name = "管理员用户API")
-public class SysUserController {
+public class SysUserController extends BaseController {
 
     @Autowired
     private ISysUserService sysUserService;
+
+
 
     @Operation(summary = "管理员登录",description = "根据账号密码进行管理员登录")
     @ApiResponse(responseCode = "1000",description = "操作成功")
     @ApiResponse(responseCode = "2000",description = "服务器繁忙,稍后重试")
     @ApiResponse(responseCode = "3102",description = "用户不存在")
     @ApiResponse(responseCode = "3103",description = "用户名或密码错误")
-    @GetMapping("/login")
+    @PostMapping("/login")
     public Result<String> login(@RequestBody LoginDto loginDTO) {
         return sysUserService.login(loginDTO.getUserAccount(),loginDTO.getPassword());
     }
-
-
-
-
 
 
     @Operation(summary = "新增管理员",description = "根据用户信息新增管理员")
@@ -44,8 +43,9 @@ public class SysUserController {
     @ApiResponse(responseCode = "3101",description = "用户已存在")
     @PostMapping("/add")
     public Result<Void> add(@RequestBody SysUserDto sysUserDto) {
-        return null;
+        return toR((sysUserService.add(sysUserDto)));
     }
+
 
     @Operation(summary = "删除管理员",description = "根据用户Id删除管理员")
     @ApiResponse(responseCode = "1000", description = "成功删除⽤⼾")
