@@ -39,7 +39,7 @@ public class SysUserServiceImpl implements ISysUserService {
         //通过账号去数据库中查询，对应的用户信息
         LambdaQueryWrapper<SysUserInfo> queryWrapper = new LambdaQueryWrapper<>();
         SysUserInfo sysUserInfo = sysUserMapper.selectOne(queryWrapper
-                .select(SysUserInfo::getPassword).eq(SysUserInfo::getUserAccount,userAccount));
+                .select(SysUserInfo::getUserId, SysUserInfo::getPassword).eq(SysUserInfo::getUserAccount,userAccount));
         if(sysUserInfo == null) {
             return Result.fail(ResultCode.FAILED_USER_NOT_EXISTS);
         }
