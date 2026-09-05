@@ -36,7 +36,6 @@ import java.util.List;
 
 /**
  * 网关鉴权
- *
  */
 @Slf4j
 @Component
