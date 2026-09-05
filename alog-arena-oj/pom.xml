@@ -24,6 +24,7 @@
         <oj-common-core.version>1.0-SNAPSHOT</oj-common-core.version>
         <oj-common-swagger.version>1.0-SNAPSHOT</oj-common-swagger.version>
         <oj-common-redis.version>1.0-SNAPSHOT</oj-common-redis.version>
+        <oj-common-security.version>1.0-SNAPSHOT</oj-common-security.version>
         <springdoc-openapi.version>2.2.0</springdoc-openapi.version>
         <fastjson2.version>2.0.43</fastjson2.version>
         <jjwt.version>0.9.1</jjwt.version>

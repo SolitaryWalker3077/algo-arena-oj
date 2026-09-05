@@ -1,6 +1,6 @@
 package com.oj.common.enums;
 
-import lombok.Data;
+
 import lombok.Getter;
 
 @Getter
@@ -11,7 +11,7 @@ public enum UserIdentify {
     ADMIN (2,"管理员用户")
     ;
 
-    private int value;
+    private Integer value;
 
     private String des;
 
