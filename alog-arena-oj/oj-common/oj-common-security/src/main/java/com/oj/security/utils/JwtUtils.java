@@ -37,7 +37,6 @@ public class JwtUtils {
                 .getBody();
     }
 
-
     public static String getUserKey (Map<String,Object> claims) {
         return toStr(claims.get(JwtConstants.LOGIN_USER_KEY));
     }
@@ -45,15 +44,12 @@ public class JwtUtils {
     public static String getUserId (Map<String , Object> claims) {
         return toStr(claims.get(JwtConstants.LOGIN_USER_ID));
     }
-
     public static String toStr(Object value) {
         if(value == null) {
             return "";
         }
         return value.toString();
     }
-
-
 
     //测试Jwt令牌生成
     //生成:eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEyMzQ1Njc4OX0.b7zqHeghH-BqJbQqDEaiDn1lTo8BA1Uuu0OQm2fbo_Rl6EOVdomsB-fPCkJpI_GH-UCI9brSa6UYbjb44m1KgA
@@ -70,6 +66,4 @@ public class JwtUtils {
 //        String secret = "123456";
 //        System.out.println(parseToken(token, secret));
 //    }
-
-
 }

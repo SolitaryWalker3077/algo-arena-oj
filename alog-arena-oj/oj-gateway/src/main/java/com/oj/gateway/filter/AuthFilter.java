@@ -67,7 +67,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
         //从http请求头中获取token
         String token = getToken(request);
         if (StrUtil.isEmpty(token)) {
-//            throw new RuntimeException("令牌不能为空");
             return unauthorizedResponse(exchange, "令牌不能为空");
         }
         Claims claims;
@@ -86,7 +85,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
         //通过redis中存储的数据，来控制jwt的过期时间
         String userKey = JwtUtils.getUserKey(claims);  //获取jwt中的key
-        boolean isLogin = redisService.hasKey(getTokenKey(userKey));         //7c114ab4-e4d7-4392-8630-3e248a9cb335         //42752c9a-009a-47bb-8a9c-1d34f4287944
+        boolean isLogin = redisService.hasKey(getTokenKey(userKey));
         if (!isLogin) {
             return unauthorizedResponse(exchange, "登录状态已过期");
         }
