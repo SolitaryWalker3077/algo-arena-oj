@@ -2,6 +2,7 @@ package com.oj.security.handler;
 
 import com.oj.common.entity.Result;
 import com.oj.common.enums.ResultCode;
+import com.oj.security.expection.ServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,6 +29,16 @@ public class GlobalExceptionHandler {
         return Result.fail(ResultCode.ERROR);
     }
 
+
+    @ExceptionHandler(ServiceException.class)
+    public Result<?> handleServiceException(ServiceException e,HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        ResultCode resultCode = e.getResultCode();
+        log.error("请求地址'{}',发生业务异常: {}", requestURI, resultCode.getMsg(), e);
+        return Result.fail(resultCode);
+    }
+
+
     /**
      *拦截运行异常
      * */
@@ -47,4 +58,6 @@ public class GlobalExceptionHandler {
         log.error("请求地址'{}',发生异常",requestURI,e);
         return Result.fail(ResultCode.ERROR);
     }
+
+
 }
