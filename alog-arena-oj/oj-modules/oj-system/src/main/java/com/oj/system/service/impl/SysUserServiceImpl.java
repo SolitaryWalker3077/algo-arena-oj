@@ -60,10 +60,6 @@ public class SysUserServiceImpl implements ISysUserService {
         //将dto转为实体
         List<SysUserInfo> sysUserList = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserInfo>()
                 .eq(SysUserInfo::getUserAccount, sysUserSaveDTO.getUserAccount()));
-        //isNotEmpty  不为空返回true
-//        if (sysUserList == null || sysUserList.size() == 0) {
-//
-//        }
         if (CollectionUtil.isNotEmpty(sysUserList)) {
             //用户已经存在
             //自定义的异常   公共的异常类
@@ -72,8 +68,8 @@ public class SysUserServiceImpl implements ISysUserService {
         SysUserInfo sysUser = new SysUserInfo();
         sysUser.setUserAccount(sysUserSaveDTO.getUserAccount());
         sysUser.setPassword(BCryptUtils.encryptPassword(sysUserSaveDTO.getPassword()));
-        sysUser.setCreateBy(1L);
-        sysUser.setCreateTime(LocalDateTime.now());
+//        sysUser.setCreateBy(1L);
+//        sysUser.setCreateTime(LocalDateTime.now());
         return sysUserMapper.insert(sysUser);
     }
 }

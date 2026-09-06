@@ -43,7 +43,7 @@ public class SysUserController extends BaseController {
     @ApiResponse(responseCode = "3101",description = "用户已存在")
     @PostMapping("/add")
     public Result<Void> add(@RequestBody SysUserDto sysUserDto) {
-        return toR((sysUserService.add(sysUserDto)));
+        return toResult((sysUserService.add(sysUserDto)));
     }
 
 
