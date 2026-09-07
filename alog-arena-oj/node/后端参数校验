@@ -1,0 +1,19 @@
+spring-boot-starter-validation 是 Spring Boot 提供的⼀个启动器模块，它主要⽤于简化在 Spring Boot 应⽤程序中的验证功能
+
+常用注解:
+• @NotNull：值不能为null；
+• @NotEmpty：字符串、集合或数组的值不能为空，即⻓度⼤于0；
+• @NotBlank：字符串的值不能为空⽩，即不能只包含空格；
+• @Size：字符串、集合或数组的⼤⼩是否在指定范围内；
+• @Min：数值的最⼩值；
+• @Max：数值的最⼤值；
+• @Pattern：字符串是否匹配指定的正则表达式；
+• @Email：字符串是否为有效的电⼦邮件地址；
+• @Future：⽇期是否为将来的⽇期；
+• @Past：⽇期是否为过去的⽇期；
+
+相关依赖
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>

@@ -2,9 +2,11 @@ package com.oj.system.test.controller;
 
 import com.oj.redis.service.RedisService;
 import com.oj.system.entity.SysUserInfo;
+import com.oj.system.test.entity.ValidationDTO;
 import com.oj.system.test.service.ITestService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,5 +48,10 @@ public class TestController {
         SysUserInfo us = redisService.getCacheObject("u", SysUserInfo.class);
         return us.toString();
 
+    }
+
+    @GetMapping("/validation")
+    public String validation(@Validated ValidationDTO validationDTO) {
+        return "参数设置";
     }
 }
