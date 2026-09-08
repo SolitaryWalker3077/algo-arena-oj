@@ -1,0 +1,291 @@
+<!-- <template>标签里: 模版视图 -->
+<template>
+  <div class="login-page">
+    <div class="orange"></div>
+    <div class="blue"></div>
+    <div class="blue small"></div>
+    <div class="login-box">
+      <div class="logo-box">
+        <div class="right">
+          <div class="sys-name">OJ后台管理</div>
+          <div class="sys-sub-name">学习算法，提升技能</div>
+        </div>
+      </div>
+      <div class="form-box">
+        <div class="form-item">
+          <img src="../assets/images/shouji.png">
+          <el-input v-model="loginForm.userAccount" placeholder="请输入账号" />
+        </div>
+        <div class="form-item">
+          <img src="../assets/images/yanzhengma.png">
+          <el-input
+            v-model="loginForm.password"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+            @keyup.enter="login"
+          />
+        </div>
+        <div
+          class="submit-box"
+          :class="{ disabled: loading }"
+          role="button"
+          tabindex="0"
+          @click="login"
+          @keyup.enter="login"
+        >
+          {{ loading ? '登录中...' : '登录' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- <script setup>标签里: 页面逻辑 -->
+<script setup>
+import { reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useRoute, useRouter } from 'vue-router'
+import { userLogin } from '@/api/user'
+
+const router = useRouter()
+const route = useRoute()
+
+// 登录表单数据
+const loginForm = reactive({
+  userAccount: '',
+  password: '',
+})
+
+// 登录请求中（防止重复提交）
+const loading = ref(false)
+
+// 登录：校验输入 -> 调用后端接口 -> 成功跳转后台 / 失败提示错误
+const login = async () => {
+  if (loading.value) return
+
+  const userAccount = loginForm.userAccount.trim()
+  if (!userAccount) {
+    ElMessage.warning('请输入账号')
+    return
+  }
+  if (!loginForm.password) {
+    ElMessage.warning('请输入密码')
+    return
+  }
+  loading.value = true
+  try {
+    const token = await userLogin({
+      userAccount,
+      password: loginForm.password,
+    })
+    if (!token) throw new Error('登录接口未返回令牌')
+    localStorage.setItem('adminToken', token)
+    localStorage.setItem('adminAccount', userAccount)
+    ElMessage.success('登录成功')
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/admin/home'
+    router.replace(redirect)
+  } catch (error) {
+    // 登录失败：错误提示已由 request 拦截器统一弹出（账号密码错误/网络异常等）
+    console.error('登录失败：', error)
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<!-- <style scoped>标签里: 页面样式 -->
+<style lang="scss" scoped>
+.login-page {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 1;
+    content: '';
+  }
+
+  .orange {
+    position: absolute;
+    left: 14.2%;
+    top: 41%;
+    width: 498px;
+    height: 498px;
+    border-radius: 50%;
+    background: #F0714A;
+    opacity: 0.67;
+    filter: blur(50px);
+  }
+
+  .blue {
+    position: absolute;
+    left: 80.7%;
+    top: 16.3%;
+    width: 334px;
+    height: 334px;
+    background: #32C5FF;
+    opacity: 0.67;
+    filter: blur(50px);
+
+    &.small {
+      width: 186px;
+      height: 186px;
+      top: 8.2%;
+      left: 58.2%;
+    }
+  }
+
+  .login-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    width: 456px;
+    height: 404px;
+    padding: 0 72px;
+    padding-top: 50px;
+    background: #FFFFFF;
+    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    opacity: 0.9;
+    overflow: hidden;
+
+    .logo-box {
+      display: flex;
+      align-items: center;
+      margin-bottom: 30px;
+
+      img {
+        width: 68px;
+        height: 68px;
+        margin-right: 16px;
+      }
+
+      .sys-name {
+        height: 33px;
+        margin-bottom: 13px;
+        font-family: PingFangSC, PingFang SC;
+        font-weight: 600;
+        font-size: 24px;
+        line-height: 33px;
+        color: #222222;
+      }
+
+      .sys-sub-name {
+        height: 22px;
+        font-family: PingFangSC, PingFang SC;
+        font-weight: 400;
+        font-size: 16px;
+        line-height: 22px;
+        color: #222222;
+      }
+    }
+
+    :deep(.form-box) {
+      .form-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 456px;
+        height: 48px;
+        margin-bottom: 30px;
+        background: #F8F8F8;
+        border-radius: 8px;
+
+        .code-btn-box {
+          position: absolute;
+          top: 0;
+          right: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 151px;
+          height: 48px;
+          background: #32C5FF;
+          border-radius: 8px;
+          cursor: pointer;
+
+          span {
+            font-family: PingFangSC, PingFang SC;
+            font-weight: 400;
+            font-size: 16px;
+            color: #FFFFFF;
+          }
+        }
+
+        .error-tip {
+          position: absolute;
+          right: 0;
+          width: 140px;
+          height: 20px;
+          padding-right: 12px;
+          font-family: PingFangSC, PingFang SC;
+          font-weight: 400;
+          font-size: 14px;
+          line-height: 20px;
+          text-align: right;
+          color: #FD4C40;
+
+          &.bottom {
+            right: 157px;
+          }
+        }
+
+        .el-input {
+          width: 380px;
+          font-family: PingFangSC, PingFang SC;
+          font-weight: 400;
+          font-size: 16px;
+          color: #222222;
+        }
+
+        .el-input__wrapper {
+          width: 230px;
+          padding-left: 0;
+          border: none;
+          box-shadow: none;
+          background: transparent;
+        }
+
+        img {
+          width: 24px;
+          height: 24px;
+          margin: 0 18px;
+        }
+      }
+
+      .submit-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 456px;
+        height: 48px;
+        margin-top: 90px;
+        background: #32C5FF;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: PingFangSC, PingFang SC;
+        font-weight: 600;
+        font-size: 16px;
+        color: #FFFFFF;
+        letter-spacing: 1px;
+
+        &.disabled {
+          cursor: not-allowed;
+          opacity: 0.65;
+        }
+      }
+    }
+  }
+}
+</style>
