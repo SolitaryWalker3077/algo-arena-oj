@@ -1,7 +1,7 @@
 <template>
   <div class="home-page">
     <div class="home-card">
-      <div class="title">比特OJ后台管理</div>
+      <div class="title">OJ后台管理</div>
       <div class="welcome">欢迎你，{{ adminAccount || '管理员' }}</div>
       <div class="tip">后台管理页面（后续在此开发用户管理、题目管理等功能）</div>
       <div class="logout-btn" @click="logout">退出登录</div>

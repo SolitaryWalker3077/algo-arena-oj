@@ -43,7 +43,7 @@
 
 <!-- <script setup>标签里: 页面逻辑 -->
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { userLogin } from '@/api/user'
@@ -56,6 +56,29 @@ const loginForm = reactive({
   userAccount: '',
   password: '',
 })
+
+// 【调试用】把表单数据暴露到全局 window，方便在浏览器 Console 里直接修改，
+// 验证“Vue 数据变化 -> 输入框内容同步更新”的反向绑定效果。
+// 用法：在 Console 输入  window.loginForm.userAccount = '测试账号'  看输入框是否变化。
+if (typeof window !== 'undefined') {
+  window.loginForm = loginForm
+  console.log('[双向绑定调试] loginForm 已挂载到 window.loginForm，可在 Console 直接修改验证反向绑定。')
+}
+
+// 【调试用】监听表单数据变化，每次输入框内容变化时延迟 1000ms 打印到 Console，
+// 验证“输入框内容变化 -> Vue 数据自动更新”的正向绑定效果。
+watch(
+  loginForm,
+  (newVal) => {
+    setTimeout(() => {
+      console.log('[watch] loginForm 发生变化（延迟 1000ms）：', {
+        userAccount: newVal.userAccount,
+        password: newVal.password,
+      })
+    }, 1000)
+  },
+  { deep: true },
+)
 
 // 登录请求中（防止重复提交）
 const loading = ref(false)
