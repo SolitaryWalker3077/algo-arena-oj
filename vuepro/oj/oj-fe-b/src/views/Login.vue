@@ -46,7 +46,7 @@
 import { reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { userLogin } from '@/api/user'
+import { userLogin } from '@/api/suser'
 
 const router = useRouter()
 const route = useRoute()
