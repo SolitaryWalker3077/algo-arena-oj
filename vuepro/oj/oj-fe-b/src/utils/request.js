@@ -5,11 +5,31 @@ import { ElMessage } from 'element-plus'
 // 由 vite 代理按路径前缀转发到网关，避免前缀叠加
 const request = axios.create({
   timeout: 10000,
+  // 覆盖默认 transformResponse：axios 默认用 JSON.parse 解析响应体，
+  // 会把超过 Number.MAX_SAFE_INTEGER（9007199254740991，16 位）的整数字面量
+  // 截断为不精确的浮点数（如雪花算法 ID 通常 18~19 位）。
+  // 这里先对原始文本做预处理：将值位置上 16 位及以上的纯整数字面量加引号转为字符串，
+  // 再交给 JSON.parse，从而完整保留长 ID，从数据交互层避免精度丢失。
+  transformResponse: [
+    (rawData) => {
+      if (typeof rawData !== 'string') return rawData
+      const safe = rawData.replace(
+        /([:\[,]\s*)(-?\d{16,})(?![\d.])/g,
+        (_m, prefix, num) => `${prefix}"${num}"`,
+      )
+      try {
+        return JSON.parse(safe)
+      } catch {
+        // 非 JSON 响应（纯文本等）直接返回原始内容
+        return rawData
+      }
+    },
+  ],
 })
 
 // 网关从 Authorization: Bearer <token> 中读取登录令牌。
 request.interceptors.request.use((config) => {
-  const token = localStorage.getItem('adminToken')
+  const token = localStorage.getItem('Admin-oj-b-key')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -25,7 +45,7 @@ request.interceptors.response.use(
     }
     const message = res.msg || '操作失败'
     if (res.code === 3001) {
-      localStorage.removeItem('adminToken')
+      localStorage.removeItem('Admin-oj-b-key')
       localStorage.removeItem('adminAccount')
     }
     ElMessage.error(message)

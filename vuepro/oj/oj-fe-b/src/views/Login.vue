@@ -103,7 +103,7 @@ const login = async () => {
       password: loginForm.password,
     })
     if (!token) throw new Error('登录接口未返回令牌')
-    localStorage.setItem('adminToken', token)
+    localStorage.setItem('Admin-oj-b-key', token)
     localStorage.setItem('adminAccount', userAccount)
     ElMessage.success('登录成功')
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/admin/home'

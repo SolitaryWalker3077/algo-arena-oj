@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,15 +13,40 @@ const router = createRouter({
       component: () => import('../views/Login.vue'),
     },
     {
-      path: '/admin/home',
-      name: 'adminHome',
-      component: () => import('../views/Home.vue'),
+      path: '/admin',
+      component: () => import('../layout/AdminLayout.vue'),
+      children: [
+        {
+          path: '',
+          redirect: '/admin/home',
+        },
+        {
+          path: 'home',
+          name: 'adminHome',
+          component: () => import('../views/Home.vue'),
+        },
+        {
+          path: 'user',
+          name: 'userManage',
+          component: () => import('../views/admin/UserManage.vue'),
+        },
+        {
+          path: 'problem',
+          name: 'problemManage',
+          component: () => import('../views/admin/ProblemManage.vue'),
+        },
+        {
+          path: 'contest',
+          name: 'contestManage',
+          component: () => import('../views/admin/ContestManage.vue'),
+        },
+      ],
     },
   ],
 })
 
 router.beforeEach((to) => {
-  const token = localStorage.getItem('adminToken')
+  const token = localStorage.getItem('Admin-oj-b-key')
 
   if (to.path.startsWith('/admin') && !token) {
     return { name: 'login', query: { redirect: to.fullPath } }
