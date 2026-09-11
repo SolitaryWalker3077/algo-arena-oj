@@ -2,7 +2,9 @@ package com.oj.system.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.oj.common.entity.LoginUser;
 import com.oj.common.entity.Result;
+import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
 import com.oj.security.expection.ServiceException;
@@ -38,19 +40,34 @@ public class SysUserServiceImpl implements ISysUserService {
     public Result<String> login(String userAccount, String password) {
         //通过账号去数据库中查询，对应的用户信息
         LambdaQueryWrapper<SysUserInfo> queryWrapper = new LambdaQueryWrapper<>();
+        //查询用户id,用户密码和用户昵称
         SysUserInfo sysUserInfo = sysUserMapper.selectOne(queryWrapper
-                .select(SysUserInfo::getUserId, SysUserInfo::getPassword).eq(SysUserInfo::getUserAccount,userAccount));
+                .select(SysUserInfo::getUserId, SysUserInfo::getPassword,SysUserInfo::getNickName)
+                .eq(SysUserInfo::getUserAccount,userAccount));
+
         if(sysUserInfo == null) {
             return Result.fail(ResultCode.FAILED_USER_NOT_EXISTS);
         }
         if(BCryptUtils.matchesPassword(password,sysUserInfo.getPassword())) {
-
-            String token = tokenService.createToken(sysUserInfo.getUserId(),secret, UserIdentify.ADMIN.getValue());
+            //jwttoken = 生产jwttoken方法
+            String token = tokenService.createToken(sysUserInfo.getUserId(),
+                    secret, UserIdentify.ADMIN.getValue(),sysUserInfo.getNickName());
 
             return Result.success(token);
         }
 
         return Result.fail(ResultCode.FAILED_LOGIN);
+    }
+
+    @Override
+    public Result<LoginUserVO> info(String token) {
+        LoginUser loginUser = tokenService.getLoginUser(token, secret);
+        if(loginUser == null) {
+            return Result.fail();
+        }
+        LoginUserVO  loginUserVO = new LoginUserVO();
+        loginUserVO.setNickName(loginUser.getNickName());
+        return Result.success(loginUserVO) ;
     }
 
     @Override

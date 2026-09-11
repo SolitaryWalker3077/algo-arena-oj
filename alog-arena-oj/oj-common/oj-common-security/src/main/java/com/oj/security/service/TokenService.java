@@ -3,9 +3,8 @@ package com.oj.security.service;
 import cn.hutool.core.lang.UUID;
 import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.JwtConstants;
-import com.oj.common.enums.UserIdentify;
 import com.oj.redis.service.RedisService;
-import com.oj.security.entity.LoginUser;
+import com.oj.common.entity.LoginUser;
 import com.oj.security.utils.JwtUtils;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +23,7 @@ public class TokenService {
     @Autowired
     private RedisService redisService;
 
-    public String createToken(Long userId,String secret,Integer identity) {
+    public String createToken(Long userId,String secret,Integer identity,String nickName) {
         //用jwt生成token
         Map<String,Object> claims = new HashMap<>();
         String userKey = UUID.fastUUID().toString();//UUID唯一通识码
@@ -38,7 +37,7 @@ public class TokenService {
 
         LoginUser loginUser = new LoginUser();
         loginUser.setIdentity(identity);
-
+        loginUser.setNickName(nickName);
         redisService.setCacheObject(tokenKey,loginUser, CacheConstants.EXP, TimeUnit.MINUTES);
         return token; //过期时间设置为720min
     }
@@ -47,20 +46,10 @@ public class TokenService {
     //延长token的有效时间，就是延长redis当中存储的用于用户身份认证的敏感信息的有效时间
     //在身份认证通过之后才会调用，并且在请求到达controller层之前 在拦截器中调用
     public void extendToken(String token,String secret) {
-        Claims claims;
-        try {
-            claims = JwtUtils.parseToken(token, secret); //获取令牌中信息  解析payload中信息  存储着用户唯一标识信息
-            if (claims == null) {
-                //TODO
-                log.error("解析token：{}, 出现异常", token);
-                return;
-            }
-        } catch (Exception e) {
-            //TODO
-            log.error("解析token：{}, 出现异常", token, e);
+        String userKey = getUserKey(token, secret);
+        if(userKey == null) {
             return;
         }
-        String userKey = JwtUtils.getUserKey(claims);
         String tokenKey = getTokenKey(userKey);
 
         Long expire = redisService.getExpire(tokenKey, TimeUnit.MINUTES);
@@ -70,7 +59,31 @@ public class TokenService {
         }
     }
 
+    public LoginUser getLoginUser(String token,String secret) {
+        String userKey = getUserKey(token, secret);
+        if (userKey == null) {
+            return null;
+        }
+        return redisService.getCacheObject(getTokenKey(userKey),LoginUser.class);
+    }
+
+
     private String getTokenKey(String userKey) {
         return CacheConstants.LOGIN_TOKEN_KEY + userKey;
+    }
+
+    private String getUserKey(String token,String secret) {
+        Claims claims;
+        try {
+            claims = JwtUtils.parseToken(token, secret); //获取令牌中信息  解析payload中信息  存储着用户唯一标识信息
+            if (claims == null) {
+                log.error("解析token：{}, 出现异常", token);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("解析token：{}, 出现异常", token, e);
+            return null;
+        }
+        return JwtUtils.getUserKey(claims);
     }
 }

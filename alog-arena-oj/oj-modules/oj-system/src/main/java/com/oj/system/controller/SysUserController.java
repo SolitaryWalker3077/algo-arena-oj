@@ -1,7 +1,11 @@
 package com.oj.system.controller;
 
+import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
+import com.oj.common.entity.LoginUser;
+import com.oj.common.entity.vo.LoginUserVO;
+import com.oj.common.enums.ResultCode;
 import com.oj.system.entity.dto.LoginDto;
 import com.oj.system.entity.dto.SysUserDto;
 import com.oj.system.entity.vo.SysUserVo;
@@ -24,8 +28,6 @@ public class SysUserController extends BaseController {
     @Autowired
     private ISysUserService sysUserService;
 
-
-
     @Operation(summary = "管理员登录",description = "根据账号密码进行管理员登录")
     @ApiResponse(responseCode = "1000",description = "操作成功")
     @ApiResponse(responseCode = "2000",description = "服务器繁忙,稍后重试")
@@ -36,6 +38,11 @@ public class SysUserController extends BaseController {
         return sysUserService.login(loginDTO.getUserAccount(),loginDTO.getPassword());
     }
 
+    //接口地址: /system/sysuser/info
+    @GetMapping("/info")
+    public Result<LoginUserVO> info(@RequestHeader(HttpConstants.AUTHENTICATION) String token) {
+        return sysUserService.info(token);
+    }
 
     @Operation(summary = "新增管理员",description = "根据用户信息新增管理员")
     @ApiResponse(responseCode = "1000",description = "操作成功")
@@ -45,7 +52,6 @@ public class SysUserController extends BaseController {
     public Result<Void> add(@RequestBody SysUserDto sysUserDto) {
         return toResult((sysUserService.add(sysUserDto)));
     }
-
 
     @Operation(summary = "删除管理员",description = "根据用户Id删除管理员")
     @ApiResponse(responseCode = "1000", description = "成功删除⽤⼾")

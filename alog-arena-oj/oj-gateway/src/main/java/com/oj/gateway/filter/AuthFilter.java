@@ -10,7 +10,7 @@ import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
 import com.oj.gateway.properties.IgnoreWhiteProperties;
 import com.oj.redis.service.RedisService;
-import com.oj.security.entity.LoginUser;
+import com.oj.common.entity.LoginUser;
 import com.oj.security.utils.JwtUtils;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;

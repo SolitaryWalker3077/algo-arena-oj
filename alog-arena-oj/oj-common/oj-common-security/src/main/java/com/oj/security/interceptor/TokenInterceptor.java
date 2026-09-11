@@ -41,7 +41,7 @@ public class TokenInterceptor implements HandlerInterceptor {
 
     private String getToken(HttpServletRequest request) {
         String token = request.getHeader(HttpConstants.AUTHENTICATION);
-        if(StringUtil.isNullOrEmpty(token) && token.startsWith(HttpConstants.PREFIX)) {
+        if(!StringUtil.isNullOrEmpty(token) && token.startsWith(HttpConstants.PREFIX)) {
             token = token.replaceFirst(HttpConstants.PREFIX,"");
         }
         return token;
