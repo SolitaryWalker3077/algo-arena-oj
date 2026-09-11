@@ -63,7 +63,7 @@ public class SysUserServiceImpl implements ISysUserService {
     public Result<LoginUserVO> info(String token) {
         LoginUser loginUser = tokenService.getLoginUser(token, secret);
         if(loginUser == null) {
-            return Result.fail();
+            return Result.fail(ResultCode.FAILED_UNAUTHORIZED);
         }
         LoginUserVO  loginUserVO = new LoginUserVO();
         loginUserVO.setNickName(loginUser.getNickName());

@@ -47,6 +47,7 @@ import { reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { userLogin } from '@/api/suser'
+import { ACCOUNT_KEY, setToken } from '@/utils/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -102,14 +103,14 @@ const login = async () => {
       userAccount,
       password: loginForm.password,
     })
-    if (!token) throw new Error('登录接口未返回令牌')
-    localStorage.setItem('Admin-oj-b-key', token)
-    localStorage.setItem('adminAccount', userAccount)
+    setToken(token)
+    localStorage.setItem(ACCOUNT_KEY, userAccount)
     ElMessage.success('登录成功')
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/admin/home'
     router.replace(redirect)
   } catch (error) {
     // 登录失败：错误提示已由 request 拦截器统一弹出（账号密码错误/网络异常等）
+    if (!error?.handled) ElMessage.error(error?.message || '登录失败，请稍后重试')
     console.error('登录失败：', error)
   } finally {
     loading.value = false

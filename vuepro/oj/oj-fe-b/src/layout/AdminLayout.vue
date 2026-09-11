@@ -36,7 +36,10 @@
       <header class="top-bar">
         <div class="page-title">{{ currentTitle }}</div>
         <div class="top-right">
-          <span class="admin-account">{{ adminAccount || '管理员' }}</span>
+          <div class="user-info">
+            <span class="user-label">当前用户:</span>
+            <span class="admin-account">{{ displayName }}</span>
+          </div>
           <div class="logout-btn" @click="logout">退出登录</div>
         </div>
       </header>
@@ -50,15 +53,31 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { HomeFilled, User, Document, Trophy } from '@element-plus/icons-vue'
+import { getUserInfo } from '@/api/suser'
+import { ACCOUNT_KEY, clearAuth } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
 
-const adminAccount = localStorage.getItem('adminAccount')
+const adminAccount = localStorage.getItem(ACCOUNT_KEY)
+const nickName = ref('')
+const displayName = computed(() => nickName.value || adminAccount || '管理员')
+
+onMounted(async () => {
+  try {
+    const userInfo = await getUserInfo()
+    nickName.value = userInfo?.nickName?.trim() || ''
+    if (!nickName.value) throw new Error('用户信息接口未返回昵称')
+  } catch (error) {
+    // 后端错误原因及未授权跳转已由响应拦截器统一处理。
+    if (!error?.handled) ElMessage.error(error?.message || '获取用户信息失败')
+    console.error('获取管理员信息失败：', error)
+  }
+})
 
 // 当前激活的菜单项
 const activeMenu = computed(() => route.path)
@@ -74,8 +93,7 @@ const currentTitle = computed(() => titleMap[route.path] || '后台管理')
 
 // 退出登录：清除登录状态并返回登录页
 const logout = () => {
-  localStorage.removeItem('Admin-oj-b-key')
-  localStorage.removeItem('adminAccount')
+  clearAuth()
   ElMessage.success('已退出登录')
   router.push('/oj/login')
 }
@@ -157,9 +175,26 @@ const logout = () => {
       align-items: center;
       gap: 16px;
 
-      .admin-account {
-        font-size: 14px;
-        color: #666666;
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+
+        .user-label {
+          font-size: 14px;
+          color: #999999;
+          white-space: nowrap;
+        }
+
+        .admin-account {
+          font-size: 14px;
+          color: #666666;
+          max-width: min(220px, 30vw);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
       }
 
       .logout-btn {

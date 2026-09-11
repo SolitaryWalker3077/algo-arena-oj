@@ -8,3 +8,11 @@ import request from '@/utils/request'
 export const userLogin = (data) => {
   return request.post('/system/sysuser/login', data)
 }
+
+/**
+ * 获取当前管理员信息。token 由请求拦截器统一注入。
+ * @returns {Promise<{ nickName: string }>} 当前管理员信息
+ */
+export const getUserInfo = () => {
+  return request.get('/system/sysuser/info')
+}

@@ -1,5 +1,13 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
+import { clearAuth, getToken } from '@/utils/auth'
+import {
+  attachAuthorization,
+  getHttpError,
+  UNAUTHORIZED_CODE,
+  unwrapApiResponse,
+} from '@/utils/requestPolicy'
 
 // 创建 axios 实例；不设置 baseURL，接口函数直接写网关路径（如 /system/sysuser/login），
 // 由 vite 代理按路径前缀转发到网关，避免前缀叠加
@@ -27,34 +35,54 @@ const request = axios.create({
   ],
 })
 
-// 网关从 Authorization: Bearer <token> 中读取登录令牌。
-request.interceptors.request.use((config) => {
-  const token = localStorage.getItem('Admin-oj-b-key')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+const redirectToLogin = () => {
+  clearAuth()
+  const currentRoute = router.currentRoute.value
+  if (currentRoute.name === 'login') return
+
+  const query = currentRoute.fullPath && currentRoute.fullPath !== '/'
+    ? { redirect: currentRoute.fullPath }
+    : undefined
+  router.replace({ name: 'login', query }).catch(() => {})
+}
+
+const rejectWithMessage = (error, unauthorized = false) => {
+  const message = error?.message || '操作失败，请稍后重试'
+  ElMessage.error(message)
+  if (unauthorized) redirectToLogin()
+  error.handled = true
+  return Promise.reject(error)
+}
+
+// 除登录接口外，所有请求在发出前统一携带 Bearer token。
+request.interceptors.request.use(
+  (config) => {
+    try {
+      return attachAuthorization(config, getToken())
+    } catch (error) {
+      return rejectWithMessage(error, error.code === UNAUTHORIZED_CODE)
+    }
+  },
+  (error) => Promise.reject(error),
+)
 
 // 响应拦截器：统一处理后端 Result { code, msg, data }
 request.interceptors.response.use(
   (response) => {
-    const res = response.data
-    if (res.code === 1000) {
-      return res.data
+    try {
+      return unwrapApiResponse(response)
+    } catch (error) {
+      return rejectWithMessage(error, error.code === UNAUTHORIZED_CODE)
     }
-    const message = res.msg || '操作失败'
-    if (res.code === 3001) {
-      localStorage.removeItem('Admin-oj-b-key')
-      localStorage.removeItem('adminAccount')
-    }
-    ElMessage.error(message)
-    return Promise.reject(new Error(message))
   },
   (error) => {
-    const message = error.response?.data?.msg || '网络异常，请检查后端服务是否启动'
-    ElMessage.error(message)
-    return Promise.reject(error)
+    if (error?.handled) return Promise.reject(error)
+
+    const failure = getHttpError(error)
+    const friendlyError = new Error(failure.message)
+    friendlyError.code = failure.code
+    friendlyError.cause = error
+    return rejectWithMessage(friendlyError, failure.unauthorized)
   },
 )
 

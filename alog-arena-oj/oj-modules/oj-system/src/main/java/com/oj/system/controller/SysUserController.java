@@ -3,9 +3,7 @@ package com.oj.system.controller;
 import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
-import com.oj.common.entity.LoginUser;
 import com.oj.common.entity.vo.LoginUserVO;
-import com.oj.common.enums.ResultCode;
 import com.oj.system.entity.dto.LoginDto;
 import com.oj.system.entity.dto.SysUserDto;
 import com.oj.system.entity.vo.SysUserVo;
@@ -39,9 +37,13 @@ public class SysUserController extends BaseController {
     }
 
     //接口地址: /system/sysuser/info
+    @Operation(summary = "当前管理员信息", description = "根据认证令牌获取当前管理员昵称")
     @GetMapping("/info")
     public Result<LoginUserVO> info(@RequestHeader(HttpConstants.AUTHENTICATION) String token) {
-        return sysUserService.info(token);
+        String normalizedToken = token.startsWith(HttpConstants.PREFIX)
+                ? token.substring(HttpConstants.PREFIX.length())
+                : token;
+        return sysUserService.info(normalizedToken);
     }
 
     @Operation(summary = "新增管理员",description = "根据用户信息新增管理员")
