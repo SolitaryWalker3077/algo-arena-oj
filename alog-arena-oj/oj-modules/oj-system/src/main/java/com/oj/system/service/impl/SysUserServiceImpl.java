@@ -60,6 +60,12 @@ public class SysUserServiceImpl implements ISysUserService {
     }
 
     @Override
+    public boolean logout(String token) {
+        return tokenService.deleteLoginUser(token,secret);
+
+    }
+
+    @Override
     public Result<LoginUserVO> info(String token) {
         LoginUser loginUser = tokenService.getLoginUser(token, secret);
         if(loginUser == null) {

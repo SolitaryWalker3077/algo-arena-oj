@@ -16,3 +16,11 @@ export const userLogin = (data) => {
 export const getUserInfo = () => {
   return request.get('/system/sysuser/info')
 }
+
+/**
+ * 退出当前管理员登录态。失败时保留本地会话和当前页面，便于用户重试。
+ * @returns {Promise<void>}
+ */
+export const userLogout = () => {
+  return request.delete('/system/sysuser/logout', { skipAuthRedirect: true })
+}

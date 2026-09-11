@@ -1,6 +1,7 @@
 package com.oj.security.service;
 
 import cn.hutool.core.lang.UUID;
+import cn.hutool.log.Log;
 import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.JwtConstants;
 import com.oj.redis.service.RedisService;
@@ -59,6 +60,7 @@ public class TokenService {
         }
     }
 
+
     public LoginUser getLoginUser(String token,String secret) {
         String userKey = getUserKey(token, secret);
         if (userKey == null) {
@@ -67,6 +69,13 @@ public class TokenService {
         return redisService.getCacheObject(getTokenKey(userKey),LoginUser.class);
     }
 
+    public boolean deleteLoginUser(String token,String secret) {
+        String userKey = getUserKey(token, secret);
+        if (userKey == null) {
+            return false;
+        }
+        return redisService.deleteObject(getTokenKey(userKey));
+    }
 
     private String getTokenKey(String userKey) {
         return CacheConstants.LOGIN_TOKEN_KEY + userKey;

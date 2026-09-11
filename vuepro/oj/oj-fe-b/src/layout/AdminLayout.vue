@@ -36,11 +36,26 @@
       <header class="top-bar">
         <div class="page-title">{{ currentTitle }}</div>
         <div class="top-right">
-          <div class="user-info">
-            <span class="user-label">当前用户:</span>
-            <span class="admin-account">{{ displayName }}</span>
-          </div>
-          <div class="logout-btn" @click="logout">退出登录</div>
+          <el-dropdown
+            trigger="hover"
+            placement="bottom-end"
+            @command="handleUserCommand"
+          >
+            <div class="user-info" tabindex="0">
+              <el-icon class="user-icon"><User /></el-icon>
+              <span class="user-label">当前用户:</span>
+              <span class="admin-account">{{ displayName }}</span>
+              <el-icon class="arrow-icon"><ArrowDown /></el-icon>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout" :disabled="loggingOut">
+                  <el-icon><SwitchButton /></el-icon>
+                  退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </header>
 
@@ -49,6 +64,29 @@
         <RouterView />
       </main>
     </div>
+
+    <el-dialog
+      v-model="logoutDialogVisible"
+      title="温馨提示"
+      width="420px"
+      align-center
+      append-to-body
+      destroy-on-close
+      :show-close="!loggingOut"
+      :close-on-click-modal="!loggingOut"
+      :close-on-press-escape="!loggingOut"
+    >
+      <div class="logout-confirm-content">
+        <el-icon class="warning-icon"><WarningFilled /></el-icon>
+        <span>确定要退出当前账号吗？退出后需要重新登录。</span>
+      </div>
+      <template #footer>
+        <el-button :disabled="loggingOut" @click="cancelLogout">取消</el-button>
+        <el-button type="primary" :loading="loggingOut" @click="confirmLogout">
+          确认
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -56,8 +94,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { HomeFilled, User, Document, Trophy } from '@element-plus/icons-vue'
-import { getUserInfo } from '@/api/suser'
+import {
+  ArrowDown,
+  Document,
+  HomeFilled,
+  SwitchButton,
+  Trophy,
+  User,
+  WarningFilled,
+} from '@element-plus/icons-vue'
+import { getUserInfo, userLogout } from '@/api/suser'
 import { ACCOUNT_KEY, clearAuth } from '@/utils/auth'
 
 const route = useRoute()
@@ -66,6 +112,8 @@ const router = useRouter()
 const adminAccount = localStorage.getItem(ACCOUNT_KEY)
 const nickName = ref('')
 const displayName = computed(() => nickName.value || adminAccount || '管理员')
+const logoutDialogVisible = ref(false)
+const loggingOut = ref(false)
 
 onMounted(async () => {
   try {
@@ -91,11 +139,32 @@ const titleMap = {
 }
 const currentTitle = computed(() => titleMap[route.path] || '后台管理')
 
-// 退出登录：清除登录状态并返回登录页
-const logout = () => {
-  clearAuth()
-  ElMessage.success('已退出登录')
-  router.push('/oj/login')
+const handleUserCommand = (command) => {
+  if (command !== 'logout' || loggingOut.value) return
+  logoutDialogVisible.value = true
+}
+
+const cancelLogout = () => {
+  if (!loggingOut.value) logoutDialogVisible.value = false
+}
+
+// 仅在用户确认后请求后端；失败时由响应拦截器提示，并保留页面和本地登录态。
+const confirmLogout = async () => {
+  if (loggingOut.value) return
+
+  loggingOut.value = true
+  try {
+    await userLogout()
+    clearAuth()
+    logoutDialogVisible.value = false
+    ElMessage.success('已安全退出登录')
+    await router.replace('/oj/login')
+  } catch (error) {
+    if (!error?.handled) ElMessage.error(error?.message || '退出登录失败，请稍后重试')
+    console.error('退出登录失败：', error)
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 
@@ -180,6 +249,29 @@ const logout = () => {
         align-items: center;
         gap: 6px;
         min-width: 0;
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        outline: none;
+        transition: background-color 0.2s, color 0.2s;
+
+        &:hover,
+        &:focus-visible {
+          background: #e6f9ff;
+
+          .user-icon,
+          .arrow-icon {
+            color: #32c5ff;
+          }
+        }
+
+        .user-icon,
+        .arrow-icon {
+          flex-shrink: 0;
+          color: #999999;
+          transition: color 0.2s;
+        }
 
         .user-label {
           font-size: 14px;
@@ -196,24 +288,6 @@ const logout = () => {
           text-overflow: ellipsis;
         }
       }
-
-      .logout-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 36px;
-        padding: 0 16px;
-        background: #32c5ff;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        color: #ffffff;
-
-        &:hover {
-          opacity: 0.9;
-        }
-      }
     }
   }
 
@@ -221,6 +295,20 @@ const logout = () => {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+  }
+}
+
+.logout-confirm-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #606266;
+  line-height: 24px;
+
+  .warning-icon {
+    flex-shrink: 0;
+    font-size: 24px;
+    color: #e6a23c;
   }
 }
 </style>

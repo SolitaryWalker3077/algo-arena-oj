@@ -26,6 +26,15 @@ const removeStorage = (storage, key) => {
   }
 }
 
+const removeTokenCookie = () => {
+  if (typeof document === 'undefined') return
+  try {
+    document.cookie = `${encodeURIComponent(TOKEN_KEY)}=; Max-Age=0; path=/; SameSite=Lax`
+  } catch {
+    // Cookie 不可用时仍继续清理其他登录态
+  }
+}
+
 // 统一读取登录令牌：优先使用持久化登录态，其次使用会话登录态。
 export const getToken = () => {
   return readStorage(getStorage('localStorage'), TOKEN_KEY)
@@ -51,4 +60,5 @@ export const clearAuth = () => {
   removeStorage(sessionStorage, TOKEN_KEY)
   removeStorage(localStorage, ACCOUNT_KEY)
   removeStorage(sessionStorage, ACCOUNT_KEY)
+  removeTokenCookie()
 }

@@ -7,7 +7,13 @@ import com.oj.system.entity.dto.SysUserDto;
 public interface ISysUserService {
     Result<String> login(String userAccount, String password);
 
-    int add(SysUserDto sysUserSaveDTO);
+    boolean logout(String token);
 
     Result<LoginUserVO> info(String token);
+
+    int add(SysUserDto sysUserSaveDTO);
+
+
+
+
 }

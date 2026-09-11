@@ -5,6 +5,7 @@ import { clearAuth, getToken } from '@/utils/auth'
 import {
   attachAuthorization,
   getHttpError,
+  shouldRedirectForUnauthorized,
   UNAUTHORIZED_CODE,
   unwrapApiResponse,
 } from '@/utils/requestPolicy'
@@ -60,7 +61,11 @@ request.interceptors.request.use(
     try {
       return attachAuthorization(config, getToken())
     } catch (error) {
-      return rejectWithMessage(error, error.code === UNAUTHORIZED_CODE)
+      const unauthorized = shouldRedirectForUnauthorized(
+        error.code === UNAUTHORIZED_CODE,
+        config,
+      )
+      return rejectWithMessage(error, unauthorized)
     }
   },
   (error) => Promise.reject(error),
@@ -72,7 +77,11 @@ request.interceptors.response.use(
     try {
       return unwrapApiResponse(response)
     } catch (error) {
-      return rejectWithMessage(error, error.code === UNAUTHORIZED_CODE)
+      const unauthorized = shouldRedirectForUnauthorized(
+        error.code === UNAUTHORIZED_CODE,
+        response.config,
+      )
+      return rejectWithMessage(error, unauthorized)
     }
   },
   (error) => {
@@ -82,7 +91,8 @@ request.interceptors.response.use(
     const friendlyError = new Error(failure.message)
     friendlyError.code = failure.code
     friendlyError.cause = error
-    return rejectWithMessage(friendlyError, failure.unauthorized)
+    const unauthorized = shouldRedirectForUnauthorized(failure.unauthorized, error.config)
+    return rejectWithMessage(friendlyError, unauthorized)
   },
 )
 

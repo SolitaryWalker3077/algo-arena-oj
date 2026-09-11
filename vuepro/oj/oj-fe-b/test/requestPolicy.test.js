@@ -10,6 +10,7 @@ import {
   attachAuthorization,
   getHttpError,
   isLoginRequest,
+  shouldRedirectForUnauthorized,
   UNAUTHORIZED_CODE,
   unwrapApiResponse,
 } from '../src/utils/requestPolicy.js'
@@ -23,11 +24,18 @@ const createMemoryStorage = (initialValues = {}) => {
   }
 }
 
-test('token 优先从 localStorage 读取并可统一清理两种存储', () => {
+test('token 优先从 localStorage 读取并统一清理存储与 Cookie', () => {
   const originalWindow = globalThis.window
+  const originalDocument = globalThis.document
   const localStorage = createMemoryStorage({ [TOKEN_KEY]: 'local-token', [ACCOUNT_KEY]: 'admin' })
   const sessionStorage = createMemoryStorage({ [TOKEN_KEY]: 'session-token', [ACCOUNT_KEY]: 'admin' })
+  const cookieWrites = []
+  const document = {}
+  Object.defineProperty(document, 'cookie', {
+    set: (value) => cookieWrites.push(value),
+  })
   globalThis.window = { localStorage, sessionStorage }
+  globalThis.document = document
 
   try {
     assert.equal(getToken(), 'local-token')
@@ -38,9 +46,12 @@ test('token 优先从 localStorage 读取并可统一清理两种存储', () => 
     assert.equal(localStorage.getItem(ACCOUNT_KEY), null)
     assert.equal(sessionStorage.getItem(TOKEN_KEY), null)
     assert.equal(sessionStorage.getItem(ACCOUNT_KEY), null)
+    assert.match(cookieWrites.at(-1), new RegExp(`^${TOKEN_KEY}=.*Max-Age=0`))
   } finally {
     if (originalWindow === undefined) delete globalThis.window
     else globalThis.window = originalWindow
+    if (originalDocument === undefined) delete globalThis.document
+    else globalThis.document = originalDocument
   }
 })
 
@@ -51,6 +62,15 @@ test('非登录接口自动携带 Bearer token', () => {
   )
 
   assert.equal(config.headers.Authorization, 'Bearer valid-token')
+})
+
+test('DELETE 退出请求自动携带 Bearer token', () => {
+  const config = attachAuthorization(
+    { method: 'delete', url: '/system/sysuser/logout', headers: {} },
+    'logout-token',
+  )
+
+  assert.equal(config.headers.Authorization, 'Bearer logout-token')
 })
 
 test('登录接口不携带 token', () => {
@@ -95,5 +115,21 @@ test('HTTP 401 响应优先展示后端错误原因', () => {
     code: UNAUTHORIZED_CODE,
     message: '令牌已过期',
     unauthorized: true,
+  })
+})
+
+test('退出请求失败时保留当前页面，不触发全局未授权跳转', () => {
+  assert.equal(
+    shouldRedirectForUnauthorized(true, { skipAuthRedirect: true }),
+    false,
+  )
+  assert.equal(shouldRedirectForUnauthorized(true), true)
+})
+
+test('请求超时返回明确的用户提示', () => {
+  assert.deepEqual(getHttpError({ code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' }), {
+    code: undefined,
+    message: '请求超时，请稍后重试',
+    unauthorized: false,
   })
 })

@@ -36,15 +36,31 @@ public class SysUserController extends BaseController {
         return sysUserService.login(loginDTO.getUserAccount(),loginDTO.getPassword());
     }
 
+    //退出登录:
+    //接口地址:/system/sysuser/logout
+    @Operation(summary = "退出登录")
+    @DeleteMapping("/logout")
+    public Result<Void> logout(@RequestHeader(HttpConstants.AUTHENTICATION) String token) {
+        // 如果 token 包含指定前缀，则移除该前缀；否则保持原值
+        String normalizedToken = token.startsWith(HttpConstants.PREFIX)
+                ? token.substring(HttpConstants.PREFIX.length())
+                : token;
+        return toResult( sysUserService.logout(normalizedToken));
+    }
+
+    //获取用户信息
     //接口地址: /system/sysuser/info
     @Operation(summary = "当前管理员信息", description = "根据认证令牌获取当前管理员昵称")
     @GetMapping("/info")
     public Result<LoginUserVO> info(@RequestHeader(HttpConstants.AUTHENTICATION) String token) {
+        // 如果 token 包含指定前缀，则移除该前缀；否则保持原值
         String normalizedToken = token.startsWith(HttpConstants.PREFIX)
                 ? token.substring(HttpConstants.PREFIX.length())
                 : token;
         return sysUserService.info(normalizedToken);
     }
+
+
 
     @Operation(summary = "新增管理员",description = "根据用户信息新增管理员")
     @ApiResponse(responseCode = "1000",description = "操作成功")

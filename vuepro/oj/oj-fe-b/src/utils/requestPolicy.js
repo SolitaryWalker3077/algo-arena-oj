@@ -13,6 +13,10 @@ const normalizePath = (url = '') => {
 
 export const isLoginRequest = (config = {}) => normalizePath(config.url) === LOGIN_PATH
 
+export const shouldRedirectForUnauthorized = (unauthorized, config = {}) => {
+  return unauthorized && !config.skipAuthRedirect
+}
+
 export const createRequestError = (message, code) => {
   const error = new Error(message)
   error.code = code
@@ -44,6 +48,7 @@ export const getHttpError = (error) => {
   const status = error?.response?.status
   const data = error?.response?.data
   const backendMessage = typeof data === 'string' ? data : data?.msg || data?.message
+  const timedOut = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '')
   const fallbackMessages = {
     400: '请求参数有误，请检查后重试',
     401: '登录状态已失效，请重新登录',
@@ -56,7 +61,11 @@ export const getHttpError = (error) => {
     code: data?.code,
     message: backendMessage
       || fallbackMessages[status]
-      || (error?.response ? `请求失败（HTTP ${status}）` : '网络异常，请检查网络连接或后端服务'),
+      || (timedOut
+        ? '请求超时，请稍后重试'
+        : error?.response
+          ? `请求失败（HTTP ${status}）`
+          : '网络异常，请检查网络连接或后端服务'),
     unauthorized: status === 401 || data?.code === UNAUTHORIZED_CODE,
   }
 }
