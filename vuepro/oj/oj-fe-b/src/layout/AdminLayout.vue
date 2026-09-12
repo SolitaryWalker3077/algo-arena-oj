@@ -36,6 +36,7 @@
       <header class="top-bar">
         <div class="page-title">{{ currentTitle }}</div>
         <div class="top-right">
+          <ThemeToggle />
           <el-dropdown
             trigger="hover"
             placement="bottom-end"
@@ -105,6 +106,7 @@ import {
 } from '@element-plus/icons-vue'
 import { getUserInfo, userLogout } from '@/api/suser'
 import { ACCOUNT_KEY, clearAuth } from '@/utils/auth'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -181,8 +183,8 @@ const confirmLogout = async () => {
   flex-direction: column;
   width: 210px;
   flex-shrink: 0;
-  background: #ffffff;
-  border-right: 1px solid #f0f0f0;
+  background: var(--app-card-bg);
+  border-right: 1px solid var(--app-border-color);
 
   .logo {
     display: flex;
@@ -191,13 +193,18 @@ const confirmLogout = async () => {
     height: 64px;
     font-size: 18px;
     font-weight: 600;
-    color: #32c5ff;
-    border-bottom: 1px solid #f0f0f0;
+    color: var(--app-brand);
+    border-bottom: 1px solid var(--app-border-color);
   }
 
   .nav-menu {
     flex: 1;
     border-right: none;
+    /* 覆盖 el-menu 默认变量，使其跟随主题 token（官方暗色变量未覆盖菜单组件） */
+    --el-menu-bg-color: transparent;
+    --el-menu-hover-bg-color: transparent;
+    --el-menu-text-color: var(--app-text-regular);
+    --el-menu-active-color: var(--app-brand);
 
     :deep(.el-menu-item) {
       height: 50px;
@@ -205,13 +212,13 @@ const confirmLogout = async () => {
       font-size: 15px;
 
       &.is-active {
-        background: #e6f9ff;
-        color: #32c5ff;
+        background: var(--app-brand-active-bg);
+        color: var(--app-brand);
       }
 
       &:hover {
-        background: #f5f7fa;
-        color: #32c5ff;
+        background: var(--app-hover-bg);
+        color: var(--app-brand);
       }
     }
   }
@@ -222,7 +229,7 @@ const confirmLogout = async () => {
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  background: #f5f7fa;
+  background: var(--app-bg);
 
   .top-bar {
     display: flex;
@@ -230,13 +237,13 @@ const confirmLogout = async () => {
     justify-content: space-between;
     height: 64px;
     padding: 0 24px;
-    background: #ffffff;
-    border-bottom: 1px solid #f0f0f0;
+    background: var(--app-card-bg);
+    border-bottom: 1px solid var(--app-border-color);
 
     .page-title {
       font-size: 18px;
       font-weight: 600;
-      color: #222222;
+      color: var(--app-text-primary);
     }
 
     .top-right {
@@ -258,30 +265,30 @@ const confirmLogout = async () => {
 
         &:hover,
         &:focus-visible {
-          background: #e6f9ff;
+          background: var(--app-brand-active-bg);
 
           .user-icon,
           .arrow-icon {
-            color: #32c5ff;
+            color: var(--app-brand);
           }
         }
 
         .user-icon,
         .arrow-icon {
           flex-shrink: 0;
-          color: #999999;
+          color: var(--app-text-secondary);
           transition: color 0.2s;
         }
 
         .user-label {
           font-size: 14px;
-          color: #999999;
+          color: var(--app-text-secondary);
           white-space: nowrap;
         }
 
         .admin-account {
           font-size: 14px;
-          color: #666666;
+          color: var(--app-text-regular);
           max-width: min(220px, 30vw);
           white-space: nowrap;
           overflow: hidden;
@@ -302,13 +309,13 @@ const confirmLogout = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #606266;
+  color: var(--app-text-regular);
   line-height: 24px;
 
   .warning-icon {
     flex-shrink: 0;
     font-size: 24px;
-    color: #e6a23c;
+    color: var(--el-color-warning);
   }
 }
 </style>

@@ -1,6 +1,7 @@
 <!-- <template>标签里: 模版视图 -->
 <template>
   <div class="login-page">
+    <ThemeToggle class="login-theme-toggle" />
     <div class="orange"></div>
     <div class="blue"></div>
     <div class="blue small"></div>
@@ -48,6 +49,7 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { userLogin } from '@/api/suser'
 import { ACCOUNT_KEY, setToken } from '@/utils/auth'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -133,7 +135,7 @@ const login = async () => {
     right: 0;
     bottom: 0;
     height: 100vh;
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--login-overlay);
     z-index: 1;
     content: '';
   }
@@ -178,8 +180,9 @@ const login = async () => {
     height: 404px;
     padding: 0 72px;
     padding-top: 50px;
-    background: #FFFFFF;
-    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.1);
+    background: var(--app-card-bg);
+    box-shadow: var(--app-shadow-strong);
+    border: 1px solid var(--app-border-color);
     border-radius: 10px;
     opacity: 0.9;
     overflow: hidden;
@@ -202,7 +205,7 @@ const login = async () => {
         font-weight: 600;
         font-size: 24px;
         line-height: 33px;
-        color: #222222;
+        color: var(--app-text-primary);
       }
 
       .sys-sub-name {
@@ -211,7 +214,7 @@ const login = async () => {
         font-weight: 400;
         font-size: 16px;
         line-height: 22px;
-        color: #222222;
+        color: var(--app-text-primary);
       }
     }
 
@@ -223,7 +226,7 @@ const login = async () => {
         width: 456px;
         height: 48px;
         margin-bottom: 30px;
-        background: #F8F8F8;
+        background: var(--app-input-bg);
         border-radius: 8px;
 
         .code-btn-box {
@@ -235,7 +238,7 @@ const login = async () => {
           justify-content: center;
           width: 151px;
           height: 48px;
-          background: #32C5FF;
+          background: var(--app-brand);
           border-radius: 8px;
           cursor: pointer;
 
@@ -258,7 +261,7 @@ const login = async () => {
           font-size: 14px;
           line-height: 20px;
           text-align: right;
-          color: #FD4C40;
+          color: var(--app-danger);
 
           &.bottom {
             right: 157px;
@@ -270,7 +273,7 @@ const login = async () => {
           font-family: PingFangSC, PingFang SC;
           font-weight: 400;
           font-size: 16px;
-          color: #222222;
+          color: var(--app-text-primary);
         }
 
         .el-input__wrapper {
@@ -295,7 +298,7 @@ const login = async () => {
         width: 456px;
         height: 48px;
         margin-top: 90px;
-        background: #32C5FF;
+        background: var(--app-brand);
         border-radius: 8px;
         cursor: pointer;
         font-family: PingFangSC, PingFang SC;
@@ -311,5 +314,13 @@ const login = async () => {
       }
     }
   }
+}
+
+/* 主题切换：固定在登录页右上角，层级高于遮罩与登录卡片 */
+.login-theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 10;
 }
 </style>

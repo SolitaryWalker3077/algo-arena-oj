@@ -1,0 +1,240 @@
+<template>
+  <div class="theme-toggle">
+    <el-dropdown
+      ref="dropdownRef"
+      trigger="click"
+      placement="bottom-end"
+      popper-class="theme-toggle__popper"
+      @visible-change="onVisibleChange"
+    >
+      <button
+        ref="triggerRef"
+        type="button"
+        class="theme-toggle__btn"
+        :aria-label="triggerAriaLabel"
+        :title="triggerAriaLabel"
+        aria-haspopup="menu"
+        :aria-expanded="open"
+      >
+        <el-icon :size="18">
+          <component :is="triggerIcon" />
+        </el-icon>
+      </button>
+      <template #dropdown>
+        <!-- 原生语义菜单：el-dropdown-item 会将 role 硬编码为 menuitem，无法表达单选语义 -->
+        <div class="theme-toggle__menu" role="menu" aria-label="选择主题模式" @keydown="onMenuKeydown">
+          <button
+            v-for="opt in options"
+            :key="opt.value"
+            type="button"
+            role="menuitemradio"
+            :aria-checked="themeMode === opt.value"
+            :class="['theme-toggle__menu-item', { 'is-active': themeMode === opt.value }]"
+            @click="handleSelect(opt.value)"
+          >
+            <el-icon class="theme-toggle__option-icon">
+              <component :is="opt.icon" />
+            </el-icon>
+            <span class="theme-toggle__option-label">{{ opt.label }}</span>
+            <el-icon v-if="themeMode === opt.value" class="theme-toggle__check" aria-hidden="true">
+              <Check />
+            </el-icon>
+          </button>
+        </div>
+      </template>
+    </el-dropdown>
+    <!-- 屏幕阅读器状态播报：模式切换及系统主题变化时朗读 -->
+    <span class="sr-only" role="status" aria-live="polite">{{ liveMessage }}</span>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { Sunny, Moon, Monitor, Check } from '@element-plus/icons-vue'
+import { useTheme, THEME_MODE } from '@/utils/theme'
+
+const { themeMode, effectiveTheme, setThemeMode } = useTheme()
+
+const dropdownRef = ref(null)
+const triggerRef = ref(null)
+const open = ref(false)
+const liveMessage = ref('')
+
+const options = [
+  { value: THEME_MODE.LIGHT, label: '浅色模式', icon: Sunny },
+  { value: THEME_MODE.DARK, label: '深色模式', icon: Moon },
+  { value: THEME_MODE.SYSTEM, label: '跟随系统', icon: Monitor },
+]
+
+const labelOf = (value) => options.find((o) => o.value === value)?.label || ''
+const effectiveLabel = computed(() => (effectiveTheme.value === THEME_MODE.DARK ? '深色' : '浅色'))
+
+// 触发按钮图标：跟随系统时显示显示器图标，明确区分三态
+const triggerIcon = computed(() => {
+  if (themeMode.value === THEME_MODE.SYSTEM) return Monitor
+  return effectiveTheme.value === THEME_MODE.DARK ? Moon : Sunny
+})
+
+const triggerAriaLabel = computed(() => (
+  themeMode.value === THEME_MODE.SYSTEM
+    ? `主题切换，当前为跟随系统，实际为${effectiveLabel.value}模式`
+    : `主题切换，当前为${labelOf(themeMode.value)}`
+))
+
+const announce = (mode) => {
+  liveMessage.value = mode === THEME_MODE.SYSTEM
+    ? `已设置为跟随系统，当前实际为${effectiveLabel.value}模式`
+    : `已切换为${labelOf(mode)}`
+}
+
+const handleSelect = (mode) => {
+  setThemeMode(mode)
+  announce(mode)
+  // 自定义菜单内容不会被 el-dropdown 自动关闭
+  dropdownRef.value?.handleClose?.()
+}
+
+const onVisibleChange = (visible) => {
+  open.value = visible
+  if (visible) {
+    // 打开后将焦点移至当前选中项，保证键盘/读屏用户可直接操作；
+    // 等待 popper 进入动画使菜单可见后再聚焦
+    setTimeout(() => {
+      const menus = document.querySelectorAll('.theme-toggle__menu')
+      for (let m = 0; m < menus.length; m++) {
+        if (menus[m].offsetParent === null) continue
+        const target = menus[m].querySelector('.is-active') || menus[m].querySelector('.theme-toggle__menu-item')
+        target?.focus()
+        break
+      }
+    }, 80)
+  }
+}
+
+// 标准菜单键盘交互：Esc 关闭并回焦触发按钮，方向键/Home/End 循环移动
+const onMenuKeydown = (e) => {
+  const menu = e.currentTarget
+  const items = Array.from(menu.querySelectorAll('.theme-toggle__menu-item'))
+  const index = items.indexOf(document.activeElement)
+
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    dropdownRef.value?.handleClose?.()
+    triggerRef.value?.focus()
+    return
+  }
+
+  let next = -1
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = (index + 1 + items.length) % items.length
+  if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = (index - 1 + items.length) % items.length
+  if (e.key === 'Home') next = 0
+  if (e.key === 'End') next = items.length - 1
+
+  if (next >= 0) {
+    e.preventDefault()
+    items[next]?.focus()
+  }
+}
+
+// 跟随系统模式下，操作系统主题变化时播报实际生效结果
+watch(effectiveTheme, (current, previous) => {
+  if (themeMode.value === THEME_MODE.SYSTEM && previous) {
+    liveMessage.value = `系统主题已变更，当前实际为${current === THEME_MODE.DARK ? '深色' : '浅色'}模式`
+  }
+})
+</script>
+
+<style lang="scss" scoped>
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--app-text-regular);
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      background: var(--app-hover-bg);
+      color: var(--app-brand);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--app-brand);
+      outline-offset: 1px;
+    }
+  }
+}
+</style>
+
+<!-- 下拉层被 teleport 到 body，需使用非 scoped 样式，统一用 popper-class 命名空间隔离 -->
+<style lang="scss">
+.theme-toggle__popper {
+  // 清除 el-dropdown 默认 popper 背景/内边距，面板样式由内部自定义菜单提供
+  background: transparent !important;
+  border: none !important;
+}
+
+.theme-toggle__menu {
+  min-width: 168px;
+  padding: 6px;
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-border-color);
+  border-radius: 10px;
+  box-shadow: var(--app-shadow-strong);
+
+  .theme-toggle__menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--app-text-regular);
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    .theme-toggle__option-label {
+      flex: 1;
+    }
+
+    .theme-toggle__check {
+      color: var(--app-brand);
+    }
+
+    &:hover {
+      background: var(--app-hover-bg);
+      color: var(--app-brand);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--app-brand);
+      outline-offset: -2px;
+    }
+
+    &.is-active {
+      color: var(--app-brand);
+      font-weight: 600;
+    }
+  }
+}
+</style>

@@ -1,0 +1,118 @@
+/* ============================================================
+ * 全站主题设计 token（设计 token 层）
+ * 组件样式只消费这些语义变量；Element Plus 组件由其官方
+ * dark/css-vars.css（html.dark 作用域）自动适配。
+ * ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* 背景层级：页面底 → 卡片/侧栏/顶栏 → 悬浮填充 */
+  --app-bg: #f5f7fa;
+  --app-card-bg: #ffffff;
+  --app-hover-bg: #f5f7fa;
+  --app-input-bg: #f8f8f8;
+
+  /* 边框 / 分隔线 */
+  --app-border-color: #f0f0f0;
+
+  /* 三级文本 */
+  --app-text-primary: #222222;
+  --app-text-regular: #666666;
+  --app-text-secondary: #999999;
+
+  /* 品牌色及其浅底（选中菜单等） */
+  --app-brand: #32c5ff;
+  --app-brand-active-bg: #e6f9ff;
+
+  /* 语义色 */
+  --app-danger: #fd4c40;
+
+  /* 阴影 / 遮罩 */
+  --app-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.08);
+  --app-shadow-strong: 0px 0px 6px 0px rgba(0, 0, 0, 0.1);
+  --login-overlay: rgba(255, 255, 255, 0.8);
+
+  /* 主题切换过渡时长（JS 挂载过渡类的时机需与此保持一致） */
+  --app-theme-duration: 0.35s;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  /* 背景层级：页面底 #141414（与 EP 深色主背景一致），卡片用 overlay 色抬升 */
+  --app-bg: #141414;
+  --app-card-bg: #1d1e1f;
+  --app-hover-bg: #262727;
+  --app-input-bg: #262727;
+
+  /* 与 Element Plus 深色边框体系对齐的细发丝线 */
+  --app-border-color: #2b2b2c;
+
+  /* 与 Element Plus 深色文本体系对齐，保证对比度 */
+  --app-text-primary: #e5eaf3;
+  --app-text-regular: #cfd3dc;
+  --app-text-secondary: #a3a6ad;
+
+  /* 品牌色在深色底上保持高识别度，浅底改为低透明蓝 */
+  --app-brand: #40c9ff;
+  --app-brand-active-bg: rgba(64, 201, 255, 0.14);
+
+  --app-danger: #ff6b61;
+
+  --app-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.45);
+  --app-shadow-strong: 0px 0px 8px 0px rgba(0, 0, 0, 0.5);
+  --login-overlay: rgba(10, 12, 15, 0.82);
+}
+
+/* 基础页面对齐 token，body 自身常驻过渡（属性少、成本低） */
+html,
+body {
+  background-color: var(--app-bg);
+}
+
+body {
+  color: var(--app-text-primary);
+  transition:
+    background-color var(--app-theme-duration) ease,
+    color var(--app-theme-duration) ease;
+}
+
+/* ============================================================
+ * 切换动画：仅在用户/系统触发切换时由 JS 临时挂载 .theme-transition
+ * （约 400ms 后移除），只过渡颜色类属性，避免常驻全局 * 过渡
+ * 对 hover/滚动/拖拽等场景造成绘制负担。
+ * ============================================================ */
+html.theme-transition body,
+html.theme-transition body * {
+  transition:
+    background-color var(--app-theme-duration) ease,
+    border-color var(--app-theme-duration) ease,
+    color var(--app-theme-duration) ease,
+    fill var(--app-theme-duration) ease,
+    box-shadow var(--app-theme-duration) ease !important;
+}
+
+/* 用户明确要求减少动态效果时，关闭主题过渡 */
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition body,
+  html.theme-transition body * {
+    transition: none !important;
+  }
+  body {
+    transition: none;
+  }
+}
+
+/* 屏幕阅读器专用：视觉隐藏但可被辅助技术朗读（主题状态播报等） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

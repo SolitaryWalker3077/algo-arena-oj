@@ -378,7 +378,8 @@ onMounted(async () => {
     justify-content: space-between;
     gap: 12px;
     padding: 16px 20px;
-    background: #ffffff;
+    background: var(--app-card-bg);
+    border: 1px solid var(--app-border-color);
     border-radius: 8px;
     margin-bottom: 16px;
 
@@ -414,13 +415,14 @@ onMounted(async () => {
 
     .result-count {
       font-size: 14px;
-      color: #666666;
+      color: var(--app-text-regular);
     }
   }
 
   .table-card {
     padding: 16px;
-    background: #ffffff;
+    background: var(--app-card-bg);
+    border: 1px solid var(--app-border-color);
     border-radius: 8px;
 
     .error-box {

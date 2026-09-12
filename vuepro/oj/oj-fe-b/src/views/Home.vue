@@ -21,27 +21,28 @@ const adminAccount = localStorage.getItem('adminAccount')
 
   .welcome-card {
     padding: 48px 40px;
-    background: #ffffff;
+    background: var(--app-card-bg);
+    border: 1px solid var(--app-border-color);
     border-radius: 12px;
-    box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--app-shadow);
     text-align: center;
 
     .title {
       font-size: 24px;
       font-weight: 600;
-      color: #222222;
+      color: var(--app-text-primary);
       margin-bottom: 24px;
     }
 
     .welcome {
       font-size: 18px;
-      color: #32c5ff;
+      color: var(--app-brand);
       margin-bottom: 12px;
     }
 
     .tip {
       font-size: 14px;
-      color: #999999;
+      color: var(--app-text-secondary);
     }
   }
 }

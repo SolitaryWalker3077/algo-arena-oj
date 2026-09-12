@@ -53,13 +53,14 @@ const contestList = ref([])
 
   .table-card {
     padding: 16px;
-    background: #ffffff;
+    background: var(--app-card-bg);
+    border: 1px solid var(--app-border-color);
     border-radius: 8px;
 
     .empty-tip {
       padding: 40px 0;
       text-align: center;
-      color: #999999;
+      color: var(--app-text-secondary);
       font-size: 14px;
     }
   }
