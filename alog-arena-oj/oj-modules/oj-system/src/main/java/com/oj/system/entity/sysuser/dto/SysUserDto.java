@@ -1,4 +1,4 @@
-package com.oj.system.entity.dto;
+package com.oj.system.entity.sysuser.dto;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;

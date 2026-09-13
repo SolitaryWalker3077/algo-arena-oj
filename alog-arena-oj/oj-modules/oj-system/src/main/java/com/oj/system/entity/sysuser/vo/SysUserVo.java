@@ -1,4 +1,4 @@
-package com.oj.system.entity.vo;
+package com.oj.system.entity.sysuser.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

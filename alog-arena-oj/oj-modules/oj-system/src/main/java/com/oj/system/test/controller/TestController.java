@@ -1,7 +1,7 @@
 package com.oj.system.test.controller;
 
 import com.oj.redis.service.RedisService;
-import com.oj.system.entity.SysUserInfo;
+import com.oj.system.entity.sysuser.SysUserInfo;
 import com.oj.system.test.entity.ValidationDTO;
 import com.oj.system.test.service.ITestService;
 import lombok.extern.slf4j.Slf4j;

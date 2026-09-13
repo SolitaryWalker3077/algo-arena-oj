@@ -1,4 +1,4 @@
-package com.oj.system.entity.dto;
+package com.oj.system.entity.sysuser.dto;
 
 import lombok.Data;
 

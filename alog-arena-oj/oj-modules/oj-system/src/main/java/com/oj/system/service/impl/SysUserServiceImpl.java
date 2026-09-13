@@ -9,8 +9,8 @@ import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
 import com.oj.security.expection.ServiceException;
 import com.oj.security.service.TokenService;
-import com.oj.system.entity.SysUserInfo;
-import com.oj.system.entity.dto.SysUserDto;
+import com.oj.system.entity.sysuser.SysUserInfo;
+import com.oj.system.entity.sysuser.dto.SysUserDto;
 import com.oj.system.mapper.SysUserMapper;
 import com.oj.system.service.ISysUserService;
 import com.oj.system.utils.BCryptUtils;
@@ -19,8 +19,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 
 @Service
