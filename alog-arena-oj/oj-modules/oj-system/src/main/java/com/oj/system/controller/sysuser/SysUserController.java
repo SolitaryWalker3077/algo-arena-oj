@@ -1,4 +1,4 @@
-package com.oj.system.controller;
+package com.oj.system.controller.sysuser;
 
 import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
@@ -7,7 +7,7 @@ import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.system.entity.sysuser.dto.LoginDto;
 import com.oj.system.entity.sysuser.dto.SysUserDto;
 import com.oj.system.entity.sysuser.vo.SysUserVo;
-import com.oj.system.service.ISysUserService;
+import com.oj.system.service.sysuser.ISysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;

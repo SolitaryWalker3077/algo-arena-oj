@@ -1,4 +1,4 @@
-package com.oj.system.service.impl;
+package com.oj.system.service.sysuser.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -11,8 +11,8 @@ import com.oj.security.expection.ServiceException;
 import com.oj.security.service.TokenService;
 import com.oj.system.entity.sysuser.SysUserInfo;
 import com.oj.system.entity.sysuser.dto.SysUserDto;
-import com.oj.system.mapper.SysUserMapper;
-import com.oj.system.service.ISysUserService;
+import com.oj.system.mapper.sysuser.SysUserMapper;
+import com.oj.system.service.sysuser.ISysUserService;
 import com.oj.system.utils.BCryptUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,4 +1,4 @@
-package com.oj.system.service;
+package com.oj.system.service.sysuser;
 
 import com.oj.common.entity.Result;
 import com.oj.common.entity.vo.LoginUserVO;
