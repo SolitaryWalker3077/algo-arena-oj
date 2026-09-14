@@ -196,7 +196,6 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Refresh, Edit, Delete, Files } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
-import { keepPageInRange } from '@/utils/pagination'
 import {
   getProblemPage,
   addProblem,
@@ -323,8 +322,8 @@ const handleReset = () => {
 }
 
 const handlePageChange = () => loadProblems()
-const handleSizeChange = (size) => {
-  pagination.current = keepPageInRange(pagination.current, total.value, size)
+const handleSizeChange = () => {
+  pagination.current = 1
   loadProblems()
 }
 

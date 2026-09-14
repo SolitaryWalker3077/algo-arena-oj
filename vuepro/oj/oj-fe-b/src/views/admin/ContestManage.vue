@@ -184,7 +184,6 @@ import { computed, ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Refresh, Edit, Delete, Trophy } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
-import { keepPageInRange } from '@/utils/pagination'
 
 // ======================== 竞赛状态字典 ========================
 const STATUS_NOT_STARTED = 0
@@ -251,13 +250,9 @@ const pagedContests = computed(() => {
   return filteredContests.value.slice(start, start + pagination.size)
 })
 
-// 每页条数变化后立即重算分页，当前页仍有效时保持不变。
-const handleSizeChange = (size) => {
-  pagination.current = keepPageInRange(
-    pagination.current,
-    filteredContests.value.length,
-    size,
-  )
+// 每页条数变化后回到首页，pagedContests 会立即重新计算。
+const handleSizeChange = () => {
+  pagination.current = 1
 }
 
 const handleSearch = () => {

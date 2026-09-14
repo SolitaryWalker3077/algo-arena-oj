@@ -279,7 +279,6 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, View, Edit, Lock, Unlock, Refresh, User } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
-import { keepPageInRange } from '@/utils/pagination'
 import {
   getUserPage,
   addUser,
@@ -407,8 +406,8 @@ const handleSortChange = ({ prop, order }) => {
 }
 
 const handlePageChange = () => loadUsers()
-const handleSizeChange = (size) => {
-  pagination.current = keepPageInRange(pagination.current, total.value, size)
+const handleSizeChange = () => {
+  pagination.current = 1
   loadUsers()
 }
 

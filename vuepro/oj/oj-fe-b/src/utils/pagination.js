@@ -28,14 +28,3 @@ export function normalizePageSize(
   }
   return number
 }
-
-/** 切换每页条数时保留当前页；仅当页码超出新范围时回退到最后一页。 */
-export function keepPageInRange(currentPage, total, pageSize) {
-  const size = normalizePageSize(pageSize)
-  const normalizedCurrent = Number.isInteger(Number(currentPage))
-    ? Math.max(1, Number(currentPage))
-    : 1
-  const normalizedTotal = Number.isFinite(Number(total)) ? Math.max(0, Number(total)) : 0
-  const lastPage = Math.max(1, Math.ceil(normalizedTotal / size))
-  return Math.min(normalizedCurrent, lastPage)
-}
