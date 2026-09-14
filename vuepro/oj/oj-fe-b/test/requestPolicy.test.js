@@ -64,6 +64,15 @@ test('非登录接口自动携带 Bearer token', () => {
   assert.equal(config.headers.Authorization, 'Bearer valid-token')
 })
 
+test('题目列表请求自动携带 Bearer token', () => {
+  const config = attachAuthorization(
+    { method: 'get', url: '/system/question/list', headers: {} },
+    'problem-list-token',
+  )
+
+  assert.equal(config.headers.Authorization, 'Bearer problem-list-token')
+})
+
 test('DELETE 退出请求自动携带 Bearer token', () => {
   const config = attachAuthorization(
     { method: 'delete', url: '/system/sysuser/logout', headers: {} },
@@ -94,6 +103,17 @@ test('成功响应提取用户昵称数据', () => {
   })
 
   assert.deepEqual(data, { nickName: '算法管理员' })
+})
+
+test('成功的 TableDataInfo 分页响应保留 rows 和 total', () => {
+  const table = {
+    code: 1000,
+    msg: '操作成功',
+    rows: [{ questionId: '1967421155619463169' }],
+    total: 1,
+  }
+
+  assert.deepEqual(unwrapApiResponse({ status: 200, data: table }), table)
 })
 
 test('token 过期的业务响应保留后端原因并标记未授权', () => {

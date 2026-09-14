@@ -10,7 +10,7 @@
             tq.title,
             tq.difficult,
             ts.nick_name as create_name,
-            tq.create_time
+            tq.create_time AS createTime
         FROM
             tb_question tq
         left join
@@ -26,6 +26,6 @@
             </if>
         </where>
         ORDER BY
-        create_time DESC
+        tq.create_time DESC
     </select>
 </mapper>

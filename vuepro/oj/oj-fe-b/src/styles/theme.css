@@ -33,6 +33,11 @@
   --app-shadow-strong: 0px 0px 6px 0px rgba(0, 0, 0, 0.1);
   --login-overlay: rgba(255, 255, 255, 0.8);
 
+  /* 卡片 / 控件 */
+  --app-radius: 10px;
+  --app-table-header-bg: #f8fafc;
+  --app-loading-mask: rgba(245, 247, 250, 0.72);
+
   /* 主题切换过渡时长（JS 挂载过渡类的时机需与此保持一致） */
   --app-theme-duration: 0.35s;
 }
@@ -63,6 +68,10 @@ html.dark {
   --app-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.45);
   --app-shadow-strong: 0px 0px 8px 0px rgba(0, 0, 0, 0.5);
   --login-overlay: rgba(10, 12, 15, 0.82);
+
+  --app-radius: 10px;
+  --app-table-header-bg: #1a1b1c;
+  --app-loading-mask: rgba(20, 20, 20, 0.6);
 }
 
 /* 基础页面对齐 token，body 自身常驻过渡（属性少、成本低） */
@@ -115,4 +124,59 @@ html.theme-transition body * {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ============================================================
+   管理后台列表统一视觉：表格头/行悬浮/空态
+   （全局普通选择器，避免 :deep 构建差异；Element Plus 暗色
+    变量在 html.dark 下继续提供表格底色与文字色）
+   ============================================================ */
+.el-table {
+  --el-table-header-bg-color: var(--app-table-header-bg);
+  --el-table-tr-hover-bg-color: var(--app-hover-bg);
+  --el-table-row-hover-bg-color: var(--app-hover-bg);
+  --el-table-border-color: var(--app-border-color);
+}
+
+.el-table th.el-table__cell {
+  color: var(--app-text-secondary);
+  font-weight: 600;
+}
+
+/* 三个管理模块统一的“无数据”空态（加载失败与空数据共用，视觉中性不误导） */
+.app-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.app-table-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 12px;
+  font-size: 38px;
+  color: var(--app-text-secondary);
+  background: var(--app-hover-bg);
+  border-radius: 50%;
+}
+
+.app-table-empty__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-text-regular);
+}
+
+.app-table-empty__desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--app-text-secondary);
 }

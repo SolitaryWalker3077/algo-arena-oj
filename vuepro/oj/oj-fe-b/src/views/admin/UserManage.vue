@@ -40,8 +40,8 @@
       <div class="toolbar-left">
         <span class="result-count">共 {{ total }} 条</span>
         <el-tooltip content="刷新数据" placement="top">
-          <el-button circle size="small" @click="loadUsers({ force: true })">
-            <el-icon><Refresh /></el-icon>
+          <el-button circle size="small" :loading="loading" @click="loadUsers({ force: true })">
+            <el-icon v-if="!loading"><Refresh /></el-icon>
           </el-button>
         </el-tooltip>
       </div>
@@ -54,9 +54,11 @@
     <!-- 表格 -->
     <div class="table-card">
       <el-table
-        v-if="!(loadError && !userList.length)"
+        class="manage-table"
         :data="userList"
         v-loading="loading"
+        element-loading-text="数据加载中…"
+        element-loading-background="var(--app-loading-mask)"
         stripe
         border
         style="width: 100%"
@@ -65,17 +67,29 @@
         <el-table-column prop="id" label="用户ID" width="190" sortable="custom" align="center" />
         <el-table-column prop="userAccount" label="用户账号" width="140" sortable="custom" show-overflow-tooltip />
         <el-table-column prop="userName" label="用户昵称" width="120" sortable="custom" show-overflow-tooltip />
-        <el-table-column prop="phone" label="手机号" width="130" />
-        <el-table-column prop="email" label="邮箱" width="200" show-overflow-tooltip />
-        <el-table-column prop="wechatId" label="微信号" width="130" show-overflow-tooltip />
+        <el-table-column prop="phone" label="手机号" width="130">
+          <template #default="{ row }">
+            <span :class="{ 'cell-empty': !row.phone }">{{ row.phone || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="email" label="邮箱" width="200" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span :class="{ 'cell-empty': !row.email }">{{ row.email || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="wechatId" label="微信号" width="130" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span :class="{ 'cell-empty': !row.wechatId }">{{ row.wechatId || '—' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="学校/专业" width="200" show-overflow-tooltip>
           <template #default="{ row }">
-            {{ row.school }} / {{ row.major }}
+            <span :class="{ 'cell-empty': !formatSchoolMajor(row) }">{{ formatSchoolMajor(row) || '—' }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="intro" label="个人介绍" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
-            <span class="intro-text">{{ row.intro }}</span>
+            <span class="intro-text" :class="{ 'cell-empty': !row.intro }">{{ row.intro || '—' }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="用户状态" width="100" align="center" sortable="custom">
@@ -115,30 +129,36 @@
         </el-table-column>
 
         <template #empty>
-          <el-empty description="暂无用户数据" />
+          <div class="app-table-empty">
+            <div class="app-table-empty__icon">
+              <el-icon :size="36"><User /></el-icon>
+            </div>
+            <p class="app-table-empty__title">暂无用户数据</p>
+            <p class="app-table-empty__desc">
+              {{ loadError ? '数据暂时无法获取，请检查网络后点击刷新重试' : '当前条件下还没有用户数据' }}
+            </p>
+            <el-button type="primary" plain :icon="Refresh" :loading="loading" @click="retryLoad">
+              刷新重试
+            </el-button>
+          </div>
         </template>
       </el-table>
 
-      <!-- 加载失败且无缓存数据时的错误态：可重试 -->
-      <div v-else class="error-box">
-        <el-result icon="error" title="数据加载失败" sub-title="无法获取用户数据，请确认后端用户服务已启动">
-          <template #extra>
-            <el-button type="primary" @click="retryLoad">重新加载</el-button>
-          </template>
-        </el-result>
-      </div>
-
-      <!-- 分页（服务端分页：参数随查询一起下发） -->
+      <!-- 分页（服务端分页）：自定义每页条数控件 + 页码导航 -->
       <div class="pagination-box">
+        <PageSizeSelector
+          v-model="pagination.size"
+          :disabled="loading"
+          @change="handleSizeChange"
+        />
         <el-pagination
           v-model:current-page="pagination.current"
           v-model:page-size="pagination.size"
           :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="prev, pager, next, jumper"
           background
-          small
-          @size-change="handleSizeChange"
+          size="small"
+          :disabled="loading"
           @current-change="handlePageChange"
         />
       </div>
@@ -239,13 +259,13 @@
             {{ detailData.status === 1 ? '启用' : '禁用' }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="手机号">{{ detailData.phone }}</el-descriptions-item>
-        <el-descriptions-item label="邮箱">{{ detailData.email }}</el-descriptions-item>
-        <el-descriptions-item label="微信号">{{ detailData.wechatId }}</el-descriptions-item>
-        <el-descriptions-item label="学校">{{ detailData.school }}</el-descriptions-item>
-        <el-descriptions-item label="专业">{{ detailData.major }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detailData.createTime }}</el-descriptions-item>
-        <el-descriptions-item label="个人介绍" :span="2">{{ detailData.intro }}</el-descriptions-item>
+        <el-descriptions-item label="手机号">{{ detailData.phone || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="邮箱">{{ detailData.email || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="微信号">{{ detailData.wechatId || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="学校">{{ detailData.school || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="专业">{{ detailData.major || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detailData.createTime || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="个人介绍" :span="2">{{ detailData.intro || '—' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
@@ -257,7 +277,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, View, Edit, Lock, Unlock, Refresh } from '@element-plus/icons-vue'
+import { Search, Plus, View, Edit, Lock, Unlock, Refresh, User } from '@element-plus/icons-vue'
+import PageSizeSelector from '@/components/PageSizeSelector.vue'
+import { keepPageInRange } from '@/utils/pagination'
 import {
   getUserPage,
   addUser,
@@ -326,8 +348,9 @@ const loadError = ref(false)
  * 加载用户列表（stale-while-revalidate）：
  * - 命中新鲜缓存：直接用缓存，不发请求；
  * - 命中过期缓存：先渲染旧数据（不闪 loading），后台静默拉取最新数据；
- * - 无缓存：显示表格 loading 骨架；
- * - 请求失败且无旧数据：展示错误态 + 重新加载按钮（有旧数据时保留旧数据，错误提示由拦截器统一弹出）。
+ * - 无缓存：显示表格 loading 遮罩；
+ * - 请求失败且无旧数据：清空列表，由表格 #empty 统一呈现“暂无用户数据”+ 刷新重试
+ *   （有旧数据时保留旧数据；瞬时网络提示由 request 拦截器统一弹出）。
  */
 const loadUsers = async ({ force = false } = {}) => {
   const query = buildQuery()
@@ -360,6 +383,10 @@ const loadUsers = async ({ force = false } = {}) => {
 
 const retryLoad = () => loadUsers({ force: true })
 
+// 学校/专业组合展示：任一字段缺失时优雅降级，避免出现 “ / ” 空组合
+const formatSchoolMajor = (row) =>
+  [row.school, row.major].filter((v) => v !== '' && v != null).join(' / ')
+
 // ======================== 搜索 / 排序 / 分页事件 ========================
 const handleSearch = () => {
   pagination.current = 1
@@ -380,8 +407,8 @@ const handleSortChange = ({ prop, order }) => {
 }
 
 const handlePageChange = () => loadUsers()
-const handleSizeChange = () => {
-  pagination.current = 1
+const handleSizeChange = (size) => {
+  pagination.current = keepPageInRange(pagination.current, total.value, size)
   loadUsers()
 }
 
@@ -512,7 +539,8 @@ onMounted(() => {
     padding: 16px 20px;
     background: var(--app-card-bg);
     border: 1px solid var(--app-border-color);
-    border-radius: 8px;
+    border-radius: var(--app-radius);
+    box-shadow: var(--app-shadow);
     margin-bottom: 16px;
 
     .search-fields {
@@ -546,8 +574,14 @@ onMounted(() => {
     }
 
     .result-count {
-      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 10px;
+      font-size: 13px;
       color: var(--app-text-regular);
+      background: var(--app-hover-bg);
+      border-radius: 12px;
     }
   }
 
@@ -555,7 +589,13 @@ onMounted(() => {
     padding: 16px;
     background: var(--app-card-bg);
     border: 1px solid var(--app-border-color);
-    border-radius: 8px;
+    border-radius: var(--app-radius);
+    box-shadow: var(--app-shadow);
+
+    // 首次加载时保持表格区域高度稳定，避免空白/跳动
+    :deep(.manage-table .el-table__inner-wrapper) {
+      min-height: 360px;
+    }
 
     .intro-text {
       display: -webkit-box;
@@ -564,26 +604,35 @@ onMounted(() => {
       overflow: hidden;
     }
 
-    .error-box {
-      padding: 20px 0;
+    .cell-empty {
+      color: var(--app-text-secondary);
     }
 
     .pagination-box {
       display: flex;
-      justify-content: flex-end;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
       margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--app-border-color);
+
     }
   }
 }
 
-/* 响应式：小屏适配 */
+/* 响应式：小屏适配（表格横向滚动，操作列固定右侧，关键信息优先可见） */
 @media screen and (max-width: 768px) {
   .user-manage {
     .search-bar {
       flex-direction: column;
       align-items: stretch;
+      padding: 12px;
 
       .search-fields {
+        flex-direction: column;
+
         .search-item {
           width: 100%;
         }
@@ -592,6 +641,17 @@ onMounted(() => {
       .search-actions {
         justify-content: flex-end;
       }
+    }
+
+    .table-card {
+      padding: 12px;
+    }
+
+    .pagination-box {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+
     }
   }
 }

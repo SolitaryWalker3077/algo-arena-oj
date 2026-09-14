@@ -39,19 +39,23 @@ export const isUserPageCacheFresh = (params) => userPageCache.isFresh(cacheKeyOf
  * - 若后端字段名不同（如 wechat_no、introduction），只在此处改映射即可。
  */
 export function mapUserFromApi(raw = {}) {
+  // 兼容后端不同命名：userId/id、nickName/userName、mobile/phone、userStatus/status 等
+  const rawStatus = raw.status ?? raw.userStatus ?? raw.state
   return {
-    id: raw.id == null ? '' : String(raw.id),
-    userAccount: raw.userAccount ?? '',
-    userName: raw.userName ?? '',
-    phone: raw.phone ?? '',
-    email: raw.email ?? '',
+    id: raw.id == null
+      ? (raw.userId == null ? '' : String(raw.userId))
+      : String(raw.id),
+    userAccount: raw.userAccount ?? raw.account ?? '',
+    userName: raw.userName ?? raw.nickName ?? raw.nickname ?? '',
+    phone: raw.phone ?? raw.mobile ?? raw.telephone ?? '',
+    email: raw.email ?? raw.mail ?? '',
     // 例：后端若叫 wechat，这里统一收口映射为 wechatId
-    wechatId: raw.wechatId ?? raw.wechat ?? '',
+    wechatId: raw.wechatId ?? raw.wechat ?? raw.wechatNo ?? '',
     school: raw.school ?? '',
     major: raw.major ?? '',
-    intro: raw.intro ?? '',
-    status: Number(raw.status ?? 1),
-    createTime: raw.createTime ?? '',
+    intro: raw.intro ?? raw.introduction ?? raw.description ?? '',
+    status: Number(rawStatus ?? 1),
+    createTime: raw.createTime ?? raw.gmtCreate ?? '',
   }
 }
 

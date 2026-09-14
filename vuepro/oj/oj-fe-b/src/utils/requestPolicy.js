@@ -35,9 +35,16 @@ export const attachAuthorization = (config, token) => {
 }
 
 // 后端统一返回 Result { code, msg, data }；业务失败即使 HTTP 为 2xx 也按失败处理。
+// 分页列表（如题目管理）返回 TableDataInfo { code, msg, rows, total }（无 data 字段），
+// 此时整体返回，由 API 层 normalizeXxxPage 归一化。
 export const unwrapApiResponse = (response) => {
   const result = response?.data
-  if (result?.code === SUCCESS_CODE) return result.data
+  if (result?.code === SUCCESS_CODE) {
+    if (result.data === undefined && Array.isArray(result.rows) && 'total' in result) {
+      return result
+    }
+    return result.data
+  }
 
   const error = createRequestError(result?.msg || '操作失败，请稍后重试', result?.code)
   error.response = response
