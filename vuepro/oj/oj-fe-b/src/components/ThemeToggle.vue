@@ -22,7 +22,7 @@
       </button>
       <template #dropdown>
         <!-- 原生语义菜单：el-dropdown-item 会将 role 硬编码为 menuitem，无法表达单选语义 -->
-        <div class="theme-toggle__menu" role="menu" aria-label="选择主题模式" @keydown="onMenuKeydown">
+        <div ref="menuRef" class="theme-toggle__menu" role="menu" aria-label="选择主题模式" @keydown="onMenuKeydown">
           <button
             v-for="opt in options"
             :key="opt.value"
@@ -43,51 +43,43 @@
         </div>
       </template>
     </el-dropdown>
-    <!-- 屏幕阅读器状态播报：模式切换及系统主题变化时朗读 -->
+    <!-- 屏幕阅读器状态播报：用户切换主题时朗读 -->
     <span class="sr-only" role="status" aria-live="polite">{{ liveMessage }}</span>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { Sunny, Moon, Monitor, Check } from '@element-plus/icons-vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { Sunny, Moon, Check } from '@element-plus/icons-vue'
 import { useTheme, THEME_MODE } from '@/utils/theme'
 
-const { themeMode, effectiveTheme, setThemeMode } = useTheme()
+const { themeMode, setThemeMode } = useTheme()
 
 const dropdownRef = ref(null)
 const triggerRef = ref(null)
+const menuRef = ref(null)
 const open = ref(false)
 const liveMessage = ref('')
+let focusTimer = null
+
+onBeforeUnmount(() => clearTimeout(focusTimer))
 
 const options = [
   { value: THEME_MODE.LIGHT, label: '浅色模式', icon: Sunny },
   { value: THEME_MODE.DARK, label: '深色模式', icon: Moon },
-  { value: THEME_MODE.SYSTEM, label: '跟随系统', icon: Monitor },
 ]
 
 const labelOf = (value) => options.find((o) => o.value === value)?.label || ''
-const effectiveLabel = computed(() => (effectiveTheme.value === THEME_MODE.DARK ? '深色' : '浅色'))
+const triggerIcon = computed(() => (themeMode.value === THEME_MODE.DARK ? Moon : Sunny))
 
-// 触发按钮图标：跟随系统时显示显示器图标，明确区分三态
-const triggerIcon = computed(() => {
-  if (themeMode.value === THEME_MODE.SYSTEM) return Monitor
-  return effectiveTheme.value === THEME_MODE.DARK ? Moon : Sunny
-})
-
-const triggerAriaLabel = computed(() => (
-  themeMode.value === THEME_MODE.SYSTEM
-    ? `主题切换，当前为跟随系统，实际为${effectiveLabel.value}模式`
-    : `主题切换，当前为${labelOf(themeMode.value)}`
-))
+const triggerAriaLabel = computed(() => `主题切换，当前为${labelOf(themeMode.value)}`)
 
 const announce = (mode) => {
-  liveMessage.value = mode === THEME_MODE.SYSTEM
-    ? `已设置为跟随系统，当前实际为${effectiveLabel.value}模式`
-    : `已切换为${labelOf(mode)}`
+  liveMessage.value = `已切换为${labelOf(mode)}`
 }
 
 const handleSelect = (mode) => {
+  clearTimeout(focusTimer)
   setThemeMode(mode)
   announce(mode)
   // 自定义菜单内容不会被 el-dropdown 自动关闭
@@ -95,18 +87,17 @@ const handleSelect = (mode) => {
 }
 
 const onVisibleChange = (visible) => {
+  clearTimeout(focusTimer)
   open.value = visible
   if (visible) {
     // 打开后将焦点移至当前选中项，保证键盘/读屏用户可直接操作；
     // 等待 popper 进入动画使菜单可见后再聚焦
-    setTimeout(() => {
-      const menus = document.querySelectorAll('.theme-toggle__menu')
-      for (let m = 0; m < menus.length; m++) {
-        if (menus[m].offsetParent === null) continue
-        const target = menus[m].querySelector('.is-active') || menus[m].querySelector('.theme-toggle__menu-item')
-        target?.focus()
-        break
-      }
+    focusTimer = setTimeout(() => {
+      // 关闭或销毁后不能再移动焦点；rect 检测也适用于 offsetParent 为 null 的定位元素。
+      const menu = menuRef.value
+      if (!open.value || !menu?.getClientRects().length) return
+      const target = menu.querySelector('.is-active') || menu.querySelector('.theme-toggle__menu-item')
+      target?.focus({ preventScroll: true })
     }, 80)
   }
 }
@@ -136,12 +127,6 @@ const onMenuKeydown = (e) => {
   }
 }
 
-// 跟随系统模式下，操作系统主题变化时播报实际生效结果
-watch(effectiveTheme, (current, previous) => {
-  if (themeMode.value === THEME_MODE.SYSTEM && previous) {
-    liveMessage.value = `系统主题已变更，当前实际为${current === THEME_MODE.DARK ? '深色' : '浅色'}模式`
-  }
-})
 </script>
 
 <style lang="scss" scoped>

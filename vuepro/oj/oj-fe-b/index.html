@@ -9,15 +9,16 @@
       // 防主题闪烁（FOUC）：在首帧渲染前同步读取持久化偏好并写入 html.dark。
       // 存储键必须与 src/utils/theme.js 的 THEME_STORAGE_KEY 保持一致。
       (function () {
+        var mode = 'light';
         try {
-          var mode = localStorage.getItem('admin-theme-mode') || 'system';
-          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var isDark = mode === 'dark' || ((mode === 'system' || ['light', 'dark', 'system'].indexOf(mode) === -1) && prefersDark);
-          var root = document.documentElement;
-          if (isDark) root.classList.add('dark');
-          root.style.colorScheme = isDark ? 'dark' : 'light';
-          root.style.background = isDark ? '#141414' : '#f5f7fa';
-        } catch (e) {}
+          var stored = window.localStorage.getItem('admin-theme-mode');
+          if (['light', 'dark'].indexOf(stored) !== -1) mode = stored;
+        } catch (e) { /* 存储受限时默认浅色。 */ }
+        var isDark = mode === 'dark';
+        var root = document.documentElement;
+        root.classList.toggle('dark', isDark);
+        root.style.colorScheme = isDark ? 'dark' : 'light';
+        root.style.background = isDark ? '#141414' : '#f5f7fa';
       })();
     </script>
   </head>
