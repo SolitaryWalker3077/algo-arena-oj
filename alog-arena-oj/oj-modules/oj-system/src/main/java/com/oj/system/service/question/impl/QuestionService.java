@@ -9,7 +9,9 @@ import com.oj.common.enums.ResultCode;
 import com.oj.security.expection.ServiceException;
 import com.oj.system.entity.question.Questions;
 import com.oj.system.entity.question.dto.QuestionAddDto;
+import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
+import com.oj.system.entity.question.vo.QuestionDetailVO;
 import com.oj.system.entity.question.vo.QuestionVO;
 import com.oj.system.mapper.question.QuestionMapper;
 import com.oj.system.service.question.IQuestionService;
@@ -32,6 +34,7 @@ public class QuestionService implements IQuestionService {
         return questionMapper.selectQuestionList(questionQueryDto);
     }
 
+
     @Override
     public int add(QuestionAddDto questionAddDto) {
         List<Questions> questionsList = questionMapper.selectList(new LambdaQueryWrapper<Questions>()
@@ -45,5 +48,45 @@ public class QuestionService implements IQuestionService {
         //可以使用hutool工具包当中的BeanUtil.copyProperties方法
         BeanUtil.copyProperties(questionAddDto,questions);
         return questionMapper.insert(questions);
+    }
+
+
+    @Override
+    public QuestionDetailVO detail(Long questionId) {
+        Questions question = questionMapper.selectById(questionId);
+        if(question == null) {
+            throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
+        }
+        QuestionDetailVO questionDetailVO = new QuestionDetailVO();
+        BeanUtil.copyProperties(question,questionDetailVO);
+        return questionDetailVO;
+    }
+
+
+    @Override
+    public int edit(QuestionEditDto questionEditDto) {
+        Questions oldQuestion = questionMapper.selectById(questionEditDto.getQuestionId());
+        if (oldQuestion == null) {
+            throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
+        }
+
+        oldQuestion.setTitle(questionEditDto.getTitle());
+        oldQuestion.setDifficult(questionEditDto.getDifficult());
+        oldQuestion.setTimeLimit(questionEditDto.getTimeLimit());
+        oldQuestion.setSpaceLimit(questionEditDto.getSpaceLimit());
+        oldQuestion.setContent(questionEditDto.getContent());
+        oldQuestion.setQuestionCase(questionEditDto.getQuestionCase());
+        oldQuestion.setDefaultCode(questionEditDto.getDefaultCode());
+        oldQuestion.setMainFac(questionEditDto.getMainFac());
+        return questionMapper.updateById(oldQuestion);
+    }
+
+    @Override
+    public int delete(Long questionId) {
+        Questions question = questionMapper.selectById(questionId);
+        if (question == null) {
+            throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
+        }
+        return questionMapper.deleteById(questionId);
     }
 }

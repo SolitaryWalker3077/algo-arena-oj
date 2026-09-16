@@ -12,14 +12,17 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
 
     @Override
     public void insertFill(MetaObject metaObject) {
-        this.strictInsertFill(metaObject, "createBy", Long.class, 2095927408837951490L);
         //创建人,获取当前用户信息
         //TODO 目前写死,后面实现获取当前用户信息的接口
+        this.strictInsertFill(metaObject, "createBy", Long.class, 2095927408837951490L);
+
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
-
+        // 更新操作必须覆盖实体中已有的审计值，不能使用只在字段为 null 时生效的 strictUpdateFill。
+        this.setFieldValByName("updateBy", 2095927408837951490L, metaObject);
+        this.setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
     }
 }

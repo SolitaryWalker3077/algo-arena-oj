@@ -21,11 +21,11 @@ public class BaseEntity {
     /**
      * 更新者
      */
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(fill = FieldFill.UPDATE)
     private Long updateBy;
     /**
      * 更新时间
      */
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(fill = FieldFill.UPDATE)
     private LocalDateTime updateTime;
 }
