@@ -1,0 +1,166 @@
+{
+  "version": "1.1.0",
+  "title": "添加题目",
+  "description": "完善题面、资源限制与判题代码。未提交内容会自动保存为本机草稿。",
+  "layout": { "columns": 2, "labelWidth": 104 },
+  "behavior": {
+    "closeOnOverlay": true,
+    "closeOnEscape": true,
+    "autosaveSeconds": 30
+  },
+  "fields": [
+    {
+      "name": "title",
+      "label": "题目标题",
+      "type": "text",
+      "placeholder": "例如：两数之和",
+      "help": "用于题库列表展示，建议简洁且具有辨识度。",
+      "defaultValue": "",
+      "colSpan": 2,
+      "group": "basic",
+      "validation": [
+        { "required": true, "message": "请输入题目标题" },
+        { "minLength": 2, "message": "标题至少 2 个字符" },
+        { "maxLength": 50, "message": "标题不能超过 50 个字符" }
+      ]
+    },
+    {
+      "name": "difficulty",
+      "label": "题目难度",
+      "type": "radio",
+      "defaultValue": 1,
+      "group": "basic",
+      "options": [
+        { "label": "简单", "value": 1 },
+        { "label": "中等", "value": 2 },
+        { "label": "困难", "value": 3 }
+      ],
+      "validation": [{ "required": true, "message": "请选择题目难度" }]
+    },
+    {
+      "name": "language",
+      "label": "代码语言",
+      "type": "select",
+      "placeholder": "请选择编辑器语言",
+      "defaultValue": "java",
+      "submit": false,
+      "group": "basic",
+      "options": [
+        { "label": "Java", "value": "java" },
+        { "label": "C", "value": "c" },
+        { "label": "C++", "value": "cpp" },
+        { "label": "C#", "value": "csharp" },
+        { "label": "Python", "value": "python" },
+        { "label": "JavaScript", "value": "javascript" },
+        { "label": "TypeScript", "value": "typescript" },
+        { "label": "Go", "value": "go" },
+        { "label": "Rust", "value": "rust" },
+        { "label": "Kotlin", "value": "kotlin" },
+        { "label": "Swift", "value": "swift" },
+        { "label": "PHP", "value": "php" }
+      ],
+      "validation": [{ "required": true, "message": "请选择代码语言" }]
+    },
+    {
+      "name": "timeLimit",
+      "label": "时间限制",
+      "type": "number",
+      "placeholder": "1000",
+      "help": "单位：毫秒。",
+      "defaultValue": 1000,
+      "min": 100,
+      "max": 60000,
+      "step": 100,
+      "group": "basic",
+      "validation": [
+        { "required": true, "message": "请输入时间限制" },
+        {
+          "min": 100,
+          "max": 60000,
+          "message": "时间限制应在 100–60000 毫秒之间"
+        }
+      ]
+    },
+    {
+      "name": "spaceLimit",
+      "label": "空间限制",
+      "type": "number",
+      "placeholder": "128",
+      "help": "单位：MB。",
+      "defaultValue": 128,
+      "min": 16,
+      "max": 4096,
+      "step": 16,
+      "group": "basic",
+      "validation": [
+        { "required": true, "message": "请输入空间限制" },
+        { "min": 16, "max": 4096, "message": "空间限制应在 16–4096 MB 之间" }
+      ]
+    },
+    {
+      "name": "content",
+      "label": "题目内容",
+      "type": "markdown",
+      "placeholder": "使用 Markdown 编写题目描述、输入格式、输出格式和约束条件",
+      "help": "支持实时预览、表格、链接、图片和带语法高亮的围栏代码块。",
+      "defaultValue": "",
+      "rows": 14,
+      "colSpan": 2,
+      "group": "statement",
+      "validation": [
+        { "required": true, "message": "请输入题目内容" },
+        { "minLength": 10, "message": "题目内容至少 10 个字符" },
+        { "maxLength": 1000, "message": "题目内容不能超过 1000 个字符" }
+      ]
+    },
+    {
+      "name": "questionCase",
+      "label": "题目样例",
+      "type": "textarea",
+      "placeholder": "输入：\n2 7 11 15\n9\n\n输出：\n0 1",
+      "help": "填写便于理解题意的公开样例，不是隐藏判题用例。",
+      "defaultValue": "",
+      "rows": 6,
+      "colSpan": 2,
+      "group": "statement",
+      "validation": [
+        { "maxLength": 1000, "message": "题目样例不能超过 1000 个字符" }
+      ]
+    },
+    {
+      "name": "defaultCode",
+      "label": "默认代码块",
+      "type": "code",
+      "help": "选手打开题目时看到的函数或类模板。",
+      "defaultValue": "class Solution {\n    // 在此编写代码\n}",
+      "colSpan": 2,
+      "group": "code",
+      "editor": {
+        "languageField": "language",
+        "height": 320,
+        "minimap": false
+      },
+      "validation": [
+        { "maxLength": 500, "message": "默认代码块不能超过 500 个字符" }
+      ]
+    },
+    {
+      "name": "mainFac",
+      "label": "main 主方法",
+      "type": "code",
+      "help": "用于读取输入、调用默认代码块并输出结果。",
+      "defaultValue": "public static void main(String[] args) {\n    // 读取输入并调用解题逻辑\n}",
+      "colSpan": 2,
+      "group": "code",
+      "editor": {
+        "languageField": "language",
+        "height": 320,
+        "minimap": false
+      },
+      "validation": [
+        { "required": true, "message": "请输入 main 主方法" },
+        { "maxLength": 500, "message": "main 主方法不能超过 500 个字符" }
+      ]
+    }
+  ]
+}

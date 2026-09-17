@@ -1,3 +1,4 @@
 com.oj.security.handler.GlobalExceptionHandler
 com.oj.security.service.TokenService
 com.oj.security.config.WebMvcConfig
+com.oj.security.provider.QuestionFormMetadataProvider

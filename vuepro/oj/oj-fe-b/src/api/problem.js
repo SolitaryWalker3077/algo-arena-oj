@@ -2,14 +2,15 @@ import request from '@/utils/request'
 import { createTtlCache } from '@/utils/apiCache'
 import {
   BASE_DIFFICULTY_OPTIONS,
-  formatProblemCreateTime,
-  mapProblemFromApi,
+  buildProblemMutationPayload,
   normalizeProblemPage,
   normalizeProblemQuery,
 } from '@/api/problemPolicy'
 
 export {
   BASE_DIFFICULTY_OPTIONS,
+  buildProblemMutationPayload,
+  createOptimisticProblemRecord,
   formatProblemCreateTime,
   mapProblemFromApi,
   normalizeProblemPage,
@@ -34,14 +35,17 @@ export {
 // 1) 接口路径集中配置（后端路径调整只改这里）
 export const ENDPOINTS = Object.freeze({
   page: '/system/question/list',
-  add: '/system/problem',
-  update: '/system/problem',
-  delete: '/system/problem',
+  detail: '/system/question/detail',
+  metadata: '/system/question/metadata',
+  add: '/system/question/add',
+  update: '/system/question/edit',
+  delete: '/system/question/delete',
 })
 
 // 后端 difficult 字段是固定枚举（1 简单 / 2 中等 / 3 困难）。
 // 保留异步函数签名以兼容现有调用方，不再请求尚未实现的字典接口。
-export const getDifficultyOptions = async () => BASE_DIFFICULTY_OPTIONS.map((option) => ({ ...option }))
+export const getDifficultyOptions = async () =>
+  BASE_DIFFICULTY_OPTIONS.map((option) => ({ ...option }))
 
 // 3) 列表缓存：30s TTL；写操作后 clearProblemPageCache 主动失效
 const problemPageCache = createTtlCache({ ttl: 30 * 1000 })
@@ -53,13 +57,7 @@ export const isProblemPageCacheFresh = (params) => problemPageCache.isFresh(cach
 
 /** 前端视图模型 → 后端提交体（新增/编辑；不提交创建人/创建时间） */
 export function mapProblemToApi(problem = {}) {
-  const body = {
-    title: problem.title,
-    difficult: Number(problem.difficulty),
-  }
-  // 编辑时带上字符串形式的雪花 ID；新增时不传（由后端雪花算法生成）
-  if (problem.id) body.questionId = String(problem.id)
-  return body
+  return buildProblemMutationPayload(problem)
 }
 
 /**
@@ -88,9 +86,29 @@ export const addProblem = (data) => request.post(ENDPOINTS.add, mapProblemToApi(
 /** 编辑题目 */
 export const updateProblem = (data) => request.put(ENDPOINTS.update, mapProblemToApi(data))
 
+/** 获取详情并转换为动态表单使用的字段命名。 */
+export async function getProblemDetail(id) {
+  const detail = await request.get(ENDPOINTS.detail, { params: { questionId: String(id) } })
+  return {
+    id: detail?.questionId == null ? String(id) : String(detail.questionId),
+    title: detail?.title || '',
+    difficulty: detail?.difficult ?? '',
+    timeLimit: detail?.timeLimit ?? 1000,
+    spaceLimit: detail?.spaceLimit ?? 128,
+    content: detail?.content || '',
+    questionCase: detail?.questionCase || '',
+    defaultCode: detail?.defaultCode || '',
+    mainFac: detail?.mainFac || '',
+    language: 'java',
+  }
+}
+
+/** 获取后端版本化的动态表单 JSON 元数据。 */
+export const getProblemFormMetadata = () => request.get(ENDPOINTS.metadata)
+
 /**
  * 删除题目
  * @param {string|number} id 字符串形式的雪花 ID
  */
 export const deleteProblem = (id) =>
-  request.delete(ENDPOINTS.delete, { params: { id: String(id) } })
+  request.delete(ENDPOINTS.delete, { params: { questionId: String(id) } })

@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan("com.oj.**.mapper")
-public class OjSystemApplication {
+public class  OjSystemApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(OjSystemApplication.class,args);

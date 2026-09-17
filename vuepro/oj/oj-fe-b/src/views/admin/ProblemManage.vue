@@ -46,9 +46,14 @@
           </el-button>
         </el-tooltip>
       </div>
-      <el-button type="primary" @click="handleAdd">
+      <el-button
+        type="primary"
+        class="add-problem-button"
+        :loading="metadataState.loading"
+        @click="handleAdd"
+      >
         <el-icon><Plus /></el-icon>
-        <span>新增题目</span>
+        <span>添加题目</span>
       </el-button>
     </div>
 
@@ -72,7 +77,12 @@
         border
         style="width: 100%"
       >
-        <el-table-column prop="id" label="题目ID" width="190" align="center" show-overflow-tooltip />
+        <el-table-column prop="id" label="题目ID" width="190" align="center" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.pendingSync" class="syncing-cell">同步中…</span>
+            <span v-else>{{ row.id }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="title" label="题目标题" min-width="240" show-overflow-tooltip />
         <el-table-column prop="difficulty" label="题目难度" width="110" align="center">
           <template #default="{ row }">
@@ -102,11 +112,23 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">
+            <el-button
+              link
+              type="primary"
+              size="small"
+              :disabled="row.pendingSync"
+              @click="handleEdit(row)"
+            >
               <el-icon><Edit /></el-icon>
               编辑
             </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">
+            <el-button
+              link
+              type="danger"
+              size="small"
+              :disabled="row.pendingSync"
+              @click="handleDelete(row)"
+            >
               <el-icon><Delete /></el-icon>
               删除
             </el-button>
@@ -120,7 +142,11 @@
             </div>
             <p class="app-table-empty__title">暂无题目数据</p>
             <p class="app-table-empty__desc">
-              {{ loadError ? '数据暂时无法获取，请检查网络后点击刷新重试' : '当前条件下还没有题目数据' }}
+              {{
+                loadError
+                  ? '数据暂时无法获取，请检查网络后点击刷新重试'
+                  : '当前条件下还没有题目数据'
+              }}
             </p>
             <el-button type="primary" plain :icon="Refresh" :loading="loading" @click="retryLoad">
               刷新重试
@@ -149,45 +175,17 @@
       </div>
     </div>
 
-    <!-- 编辑 / 新增 弹窗 -->
-    <el-dialog
+    <ProblemDrawer
+      ref="problemDrawerRef"
       v-model="editVisible"
-      :title="editMode === 'add' ? '新增题目' : '编辑题目'"
-      width="min(560px, calc(100vw - 32px))"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <el-form
-        ref="editFormRef"
-        :model="editForm"
-        :rules="editRules"
-        label-width="90px"
-        label-position="right"
-      >
-        <el-form-item label="题目标题" prop="title">
-          <el-input
-            v-model="editForm.title"
-            placeholder="请输入题目标题"
-            maxlength="100"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="题目难度" prop="difficulty">
-          <el-select v-model="editForm.difficulty" placeholder="请选择难度" style="width: 100%">
-            <el-option
-              v-for="opt in difficultyOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+      :mode="editMode"
+      :metadata="metadataState.data"
+      :initial-values="editInitialValues"
+      :submitting="submitting"
+      :submit-error="submitError"
+      @submit="handleSubmit"
+      @clear-submit-error="submitError = ''"
+    />
   </div>
 </template>
 
@@ -196,13 +194,17 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Refresh, Edit, Delete, Files } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
+import ProblemDrawer from '@/components/problem/ProblemDrawer.vue'
+import { useProblemMetadataStore } from '@/stores/problemMetadata'
 import {
   getProblemPage,
+  getProblemDetail,
   addProblem,
   updateProblem,
   deleteProblem,
   BASE_DIFFICULTY_OPTIONS,
   formatProblemCreateTime,
+  createOptimisticProblemRecord,
   clearProblemPageCache,
   peekProblemPageCache,
   isProblemPageCacheFresh,
@@ -222,6 +224,9 @@ const difficultyLabel = (value) => {
   return difficultyMap().get(value)?.label ?? String(value)
 }
 const difficultyTagType = (value) => difficultyMap().get(value)?.tagType ?? 'info'
+
+// 字段元数据属于跨页面可复用的全局配置；抽屉显隐与表单值仍保留为本地状态。
+const { state: metadataState, load: loadProblemMetadata } = useProblemMetadataStore()
 
 // ======================== 分页（后端 PageQueryDto：pageNum/pageSize，API 层自动转换） ========================
 const pagination = reactive({ current: 1, size: 10 })
@@ -297,9 +302,7 @@ const loadProblems = async ({ force = false } = {}) => {
     if (!cached && hasSuccessfulPage) {
       Object.assign(pagination, lastSuccessfulPagination)
     }
-    const prefix = hasSuccessfulPage
-      ? '加载失败，当前仍展示上次成功获取的数据'
-      : '题目列表加载失败'
+    const prefix = hasSuccessfulPage ? '加载失败，当前仍展示上次成功获取的数据' : '题目列表加载失败'
     loadError.value = error?.message ? `${prefix}：${error.message}` : prefix
     if (!error?.handled) ElMessage.error(error?.message || prefix)
   } finally {
@@ -331,60 +334,63 @@ const handleSizeChange = () => {
 const editVisible = ref(false)
 const editMode = ref('add')
 const submitting = ref(false)
-const editFormRef = ref(null)
+const submitError = ref('')
+const problemDrawerRef = ref(null)
+const editInitialValues = ref({})
 
-const createEmptyForm = () => ({
-  id: '',
-  title: '',
-  difficulty: '',
-})
-
-const editForm = reactive(createEmptyForm())
-
-const editRules = {
-  title: [
-    { required: true, message: '请输入题目标题', trigger: 'blur' },
-    { max: 100, message: '标题不超过 100 个字符', trigger: 'blur' },
-  ],
-  difficulty: [
-    { required: true, message: '请选择题目难度', trigger: 'change' },
-  ],
-}
-
-const handleAdd = () => {
-  Object.assign(editForm, createEmptyForm())
+const handleAdd = async () => {
+  await loadProblemMetadata()
+  submitError.value = ''
+  editInitialValues.value = {}
   editMode.value = 'add'
   editVisible.value = true
 }
 
-const handleEdit = (row) => {
-  Object.assign(editForm, createEmptyForm(), { ...row })
-  editMode.value = 'edit'
-  editVisible.value = true
+const handleEdit = async (row) => {
+  try {
+    submitError.value = ''
+    const [, detail] = await Promise.all([loadProblemMetadata(), getProblemDetail(row.id)])
+    editInitialValues.value = detail
+    editMode.value = 'edit'
+    editVisible.value = true
+  } catch {
+    // 详情错误已由请求拦截器统一呈现，避免用列表摘要覆盖完整题目内容。
+  }
 }
 
-const handleSubmit = async () => {
-  try {
-    await editFormRef.value.validate()
-  } catch {
-    return
-  }
+const handleSubmit = async (values) => {
+  if (submitting.value) return
+  submitError.value = ''
   submitting.value = true
   try {
     if (editMode.value === 'add') {
-      await addProblem({ ...editForm })
-      ElMessage.success('新增题目成功')
+      const response = await addProblem(values)
+
+      // 返回未筛选的第一页并立即显示新记录，再由列表接口补全 ID、创建人和时间。
+      Object.assign(searchForm, { title: '', difficulty: '' })
       pagination.current = 1
+      problemList.value = [
+        createOptimisticProblemRecord(values, response),
+        ...problemList.value,
+      ].slice(0, pagination.size)
+      total.value += 1
+      hasSuccessfulPage = true
+      loadError.value = ''
+
+      ElMessage.success('添加成功')
     } else {
-      await updateProblem({ ...editForm })
+      await updateProblem({ ...values, id: editInitialValues.value.id })
       ElMessage.success('编辑题目成功')
     }
     // 写操作后清空列表缓存，强制与后端同步
     clearProblemPageCache()
+    problemDrawerRef.value?.discardDraft()
     editVisible.value = false
-    await loadProblems({ force: true })
-  } catch {
-    // 错误提示已由 request 拦截器统一处理
+    // 抽屉关闭后在列表区域显示刷新 loading；失败时 loadProblems 会保留当前本地记录。
+    void loadProblems({ force: true })
+  } catch (error) {
+    submitError.value = error?.message || '提交失败，请检查网络连接后重试'
+    if (!error?.handled) ElMessage.error(submitError.value)
   } finally {
     submitting.value = false
   }
@@ -416,6 +422,7 @@ const handleDelete = (row) => {
 
 // ======================== 初始化：加载首屏数据 ========================
 onMounted(() => {
+  loadProblemMetadata()
   loadProblems()
 })
 </script>
@@ -475,6 +482,29 @@ onMounted(() => {
       background: var(--app-hover-bg);
       border-radius: 12px;
     }
+
+    .add-problem-button {
+      min-width: 122px;
+      height: 38px;
+      padding: 0 18px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--app-brand) 28%, transparent);
+      transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        filter 0.18s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        filter: saturate(1.08);
+        box-shadow: 0 9px 22px color-mix(in srgb, var(--app-brand) 35%, transparent);
+      }
+
+      &:active {
+        transform: translateY(1px) scale(0.98);
+        box-shadow: 0 3px 10px color-mix(in srgb, var(--app-brand) 24%, transparent);
+      }
+    }
   }
 
   .table-card {
@@ -497,6 +527,11 @@ onMounted(() => {
       color: var(--app-text-secondary);
     }
 
+    .syncing-cell {
+      color: var(--app-text-secondary);
+      font-size: 12px;
+    }
+
     .pagination-box {
       display: flex;
       align-items: center;
@@ -506,7 +541,6 @@ onMounted(() => {
       margin-top: 16px;
       padding-top: 14px;
       border-top: 1px solid var(--app-border-color);
-
     }
   }
 }
@@ -540,7 +574,6 @@ onMounted(() => {
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
-
     }
   }
 }

@@ -8,12 +8,14 @@ import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
 import com.oj.system.entity.question.vo.QuestionDetailVO;
 import com.oj.system.service.question.IQuestionService;
+import com.oj.security.provider.QuestionFormMetadataProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 
 @RestController
 @RequestMapping("/question")
@@ -23,16 +25,25 @@ public class QuestionController extends BaseController {
     @Autowired
     private IQuestionService questionService;
 
+    @Autowired
+    private QuestionFormMetadataProvider questionFormMetadataProvider;
+
     @Operation(summary = "题目列表")
     @GetMapping("/list")
     public TableDataInfo list(@Validated QuestionQueryDto questionQueryDto) {
-       return getDataTable(questionService.list(questionQueryDto));
+        return getDataTable(questionService.list(questionQueryDto));
+    }
+
+    @Operation(summary = "获取题目动态表单元数据")
+    @GetMapping("/metadata")
+    public Result<Map<String, Object>> metadata() {
+        return Result.success(questionFormMetadataProvider.getMetadata());
     }
 
     // 接口地址/question/add
     @Operation(summary = "新增题目")
     @PostMapping("/add")
-    public Result<Void> add(@RequestBody QuestionAddDto questionAddDto) {
+    public Result<Void> add(@Validated @RequestBody QuestionAddDto questionAddDto) {
         return toResult(questionService.add(questionAddDto));
     }
 
@@ -44,7 +55,7 @@ public class QuestionController extends BaseController {
 
     @Operation(summary = "编辑题目")
     @PutMapping("/edit")
-    public Result<Void> edit(@RequestBody QuestionEditDto questionEditDto) {
+    public Result<Void> edit(@Validated @RequestBody QuestionEditDto questionEditDto) {
         return toResult(questionService.edit(questionEditDto));
     }
 

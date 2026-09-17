@@ -1,12 +1,58 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  buildProblemMutationPayload,
+  createOptimisticProblemRecord,
   formatProblemCreateTime,
   mapProblemFromApi,
   normalizeProblemPage,
   normalizeProblemQuery,
   PARAM_VALIDATION_CODE,
 } from '../src/api/problemPolicy.js'
+
+test('题目表单只转换并提交后端契约字段', () => {
+  assert.deepEqual(
+    buildProblemMutationPayload({
+      title: '  两数之和  ',
+      difficulty: '2',
+      timeLimit: '1000',
+      spaceLimit: 128,
+      content: '# 题目内容',
+      questionCase: '',
+      defaultCode: 'class Solution {}',
+      mainFac: 'public static void main() {}',
+      language: 'java',
+    }),
+    {
+      title: '两数之和',
+      difficult: 2,
+      timeLimit: 1000,
+      spaceLimit: 128,
+      content: '# 题目内容',
+      questionCase: '',
+      defaultCode: 'class Solution {}',
+      mainFac: 'public static void main() {}',
+    },
+  )
+})
+
+test('新增成功后可立即生成列表首位的待同步记录', () => {
+  assert.deepEqual(
+    createOptimisticProblemRecord(
+      { title: '两数之和', difficulty: 1 },
+      null,
+      new Date(2026, 8, 18, 12, 30, 45),
+    ),
+    {
+      id: '',
+      title: '两数之和',
+      difficulty: 1,
+      createUser: '',
+      createTime: '2026-09-18 12:30:45',
+      pendingSync: true,
+    },
+  )
+})
 
 test('题目查询参数转换为后端 QuestionQueryDto 格式并清理标题空白', () => {
   assert.deepEqual(

@@ -40,6 +40,7 @@
 
   /* 主题切换过渡时长（JS 挂载过渡类的时机需与此保持一致） */
   --app-theme-duration: 0.35s;
+  --app-drawer-duration: 0.3s;
 }
 
 html.dark {
@@ -179,4 +180,63 @@ html.theme-transition body * {
   font-size: 13px;
   line-height: 1.6;
   color: var(--app-text-secondary);
+}
+
+/* 题目抽屉：固定 300ms 动画，层级 1900；全局消息仍使用 Element Plus 的 2000+ 层级。 */
+.problem-drawer-overlay {
+  --el-transition-duration: var(--app-drawer-duration);
+  background: rgba(14, 22, 34, 0.48);
+  backdrop-filter: blur(2px);
+}
+
+.problem-drawer {
+  --el-drawer-padding-primary: 22px;
+  background: var(--app-card-bg);
+}
+
+.problem-drawer .el-drawer__header {
+  min-height: 74px;
+  margin-bottom: 0;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--app-border-color);
+}
+
+.problem-drawer .el-drawer__body {
+  padding-top: 20px;
+}
+
+.problem-drawer .el-drawer__footer {
+  padding-top: 14px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: var(--app-card-bg);
+  border-top: 1px solid var(--app-border-color);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04);
+}
+
+body.problem-editor-fullscreen-open::before {
+  position: fixed;
+  inset: 0;
+  z-index: 1949;
+  content: '';
+  background: rgba(0, 0, 0, 0.62);
+}
+
+@media (max-width: 600px) {
+  .problem-drawer {
+    width: 100% !important;
+  }
+
+  .problem-drawer .el-drawer__header,
+  .problem-drawer .el-drawer__body,
+  .problem-drawer .el-drawer__footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .problem-drawer-overlay,
+  .problem-drawer {
+    --el-transition-duration: 0.01ms;
+  }
 }

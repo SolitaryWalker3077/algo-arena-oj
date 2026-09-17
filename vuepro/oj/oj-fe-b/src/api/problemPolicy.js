@@ -78,6 +78,48 @@ export function mapProblemFromApi(raw = {}) {
   }
 }
 
+/**
+ * 将动态表单值转换为后端 QuestionAddDto / QuestionEditDto 请求体。
+ * 仅允许后端契约中的字段通过，避免把编辑器语言等纯 UI 状态一并提交。
+ */
+export function buildProblemMutationPayload(problem = {}) {
+  const body = {
+    title: typeof problem.title === 'string' ? problem.title.trim() : problem.title,
+    difficult:
+      problem.difficulty == null || problem.difficulty === '' ? null : Number(problem.difficulty),
+    timeLimit: problem.timeLimit == null ? null : Number(problem.timeLimit),
+    spaceLimit: problem.spaceLimit == null ? null : Number(problem.spaceLimit),
+    content: problem.content,
+    questionCase: problem.questionCase || '',
+    defaultCode: problem.defaultCode || '',
+    mainFac: problem.mainFac,
+  }
+
+  // 编辑时带上字符串形式的雪花 ID；新增时由后端生成，不发送空 ID。
+  if (problem.id) body.questionId = String(problem.id)
+  return body
+}
+
+/**
+ * 新增接口尚未返回完整 QuestionVO 时，先生成可展示的本地记录。
+ * 后续列表刷新会用服务端记录替换它；pendingSync 用于暂时禁用编辑/删除操作。
+ */
+export function createOptimisticProblemRecord(values = {}, response = {}, now = new Date()) {
+  const raw = response && typeof response === 'object' ? response : {}
+  const record = mapProblemFromApi({
+    questionId: raw.questionId ?? raw.id,
+    title: raw.title ?? (typeof values.title === 'string' ? values.title.trim() : values.title),
+    difficult: raw.difficult ?? raw.difficulty ?? values.difficulty,
+    createName: raw.createName ?? raw.createUser,
+    createTime: raw.createTime ?? formatProblemCreateTime(now),
+  })
+
+  return {
+    ...record,
+    pendingSync: !record.id,
+  }
+}
+
 const padDatePart = (value) => String(value).padStart(2, '0')
 
 const formatDateParts = (year, month, day, hour = 0, minute = 0, second = 0) => {
@@ -86,16 +128,19 @@ const formatDateParts = (year, month, day, hour = 0, minute = 0, second = 0) => 
 
   const [y, m, d, h, min, s] = parts
   const date = new Date(y, m - 1, d, h, min, s)
-  const valid = date.getFullYear() === y
-    && date.getMonth() === m - 1
-    && date.getDate() === d
-    && date.getHours() === h
-    && date.getMinutes() === min
-    && date.getSeconds() === s
+  const valid =
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d &&
+    date.getHours() === h &&
+    date.getMinutes() === min &&
+    date.getSeconds() === s
   if (!valid) return '—'
 
-  return `${String(y).padStart(4, '0')}-${padDatePart(m)}-${padDatePart(d)}`
-    + ` ${padDatePart(h)}:${padDatePart(min)}:${padDatePart(s)}`
+  return (
+    `${String(y).padStart(4, '0')}-${padDatePart(m)}-${padDatePart(d)}` +
+    ` ${padDatePart(h)}:${padDatePart(min)}:${padDatePart(s)}`
+  )
 }
 
 /**
@@ -139,7 +184,9 @@ export function normalizeProblemPage(response) {
 
   const rawList = response?.rows ?? response?.records ?? response?.list ?? response?.data ?? []
   const records = (Array.isArray(rawList) ? rawList : []).map(mapProblemFromApi)
-  const rawTotal = Number(response?.total ?? response?.totalCount ?? response?.count ?? records.length)
+  const rawTotal = Number(
+    response?.total ?? response?.totalCount ?? response?.count ?? records.length,
+  )
 
   return {
     records,
