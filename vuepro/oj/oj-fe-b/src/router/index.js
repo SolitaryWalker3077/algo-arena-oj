@@ -41,6 +41,16 @@ const router = createRouter({
           name: 'contestManage',
           component: () => import('../views/admin/ContestManage.vue'),
         },
+        {
+          path: 'contest/new',
+          name: 'contestCreate',
+          component: () => import('../views/admin/ContestForm.vue'),
+        },
+        {
+          path: 'contest/:examId/edit',
+          name: 'contestEdit',
+          component: () => import('../views/admin/ContestForm.vue'),
+        },
       ],
     },
   ],

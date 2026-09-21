@@ -18,6 +18,8 @@ export default defineConfig({
         'src/utils/problemDraft.ts',
         'src/utils/markdown.ts',
         'src/utils/markdownEditing.ts',
+        'src/api/contestPolicy.js',
+        'src/api/contest.js',
       ],
       thresholds: {
         statements: 80,

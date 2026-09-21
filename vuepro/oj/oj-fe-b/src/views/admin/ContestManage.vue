@@ -1,506 +1,724 @@
 <template>
   <div class="contest-manage">
-    <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-fields">
         <el-input
-          v-model="keyword"
-          placeholder="搜索竞赛名称"
+          v-model="filters.title"
           clearable
+          placeholder="搜索竞赛标题"
+          aria-label="按竞赛标题搜索"
           class="search-item"
-          @keyup.enter="handleSearch"
+          @input="scheduleSearch"
+          @keyup.enter="commitSearch"
+        />
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          format="YYYY-MM-DD"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          :shortcuts="dateShortcuts"
+          class="date-filter"
+          aria-label="按竞赛时间范围筛选"
+          @change="commitSearch"
         />
         <el-select
-          v-model="statusFilter"
-          placeholder="竞赛状态"
+          v-model="filters.status"
           clearable
-          class="search-item search-item--status"
+          placeholder="发布状态"
+          aria-label="按发布状态筛选"
+          class="search-item narrow"
+          @change="commitSearch"
         >
-          <el-option
-            v-for="opt in statusOptions"
-            :key="opt.value"
-            :label="opt.label"
-            :value="opt.value"
-          />
+          <el-option label="未发布" :value="0" /><el-option label="已发布" :value="1" />
         </el-select>
+        <el-input
+          v-model="filters.createName"
+          clearable
+          placeholder="筛选创建人"
+          aria-label="按创建人筛选"
+          class="search-item narrow"
+          @input="scheduleSearch"
+          @keyup.enter="commitSearch"
+        />
       </div>
       <div class="search-actions">
-        <el-button type="primary" @click="handleSearch">
-          <el-icon><Search /></el-icon>
-          <span>查询</span>
-        </el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" :icon="Search" @click="commitSearch">查询</el-button
+        ><el-button @click="resetSearch">重置</el-button>
       </div>
     </div>
 
-    <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <span class="result-count">共 {{ filteredContests.length }} 条</span>
-        <el-tooltip content="刷新数据" placement="top">
-          <el-button circle size="small" :loading="loading" @click="loadContests">
-            <el-icon v-if="!loading"><Refresh /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <span class="result-count">共 {{ total }} 条</span
+        ><el-tooltip content="刷新数据"
+          ><el-button
+            circle
+            size="small"
+            :icon="Refresh"
+            :loading="loading"
+            aria-label="刷新竞赛列表"
+            @click="loadContests"
+        /></el-tooltip>
       </div>
-      <el-button type="primary" @click="handleAdd">
-        <el-icon><Plus /></el-icon>
-        <span>新增竞赛</span>
-      </el-button>
+      <el-button type="primary" :icon="Plus" @click="router.push({ name: 'contestCreate' })"
+        >添加竞赛</el-button
+      >
     </div>
 
-    <!-- 表格：加载失败与空数据统一呈现“暂无竞赛数据” -->
+    <p class="api-note" role="note">
+      后端目前只提供竞赛列表接口；竞赛新增、编辑、删除及撤销发布暂无法保存。
+    </p>
+
     <div class="table-card">
+      <el-alert
+        v-if="loadError"
+        :title="loadError.message"
+        type="error"
+        show-icon
+        :closable="false"
+        class="load-alert"
+      >
+        <template #default>
+          <p v-if="timeoutStreak >= 3">
+            已连续三次超时。请检查网络或服务状态，稍后重试；仍失败时提供错误码联系技术支持。
+          </p>
+          <div class="error-actions">
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              :icon="Refresh"
+              :loading="loading"
+              @click="loadContests"
+              >重试</el-button
+            ><el-button
+              v-if="loadError.severe || timeoutStreak >= 3"
+              size="small"
+              @click="supportVisible = true"
+              >联系技术支持</el-button
+            >
+          </div>
+        </template>
+      </el-alert>
       <el-table
         class="manage-table"
-        :data="pagedContests"
+        :class="{ 'is-mobile': viewportWidth < 768 }"
+        :data="contests"
+        :default-sort="{ prop: sortField, order: sortOrder === 'asc' ? 'ascending' : 'descending' }"
         v-loading="loading"
-        element-loading-text="数据加载中…"
+        element-loading-text="竞赛数据加载中…"
         element-loading-background="var(--app-loading-mask)"
+        max-height="640"
         stripe
         border
         style="width: 100%"
+        @sort-change="handleSortChange"
       >
-        <el-table-column prop="id" label="ID" width="180" align="center" show-overflow-tooltip />
-        <el-table-column prop="name" label="竞赛名称" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="110" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small" effect="light" round>
-              {{ statusLabel(row.status) }}
-            </el-tag>
-          </template>
+        <el-table-column
+          prop="title"
+          label="竞赛标题"
+          sortable="custom"
+          :min-width="
+            viewportWidth >= 1600 ? 210 : viewportWidth >= 768 && viewportWidth < 1200 ? 220 : 135
+          "
+        >
+          <template #default="{ row }"
+            ><el-tooltip v-if="Array.from(row.title).length > 30" :content="row.title"
+              ><span class="title-cell">{{ shortenTitle(row.title) }}</span></el-tooltip
+            ><span v-else class="title-cell">{{ row.title || '—' }}</span
+            ><small v-if="viewportWidth >= 768 && viewportWidth < 1200" class="tablet-dates"
+              >{{ formatContestTime(row.startTime) }} 至 {{ formatContestTime(row.endTime) }} ·
+              {{ phaseLabel(row) }} ·
+              {{ row.status === 1 ? '已发布' : row.status === 0 ? '未发布' : '状态未知' }}</small
+            ></template
+          >
         </el-table-column>
-        <el-table-column prop="startTime" label="开始时间" width="175" align="center">
-          <template #default="{ row }">
-            <span :class="{ 'cell-empty': !row.startTime }">{{ formatTime(row.startTime) }}</span>
-          </template>
+        <el-table-column
+          v-if="viewportWidth < 768 || viewportWidth >= 1200"
+          prop="startTime"
+          label="竞赛开始日期"
+          sortable="custom"
+          :width="viewportWidth >= 1600 ? 160 : 110"
+          align="center"
+          ><template #default="{ row }">{{
+            formatContestTime(row.startTime)
+          }}</template></el-table-column
+        >
+        <el-table-column
+          v-if="viewportWidth < 768 || viewportWidth >= 1200"
+          prop="endTime"
+          label="竞赛结束日期"
+          sortable="custom"
+          :width="viewportWidth >= 1600 ? 170 : 110"
+          align="center"
+          ><template #default="{ row }"
+            ><el-tooltip v-if="invalidEndTime(row)" content="结束日期早于开始日期，请检查竞赛数据"
+              ><span class="invalid-time"
+                ><el-icon><WarningFilled /></el-icon>{{ formatContestTime(row.endTime) }}</span
+              ></el-tooltip
+            ><span v-else>{{ formatContestTime(row.endTime) }}</span></template
+          ></el-table-column
+        >
+        <el-table-column
+          v-if="viewportWidth < 768 || viewportWidth >= 1200"
+          prop="phase"
+          label="是否开赛"
+          sortable="custom"
+          :width="viewportWidth >= 1600 ? 108 : 70"
+          align="center"
+          ><template #default="{ row }"
+            ><el-tag :type="phaseTagType(row)" size="small" round>{{
+              phaseLabel(row)
+            }}</el-tag></template
+          ></el-table-column
+        >
+        <el-table-column
+          v-if="viewportWidth < 768 || viewportWidth >= 1200"
+          prop="status"
+          label="是否发布"
+          sortable="custom"
+          :width="viewportWidth >= 1600 ? 108 : 70"
+          align="center"
+          ><template #default="{ row }"
+            ><el-tag
+              :type="row.status === 1 ? 'success' : row.status === 0 ? 'warning' : 'info'"
+              size="small"
+              round
+              >{{ row.status === 1 ? '已发布' : row.status === 0 ? '未发布' : '未知' }}</el-tag
+            ></template
+          ></el-table-column
+        >
+        <el-table-column
+          v-if="viewportWidth >= 1200 || viewportWidth < 768"
+          prop="createName"
+          label="创建人"
+          sortable="custom"
+          :width="viewportWidth >= 1600 ? 125 : 65"
+          show-overflow-tooltip
+          ><template #default="{ row }">{{ row.createName || '—' }}</template></el-table-column
+        >
+        <el-table-column
+          v-if="viewportWidth >= 1200 || viewportWidth < 768"
+          prop="createTime"
+          label="创建时间"
+          sortable="custom"
+          :width="viewportWidth >= 1600 ? 180 : 125"
+          align="center"
+          ><template #default="{ row }">{{
+            formatContestTime(row.createTime, true)
+          }}</template></el-table-column
+        >
+        <el-table-column
+          label="操作"
+          :width="viewportWidth >= 1600 ? 250 : 220"
+          :fixed="viewportWidth < 768 ? 'right' : false"
+          align="center"
+        >
+          <template #default="{ row }"
+            ><div class="row-actions">
+              <template v-if="row.status === 0"
+                ><el-tooltip content="后端尚未提供竞赛详情及编辑接口，且列表未返回竞赛ID"
+                  ><span
+                    ><el-button size="small" link type="primary" :icon="Edit" disabled
+                      >编辑</el-button
+                    ></span
+                  ></el-tooltip
+                ><el-tooltip content="后端尚未提供删除接口，且列表未返回竞赛ID"
+                  ><span
+                    ><el-button size="small" link type="danger" :icon="Delete" disabled
+                      >删除</el-button
+                    ></span
+                  ></el-tooltip
+                ><el-tooltip content="未发布竞赛无需撤销发布；后端也尚未提供该接口"
+                  ><span
+                    ><el-button size="small" link type="warning" :icon="RefreshLeft" disabled
+                      >撤销发布</el-button
+                    ></span
+                  ></el-tooltip
+                ></template
+              ><el-tag v-else type="danger" size="small" round
+                ><el-icon><WarningFilled /></el-icon>
+                {{
+                  phaseOf(row) === 'ongoing'
+                    ? '已开赛'
+                    : phaseOf(row) === 'ended'
+                      ? '已结束'
+                      : '已发布'
+                }}</el-tag
+              >
+            </div></template
+          >
         </el-table-column>
-        <el-table-column prop="endTime" label="结束时间" width="175" align="center">
-          <template #default="{ row }">
-            <span :class="{ 'cell-empty': !row.endTime }">{{ formatTime(row.endTime) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">
-              <el-icon><Edit /></el-icon>
-              编辑
-            </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">
-              <el-icon><Delete /></el-icon>
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-
-        <template #empty>
-          <div class="app-table-empty">
+        <template #empty
+          ><div class="app-table-empty">
             <div class="app-table-empty__icon">
               <el-icon :size="36"><Trophy /></el-icon>
             </div>
-            <p class="app-table-empty__title">暂无竞赛数据</p>
-            <p class="app-table-empty__desc">
-              {{ loadError ? '数据暂时无法获取，请检查网络后点击刷新重试' : '当前条件下还没有竞赛数据' }}
+            <p class="app-table-empty__title">
+              {{ loadError ? '竞赛数据加载失败' : '暂无竞赛数据' }}
             </p>
-            <el-button type="primary" plain :icon="Refresh" :loading="loading" @click="retryLoad">
-              刷新重试
-            </el-button>
-          </div>
-        </template>
+            <p class="app-table-empty__desc">
+              {{ loadError ? '请检查错误信息并重试' : '当前筛选条件下没有竞赛' }}
+            </p>
+            <el-button v-if="loadError" type="primary" plain :icon="Refresh" @click="loadContests"
+              >重试</el-button
+            >
+          </div></template
+        >
       </el-table>
-
-      <!-- 分页（竞赛接口接入前为前端分页，接入后可平移为服务端分页） -->
       <div class="pagination-box">
         <PageSizeSelector
           v-model="pagination.size"
           :disabled="loading"
           @change="handleSizeChange"
-        />
-        <el-pagination
+        /><el-pagination
           v-model:current-page="pagination.current"
           v-model:page-size="pagination.size"
-          :total="filteredContests.length"
+          :total="total"
           layout="prev, pager, next, jumper"
           background
           size="small"
           :disabled="loading"
+          @current-change="handlePageChange"
         />
       </div>
     </div>
 
-    <!-- 编辑 / 新增 弹窗 -->
-    <el-dialog
-      v-model="editVisible"
-      :title="editMode === 'add' ? '新增竞赛' : '编辑竞赛'"
-      width="560px"
-      :close-on-click-modal="false"
-      destroy-on-close
+    <el-dialog v-model="supportVisible" title="联系技术支持" width="min(420px, 90vw)"
+      ><p>请将以下错误信息、发生时间及页面地址提供给系统管理员：</p>
+      <p class="support-detail">
+        {{ loadError?.message }}<br />{{ new Date().toLocaleString() }}<br />{{ route.fullPath }}
+      </p>
+      <template #footer
+        ><el-button type="primary" @click="supportVisible = false">知道了</el-button></template
+      ></el-dialog
     >
-      <el-form
-        ref="editFormRef"
-        :model="editForm"
-        :rules="editRules"
-        label-width="90px"
-        label-position="right"
-      >
-        <el-form-item label="竞赛名称" prop="name">
-          <el-input
-            v-model="editForm.name"
-            placeholder="请输入竞赛名称"
-            maxlength="50"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="竞赛状态" prop="status">
-          <el-radio-group v-model="editForm.status">
-            <el-radio v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="竞赛时间" prop="range">
-          <el-date-picker
-            v-model="editForm.range"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            value-format="YYYY-MM-DD HH:mm"
-            format="YYYY-MM-DD HH:mm"
-            style="width: 100%"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Refresh, Edit, Delete, Trophy } from '@element-plus/icons-vue'
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  Delete,
+  Edit,
+  Plus,
+  Refresh,
+  RefreshLeft,
+  Search,
+  Trophy,
+  WarningFilled,
+} from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
+import { getContestResults } from '@/api/contest'
+import {
+  formatContestTime,
+  getContestPhase,
+  invalidEndTime,
+  parseContestTimestamp,
+  shortenTitle,
+} from '@/api/contestPolicy'
+import { normalizePageSize } from '@/utils/pagination'
 
-// ======================== 竞赛状态字典 ========================
-const STATUS_NOT_STARTED = 0
-const STATUS_ONGOING = 1
-const STATUS_ENDED = 2
-
-const statusOptions = [
-  { value: STATUS_NOT_STARTED, label: '未开始', tagType: 'warning' },
-  { value: STATUS_ONGOING, label: '进行中', tagType: 'success' },
-  { value: STATUS_ENDED, label: '已结束', tagType: 'info' },
-]
-const statusMap = () => new Map(statusOptions.map((o) => [o.value, o]))
-const statusLabel = (status) => statusMap().get(status)?.label ?? '未知'
-const statusTagType = (status) => statusMap().get(status)?.tagType ?? 'info'
-
-// ======================== 搜索 / 分页 ========================
-const keyword = ref('')
-const statusFilter = ref('')
-const appliedKeyword = ref('')
-const appliedStatus = ref('')
+const route = useRoute()
+const router = useRouter()
+const filters = reactive({ title: '', status: '', createName: '' })
+const dateRange = ref([])
 const pagination = reactive({ current: 1, size: 10 })
-
-// ======================== 列表状态 ========================
-const contestList = ref([])
+const lastSuccessfulPagination = reactive({ current: 1, size: 10 })
+const sortField = ref('createTime')
+const sortOrder = ref('desc')
+const contests = ref([])
+const total = ref(0)
 const loading = ref(false)
-// 仅用于空态文案区分（网络失败/空数据），不展示独立“加载失败”错误页
-const loadError = ref(false)
+const loadError = ref(null)
+const timeoutStreak = ref(0)
+const supportVisible = ref(false)
+const viewportWidth = ref(window.innerWidth)
+const now = ref(Date.now())
+let searchTimer
+let phaseTimer
+let loadId = 0
+let hasSuccessfulPage = false
+let skipNextRouteLoad = false
 
-/**
- * 加载竞赛列表。
- * TODO（后端接入点）：竞赛服务就绪后改为
- *   const page = await getContestPage(buildQuery())
- *   contestList.value = page.records; total.value = page.total
- * 并将下方分页从前端切片平移为服务端分页（与题目/用户模块一致）。
- */
-const loadContests = async () => {
-  loading.value = true
-  loadError.value = false
-  try {
-    // 当前后端竞赛接口尚未提供，按“无数据”呈现，不构造任何内置模拟数据
-    contestList.value = []
-  } catch {
-    contestList.value = []
-    loadError.value = true
-  } finally {
-    loading.value = false
-  }
+const phaseOf = (row) => getContestPhase(row, now.value)
+const phaseLabel = (row) =>
+  ({
+    upcoming: '未开赛',
+    ongoing: '已开赛',
+    ended: '已结束',
+    invalid: '时间异常',
+    unknown: '未知',
+  })[phaseOf(row)]
+const phaseTagType = (row) =>
+  ({ upcoming: 'info', ongoing: 'primary', ended: 'info', invalid: 'danger', unknown: 'info' })[
+    phaseOf(row)
+  ]
+
+/** Refresh exactly when the next visible contest starts or ends. */
+const schedulePhaseRefresh = () => {
+  clearTimeout(phaseTimer)
+  now.value = Date.now()
+  const next = contests.value
+    .flatMap((row) => [row.startTime, row.endTime])
+    .map(parseContestTimestamp)
+    .filter((time) => time != null && time > now.value)
+    .sort((a, b) => a - b)[0]
+  if (next != null)
+    phaseTimer = setTimeout(
+      () => {
+        now.value = Date.now()
+        if (sortField.value === 'phase') loadContests()
+        else schedulePhaseRefresh()
+      },
+      Math.min(Math.max(next - now.value + 1, 1), 2147483647),
+    )
 }
 
-const retryLoad = () => loadContests()
+const onResize = () => {
+  viewportWidth.value = window.innerWidth
+}
+const dateShortcuts = [
+  { text: '今天', value: () => [new Date(), new Date()] },
+  {
+    text: '昨天',
+    value: () => {
+      const day = new Date()
+      day.setDate(day.getDate() - 1)
+      return [day, day]
+    },
+  },
+  {
+    text: '近7天',
+    value: () => {
+      const from = new Date()
+      from.setDate(from.getDate() - 6)
+      return [from, new Date()]
+    },
+  },
+]
 
-// 名称模糊 + 状态筛选（前端过滤；接口接入后改由服务端过滤）
-const filteredContests = computed(() => {
-  const kw = appliedKeyword.value.trim()
-  return contestList.value.filter((item) => {
-    const matchKeyword = !kw || (item.name || '').includes(kw)
-    const matchStatus = appliedStatus.value === '' || item.status === appliedStatus.value
-    return matchKeyword && matchStatus
-  })
+const readQuery = (query) => {
+  filters.title = typeof query.title === 'string' ? query.title : ''
+  filters.status = query.status === '0' ? 0 : query.status === '1' ? 1 : ''
+  filters.createName = typeof query.createName === 'string' ? query.createName : ''
+  dateRange.value =
+    typeof query.startTime === 'string' && typeof query.endTime === 'string'
+      ? [query.startTime.slice(0, 10), query.endTime.slice(0, 10)]
+      : []
+  const current = Number(query.current ?? query.pageNum)
+  pagination.current = Number.isInteger(current) && current >= 1 && current <= 1000000 ? current : 1
+  try {
+    pagination.size = normalizePageSize(query.size ?? query.pageSize ?? 10)
+  } catch {
+    pagination.size = 10
+  }
+  sortField.value = typeof query.sortField === 'string' ? query.sortField : 'createTime'
+  sortOrder.value = query.sortOrder === 'asc' ? 'asc' : 'desc'
+}
+const currentQuery = () => ({
+  current: pagination.current,
+  size: pagination.size,
+  title: filters.title.trim() || undefined,
+  startTime: dateRange.value?.[0] ? `${dateRange.value[0]} 00:00:00` : undefined,
+  endTime: dateRange.value?.[1] ? `${dateRange.value[1]} 23:59:59` : undefined,
+  status: filters.status === '' ? undefined : filters.status,
+  createName: filters.createName.trim() || undefined,
+  sortField: sortField.value,
+  sortOrder: sortOrder.value,
 })
-
-const pagedContests = computed(() => {
-  const start = (pagination.current - 1) * pagination.size
-  return filteredContests.value.slice(start, start + pagination.size)
-})
-
-// 每页条数变化后回到首页，pagedContests 会立即重新计算。
+const commitQuery = () => {
+  const query = currentQuery()
+  try {
+    localStorage.setItem('contestManageQuery', JSON.stringify(query))
+  } catch {
+    /* storage may be disabled */
+  }
+  router.replace({ name: 'contestManage', query })
+}
+const commitSearch = () => {
+  clearTimeout(searchTimer)
+  pagination.current = 1
+  commitQuery()
+}
+const scheduleSearch = () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(commitSearch, 300)
+}
+const resetSearch = () => {
+  Object.assign(filters, { title: '', status: '', createName: '' })
+  dateRange.value = []
+  commitSearch()
+}
 const handleSizeChange = () => {
   pagination.current = 1
+  commitQuery()
 }
-
-const handleSearch = () => {
-  appliedKeyword.value = keyword.value
-  appliedStatus.value = statusFilter.value
+const handlePageChange = () => commitQuery()
+const handleSortChange = ({ prop, order }) => {
+  const nextField = prop || 'createTime'
+  const nextOrder = order === 'ascending' ? 'asc' : 'desc'
+  if (sortField.value === nextField && sortOrder.value === nextOrder) return
+  sortField.value = nextField
+  sortOrder.value = nextOrder
   pagination.current = 1
+  commitQuery()
 }
 
-const handleReset = () => {
-  keyword.value = ''
-  statusFilter.value = ''
-  handleSearch()
-}
-
-// ======================== 时间展示 ========================
-// 兼容 'YYYY-MM-DDTHH:mm'（ISO）、数组形式与空值；空值统一占位，避免空白单元格
-const formatTime = (value) => {
-  if (value == null || value === '') return '—'
-  if (Array.isArray(value)) {
-    const v = value[0]
-    return v == null ? '—' : String(v).replace('T', ' ')
-  }
-  return String(value).replace('T', ' ')
-}
-
-// ======================== 新增 / 编辑 ========================
-const editVisible = ref(false)
-const editMode = ref('add')
-const editFormRef = ref(null)
-
-const createEmptyForm = () => ({
-  id: '',
-  name: '',
-  status: STATUS_NOT_STARTED,
-  range: [],
-})
-
-const editForm = reactive(createEmptyForm())
-
-const editRules = {
-  name: [
-    { required: true, message: '请输入竞赛名称', trigger: 'blur' },
-    { max: 50, message: '名称不超过 50 个字符', trigger: 'blur' },
-  ],
-  status: [
-    { required: true, message: '请选择竞赛状态', trigger: 'change' },
-  ],
-  range: [
-    {
-      required: true,
-      validator: (_rule, value, callback) => {
-        if (!value || !value[0] || !value[1]) {
-          callback(new Error('请选择竞赛开始与结束时间'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'change',
-    },
-  ],
-}
-
-const handleAdd = () => {
-  Object.assign(editForm, createEmptyForm())
-  editMode.value = 'add'
-  editVisible.value = true
-}
-
-const handleEdit = (row) => {
-  Object.assign(editForm, createEmptyForm(), {
-    id: row.id,
-    name: row.name,
-    status: row.status,
-    range: row.startTime && row.endTime ? [row.startTime, row.endTime] : [],
-  })
-  editMode.value = 'edit'
-  editVisible.value = true
-}
-
-const handleSubmit = async () => {
+/** Ignore late responses after a filter or page change. */
+const loadContests = async () => {
+  const requestId = ++loadId
+  loading.value = true
+  loadError.value = null
   try {
-    await editFormRef.value.validate()
-  } catch {
-    return
-  }
-  const payload = {
-    name: editForm.name,
-    status: editForm.status,
-    startTime: editForm.range[0],
-    endTime: editForm.range[1],
-  }
-
-  if (editMode.value === 'add') {
-    // 接口接入前的本地新增；接口接入后替换为 addContest(payload)
-    contestList.value.unshift({
-      ...payload,
-      id: String(Date.now()),
-    })
-    ElMessage.success('新增竞赛成功')
-  } else {
-    const target = contestList.value.find((item) => item.id === editForm.id)
-    if (target) Object.assign(target, payload)
-    ElMessage.success('编辑竞赛成功')
-  }
-  editVisible.value = false
-}
-
-// ======================== 删除（二次确认） ========================
-const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定要删除竞赛「${row.name}」吗？删除后不可恢复。`, '删除确认', {
-    confirmButtonText: '确定删除',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-    .then(() => {
-      // 接口接入前的本地删除；接口接入后替换为 await deleteContest(row.id)
-      const idx = contestList.value.findIndex((item) => item.id === row.id)
-      if (idx !== -1) contestList.value.splice(idx, 1)
-      if (pagedContests.value.length === 0 && pagination.current > 1) {
-        pagination.current -= 1
+    const page = await getContestResults(currentQuery())
+    if (requestId !== loadId) return
+    contests.value = page.records
+    total.value = page.total
+    hasSuccessfulPage = true
+    Object.assign(lastSuccessfulPagination, pagination)
+    timeoutStreak.value = 0
+    schedulePhaseRefresh()
+  } catch (error) {
+    if (requestId !== loadId) return
+    const timedOut =
+      error?.cause?.code === 'ECONNABORTED' || /超时|timeout/i.test(error?.message || '')
+    timeoutStreak.value = timedOut ? timeoutStreak.value + 1 : 0
+    const code = error?.code ?? error?.cause?.response?.status ?? (timedOut ? 'TIMEOUT' : 'NETWORK')
+    if (hasSuccessfulPage) {
+      const pageChanged =
+        pagination.current !== lastSuccessfulPagination.current ||
+        pagination.size !== lastSuccessfulPagination.size
+      Object.assign(pagination, lastSuccessfulPagination)
+      if (pageChanged) {
+        skipNextRouteLoad = true
+        commitQuery()
       }
-      ElMessage.success('删除成功')
-    })
-    .catch(() => {})
+    }
+    loadError.value = {
+      message: `竞赛列表加载失败${hasSuccessfulPage ? '，当前仍展示上次成功获取的数据' : ''}（错误码 ${code}）：${error?.message || '网络异常，请检查网络连接或后端服务'}`,
+      severe: Number(code) >= 2000 || Number(code) >= 500,
+    }
+    if (!hasSuccessfulPage) {
+      contests.value = []
+      total.value = 0
+      clearTimeout(phaseTimer)
+    }
+  } finally {
+    if (requestId === loadId) loading.value = false
+  }
 }
-
+watch(
+  () => route.query,
+  (query) => {
+    readQuery(query)
+    if (skipNextRouteLoad) {
+      skipNextRouteLoad = false
+      return
+    }
+    loadContests()
+  },
+)
 onMounted(() => {
+  window.addEventListener('resize', onResize)
+  document.addEventListener('visibilitychange', schedulePhaseRefresh)
+  if (!Object.keys(route.query).length) {
+    try {
+      const saved = JSON.parse(localStorage.getItem('contestManageQuery') || 'null')
+      if (saved && typeof saved === 'object') {
+        router.replace({ name: 'contestManage', query: saved })
+        return
+      }
+    } catch {
+      /* ignore corrupt saved filters */
+    }
+  }
+  readQuery(route.query)
   loadContests()
+})
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+  clearTimeout(phaseTimer)
+  window.removeEventListener('resize', onResize)
+  document.removeEventListener('visibilitychange', schedulePhaseRefresh)
+  loadId += 1
 })
 </script>
 
 <style lang="scss" scoped>
 .contest-manage {
-  .search-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 16px 20px;
+  .search-bar,
+  .table-card {
     background: var(--app-card-bg);
     border: 1px solid var(--app-border-color);
     border-radius: var(--app-radius);
     box-shadow: var(--app-shadow);
-    margin-bottom: 16px;
-
-    .search-fields {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-
-      .search-item {
-        width: 200px;
-      }
-    }
-
-    .search-actions {
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
   }
-
+  .search-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .search-fields {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .search-item {
+    width: 190px;
+  }
+  .search-item.narrow {
+    width: 150px;
+  }
+  .date-filter {
+    width: 270px;
+  }
+  .search-actions,
+  .toolbar-left,
+  .row-actions,
+  .error-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   .toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
-    padding: 0 4px;
-
-    .toolbar-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .result-count {
-      display: inline-flex;
-      align-items: center;
-      height: 24px;
-      padding: 0 10px;
-      font-size: 13px;
-      color: var(--app-text-regular);
-      background: var(--app-hover-bg);
-      border-radius: 12px;
-    }
+    gap: 12px;
+    margin: 0 4px 12px;
   }
-
+  .api-note {
+    margin: 0 4px 12px;
+    color: var(--app-text-regular);
+    font-size: 12px;
+  }
+  .result-count {
+    border-radius: 12px;
+    background: var(--app-hover-bg);
+    color: var(--app-text-regular);
+    font-size: 13px;
+    padding: 4px 10px;
+  }
   .table-card {
     padding: 16px;
-    background: var(--app-card-bg);
-    border: 1px solid var(--app-border-color);
-    border-radius: var(--app-radius);
-    box-shadow: var(--app-shadow);
-
-    // 首次加载时保持表格区域高度稳定，避免空白/跳动
-    :deep(.manage-table .el-table__inner-wrapper) {
-      min-height: 360px;
-    }
-
-    .cell-empty {
-      color: var(--app-text-secondary);
-    }
-
-    .pagination-box {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 1px solid var(--app-border-color);
-
-    }
+    min-width: 0;
+  }
+  .load-alert {
+    margin-bottom: 12px;
+  }
+  .error-actions {
+    margin-top: 8px;
+  }
+  .manage-table :deep(.el-table__inner-wrapper) {
+    min-height: 360px;
+  }
+  .manage-table :deep(th.el-table__cell) {
+    color: var(--app-text-regular);
+  }
+  :deep(.el-button--primary:not(.is-plain)) {
+    color: #0b2a3a;
+  }
+  .title-cell {
+    overflow-wrap: anywhere;
+  }
+  .tablet-dates {
+    display: block;
+    color: var(--app-text-regular);
+    line-height: 1.5;
+  }
+  .invalid-time {
+    color: #b42318;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+  }
+  .row-actions {
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .row-actions > span {
+    display: inline-flex;
+    flex: none;
+  }
+  .row-actions :deep(.el-button) {
+    height: 32px;
+    margin: 0;
+    padding: 0 2px;
+  }
+  .row-actions :deep(.el-tag) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pagination-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 14px;
+    margin-top: 16px;
+    border-top: 1px solid var(--app-border-color);
+  }
+  :deep(.el-button:focus-visible),
+  :deep(.el-input__wrapper:focus-within),
+  :deep(.el-select__wrapper:focus-visible) {
+    outline: 2px solid var(--app-brand);
+    outline-offset: 2px;
+  }
+  :deep(.el-button:active) {
+    transform: translateY(1px);
   }
 }
-
-/* 响应式：平板/手机搜索区纵向堆叠，表格横向滚动（操作列固定右侧） */
-@media screen and (max-width: 768px) {
+.support-detail {
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--app-hover-bg);
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .contest-manage .table-card {
+    padding: 12px;
+  }
+}
+@media (max-width: 767px) {
   .contest-manage {
-    .search-bar {
+    .search-bar,
+    .search-fields {
+      display: flex;
       flex-direction: column;
       align-items: stretch;
-      padding: 12px;
-
-      .search-fields {
-        flex-direction: column;
-
-        .search-item {
-          width: 100%;
-        }
-      }
-
-      .search-actions {
-        justify-content: flex-end;
-      }
     }
-
+    .search-bar {
+      padding: 12px;
+    }
+    .search-item,
+    .search-item.narrow,
+    .date-filter {
+      width: 100%;
+    }
+    .search-actions {
+      justify-content: flex-end;
+    }
     .table-card {
       padding: 12px;
+      overflow: hidden;
     }
-
     .pagination-box {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-
+      justify-content: center;
     }
   }
 }

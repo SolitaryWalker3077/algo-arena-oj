@@ -17,13 +17,9 @@
         :label="`${size} 条/页`"
         :value="size"
       />
-      <el-option
-        v-if="isCustomSize"
-        :label="`${modelValue} 条/页（自定义）`"
-        :value="modelValue"
-      />
+      <el-option v-if="isCustomSize" :label="`${modelValue} 条/页（自定义）`" :value="modelValue" />
 
-      <template #footer>
+      <template v-if="allowCustom" #footer>
         <div class="page-size-selector__custom" @click.stop>
           <span class="page-size-selector__custom-title">自定义条数</span>
           <div class="page-size-selector__custom-row">
@@ -74,6 +70,10 @@ const props = defineProps({
   options: {
     type: Array,
     default: () => [...PAGE_SIZE_OPTIONS],
+  },
+  allowCustom: {
+    type: Boolean,
+    default: true,
   },
 })
 
@@ -169,4 +169,3 @@ const handleVisibleChange = (visible) => {
   }
 }
 </style>
-

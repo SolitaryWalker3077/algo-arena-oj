@@ -8,8 +8,8 @@
       <el-menu
         :default-active="activeMenu"
         class="nav-menu"
-        router
         :collapse="false"
+        @select="handleMenuSelect"
       >
         <el-menu-item index="/admin/home">
           <el-icon><HomeFilled /></el-icon>
@@ -37,11 +37,7 @@
         <div class="page-title">{{ currentTitle }}</div>
         <div class="top-right">
           <ThemeToggle />
-          <el-dropdown
-            trigger="hover"
-            placement="bottom-end"
-            @command="handleUserCommand"
-          >
+          <el-dropdown trigger="hover" placement="bottom-end" @command="handleUserCommand">
             <div class="user-info" tabindex="0">
               <el-icon class="user-icon"><User /></el-icon>
               <span class="user-label">当前用户:</span>
@@ -62,6 +58,9 @@
 
       <!-- 主内容区 -->
       <main class="content">
+        <div v-if="navigating" class="navigation-progress" role="status" aria-live="polite">
+          <el-icon class="is-loading"><Loading /></el-icon> 页面加载中…
+        </div>
         <RouterView />
       </main>
     </div>
@@ -83,22 +82,21 @@
       </div>
       <template #footer>
         <el-button :disabled="loggingOut" @click="cancelLogout">取消</el-button>
-        <el-button type="primary" :loading="loggingOut" @click="confirmLogout">
-          确认
-        </el-button>
+        <el-button type="primary" :loading="loggingOut" @click="confirmLogout"> 确认 </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowDown,
   Document,
   HomeFilled,
+  Loading,
   SwitchButton,
   Trophy,
   User,
@@ -116,6 +114,34 @@ const nickName = ref('')
 const displayName = computed(() => nickName.value || adminAccount || '管理员')
 const logoutDialogVisible = ref(false)
 const loggingOut = ref(false)
+const navigating = ref(false)
+let navigationStarted = 0
+let navigationTimer
+
+// el-menu 的 select 事件只在模板绑定一次；导航完成后至少显示 500ms。
+const handleMenuSelect = (index) => {
+  if (index === route.path) return
+  clearTimeout(navigationTimer)
+  navigationStarted = Date.now()
+  navigating.value = true
+  router.push(index).catch(() => {
+    navigating.value = false
+  })
+}
+const removeAfterEach = router.afterEach(() => {
+  if (!navigating.value) return
+  clearTimeout(navigationTimer)
+  navigationTimer = setTimeout(
+    () => {
+      navigating.value = false
+    },
+    Math.max(0, 500 - (Date.now() - navigationStarted)),
+  )
+})
+onBeforeUnmount(() => {
+  clearTimeout(navigationTimer)
+  removeAfterEach()
+})
 
 onMounted(async () => {
   try {
@@ -130,7 +156,9 @@ onMounted(async () => {
 })
 
 // 当前激活的菜单项
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() =>
+  route.path.startsWith('/admin/contest') ? '/admin/contest' : route.path,
+)
 
 // 顶部页面标题
 const titleMap = {
@@ -139,7 +167,9 @@ const titleMap = {
   '/admin/problem': '题目管理',
   '/admin/contest': '竞赛管理',
 }
-const currentTitle = computed(() => titleMap[route.path] || '后台管理')
+const currentTitle = computed(
+  () => titleMap[route.path] || (route.path.startsWith('/admin/contest') ? '竞赛管理' : '后台管理'),
+)
 
 const handleUserCommand = (command) => {
   if (command !== 'logout' || loggingOut.value) return
@@ -173,7 +203,7 @@ const confirmLogout = async () => {
 <style lang="scss" scoped>
 .admin-layout {
   display: flex;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
 }
@@ -261,7 +291,9 @@ const confirmLogout = async () => {
         border-radius: 6px;
         cursor: pointer;
         outline: none;
-        transition: background-color 0.2s, color 0.2s;
+        transition:
+          background-color 0.2s,
+          color 0.2s;
 
         &:hover,
         &:focus-visible {
@@ -302,6 +334,77 @@ const confirmLogout = async () => {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+    position: relative;
+  }
+}
+
+.navigation-progress {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--app-text-primary);
+  background: var(--app-brand-active-bg);
+}
+
+@media (max-width: 767px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    height: 52px;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border-color);
+    .logo {
+      display: none;
+    }
+    .nav-menu {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      height: 52px;
+      :deep(.el-menu-item) {
+        flex: 1;
+        min-width: 0;
+        height: 52px;
+        justify-content: center;
+        padding: 0 3px;
+        font-size: 12px;
+        .el-icon {
+          margin-right: 3px;
+        }
+      }
+    }
+  }
+  .main-area {
+    min-height: 0;
+  }
+  .main-area .top-bar {
+    height: 52px;
+    padding: 0 12px;
+  }
+  .main-area .content {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sidebar .nav-menu :deep(.el-menu-item) {
+    span {
+      display: none;
+    }
+    .el-icon {
+      margin-right: 0;
+    }
   }
 }
 
