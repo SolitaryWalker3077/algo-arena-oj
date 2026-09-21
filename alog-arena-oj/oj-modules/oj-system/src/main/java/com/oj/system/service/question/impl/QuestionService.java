@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.pagehelper.PageHelper;
 import com.oj.common.enums.ResultCode;
 import com.oj.security.expection.ServiceException;
-import com.oj.system.entity.question.Questions;
+import com.oj.system.entity.question.QuestionsInfo;
 import com.oj.system.entity.question.dto.QuestionAddDto;
 import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
@@ -37,23 +37,23 @@ public class QuestionService implements IQuestionService {
 
     @Override
     public int add(QuestionAddDto questionAddDto) {
-        List<Questions> questionsList = questionMapper.selectList(new LambdaQueryWrapper<Questions>()
-                .eq(Questions::getTitle, questionAddDto.getTitle()));
+        List<QuestionsInfo> questionsInfoList = questionMapper.selectList(new LambdaQueryWrapper<QuestionsInfo>()
+                .eq(QuestionsInfo::getTitle, questionAddDto.getTitle()));
 
-        if (CollectionUtil.isNotEmpty(questionsList)) {
+        if (CollectionUtil.isNotEmpty(questionsInfoList)) {
             throw new ServiceException(ResultCode.FAILED_ALREADY_EXISTS);
         }
-        Questions questions  =new Questions();
+        QuestionsInfo questionsInfo =new QuestionsInfo();
         //将questionAddDto对象转换为questions对象
         //可以使用hutool工具包当中的BeanUtil.copyProperties方法
-        BeanUtil.copyProperties(questionAddDto,questions);
-        return questionMapper.insert(questions);
+        BeanUtil.copyProperties(questionAddDto, questionsInfo);
+        return questionMapper.insert(questionsInfo);
     }
 
 
     @Override
     public QuestionDetailVO detail(Long questionId) {
-        Questions question = questionMapper.selectById(questionId);
+        QuestionsInfo question = questionMapper.selectById(questionId);
         if(question == null) {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
@@ -65,7 +65,7 @@ public class QuestionService implements IQuestionService {
 
     @Override
     public int edit(QuestionEditDto questionEditDto) {
-        Questions oldQuestion = questionMapper.selectById(questionEditDto.getQuestionId());
+        QuestionsInfo oldQuestion = questionMapper.selectById(questionEditDto.getQuestionId());
         if (oldQuestion == null) {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
@@ -83,7 +83,7 @@ public class QuestionService implements IQuestionService {
 
     @Override
     public int delete(Long questionId) {
-        Questions question = questionMapper.selectById(questionId);
+        QuestionsInfo question = questionMapper.selectById(questionId);
         if (question == null) {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
