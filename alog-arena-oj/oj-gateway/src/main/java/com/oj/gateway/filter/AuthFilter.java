@@ -164,7 +164,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String msg) {
-        log.error("[鉴权异常处理]请求路径:{}", exchange.getRequest().getPath());
+        log.warn("[鉴权异常处理]请求路径:{}, 原因:{}", exchange.getRequest().getPath(), msg);
         return webFluxResponseWriter(exchange.getResponse(), msg, ResultCode.FAILED_UNAUTHORIZED.getCode());
     }
 

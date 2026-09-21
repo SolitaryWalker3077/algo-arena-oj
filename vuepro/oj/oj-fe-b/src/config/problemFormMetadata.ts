@@ -1,8 +1,7 @@
 import type { ProblemFormMetadata } from '@/types/problem'
 
 /**
- * Versioned fallback for offline development and rolling backend deployments.
- * The server exposes the same shape at GET /system/question/metadata.
+ * Local form configuration used without a backend metadata endpoint.
  */
 export const DEFAULT_PROBLEM_FORM_METADATA: ProblemFormMetadata = {
   version: '1.1.0',

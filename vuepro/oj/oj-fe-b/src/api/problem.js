@@ -36,7 +36,6 @@ export {
 export const ENDPOINTS = Object.freeze({
   page: '/system/question/list',
   detail: '/system/question/detail',
-  metadata: '/system/question/metadata',
   add: '/system/question/add',
   update: '/system/question/edit',
   delete: '/system/question/delete',
@@ -102,9 +101,6 @@ export async function getProblemDetail(id) {
     language: 'java',
   }
 }
-
-/** 获取后端版本化的动态表单 JSON 元数据。 */
-export const getProblemFormMetadata = () => request.get(ENDPOINTS.metadata)
 
 /**
  * 删除题目

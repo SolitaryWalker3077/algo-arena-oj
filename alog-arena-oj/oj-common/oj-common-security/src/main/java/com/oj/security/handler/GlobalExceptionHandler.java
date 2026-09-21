@@ -6,8 +6,8 @@ import com.oj.common.entity.Result;
 import com.oj.common.enums.ResultCode;
 import com.oj.security.expection.ServiceException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -82,12 +82,18 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BindException.class)
     public Result<Void> handleBindException(BindException e) {
-        log.error(e.getMessage());
-
-        // getAllErrors() 取得全部校验错误；方法引用负责从每个错误中提取默认提示语。
-        // join 会过滤掉 null 提示，并使用 ", " 将剩余提示拼成一个字符串。
+        // 参数类型转换失败时给出字段级提示；其他校验错误保留注解中的提示语。
         String message = join(e.getAllErrors(),
-                DefaultMessageSourceResolvable::getDefaultMessage, ", ");
+                error -> {
+                    if (error instanceof FieldError fieldError && fieldError.isBindingFailure()) {
+                        Class<?> fieldType = e.getBindingResult().getFieldType(fieldError.getField());
+                        String reason = fieldType == Integer.class || fieldType == Long.class
+                                ? "必须为整数" : "格式不正确";
+                        return fieldError.getField() + reason;
+                    }
+                    return error.getDefaultMessage();
+                }, ", ");
+        log.warn("请求参数校验失败: {}", message);
         return Result.fail(ResultCode.FAILED_PARAMS_VALIDATE.getCode(), message);
 
     }

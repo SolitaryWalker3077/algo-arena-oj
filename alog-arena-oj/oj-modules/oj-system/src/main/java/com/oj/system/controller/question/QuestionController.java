@@ -8,14 +8,16 @@ import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
 import com.oj.system.entity.question.vo.QuestionDetailVO;
 import com.oj.system.service.question.IQuestionService;
-import com.oj.security.provider.QuestionFormMetadataProvider;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/question")
@@ -25,19 +27,15 @@ public class QuestionController extends BaseController {
     @Autowired
     private IQuestionService questionService;
 
-    @Autowired
-    private QuestionFormMetadataProvider questionFormMetadataProvider;
-
     @Operation(summary = "题目列表")
+//    @Parameters({
+//            @Parameter(name = "pageNum", in = ParameterIn.QUERY, description = "页码，从 1 开始", example = "1"),
+//            @Parameter(name = "pageSize", in = ParameterIn.QUERY, description = "每页条数，1 到 500", example = "10"),
+//            @Parameter(name = "difficult", in = ParameterIn.QUERY, description = "可选，留空查询全部；1 简单、2 中等、3 困难", example = "1")
+//    })
     @GetMapping("/list")
-    public TableDataInfo list(@Validated QuestionQueryDto questionQueryDto) {
+    public TableDataInfo list(@Validated @ParameterObject QuestionQueryDto questionQueryDto) {
         return getDataTable(questionService.list(questionQueryDto));
-    }
-
-    @Operation(summary = "获取题目动态表单元数据")
-    @GetMapping("/metadata")
-    public Result<Map<String, Object>> metadata() {
-        return Result.success(questionFormMetadataProvider.getMetadata());
     }
 
     // 接口地址/question/add

@@ -1,76 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-const metadata = {
-  version: 'e2e-1',
-  description: 'E2E 动态题目表单',
-  layout: { columns: 2, labelWidth: 104 },
-  behavior: { closeOnOverlay: true, closeOnEscape: true, autosaveSeconds: 30 },
-  fields: [
-    {
-      name: 'title',
-      label: '题目标题',
-      type: 'text',
-      defaultValue: '',
-      colSpan: 2,
-      group: 'basic',
-      validation: [{ required: true, message: '请输入题目标题' }],
-    },
-    {
-      name: 'difficulty',
-      label: '题目难度',
-      type: 'radio',
-      defaultValue: 1,
-      group: 'basic',
-      options: [
-        { label: '简单', value: 1 },
-        { label: '中等', value: 2 },
-        { label: '困难', value: 3 },
-      ],
-      validation: [{ required: true }],
-    },
-    {
-      name: 'language',
-      label: '代码语言',
-      type: 'select',
-      defaultValue: 'java',
-      submit: false,
-      group: 'basic',
-      options: [
-        { label: 'Java', value: 'java' },
-        { label: 'Python', value: 'python' },
-      ],
-    },
-    {
-      name: 'content',
-      label: '题目内容',
-      type: 'markdown',
-      defaultValue: '',
-      colSpan: 2,
-      group: 'statement',
-      validation: [{ required: true, message: '请输入题目内容' }],
-    },
-    {
-      name: 'defaultCode',
-      label: '默认代码块',
-      type: 'code',
-      defaultValue: 'class Solution {}',
-      colSpan: 2,
-      group: 'code',
-      editor: { languageField: 'language', height: 320 },
-    },
-    {
-      name: 'mainFac',
-      label: 'main 主方法',
-      type: 'code',
-      defaultValue: 'public static void main(String[] args) {}',
-      colSpan: 2,
-      group: 'code',
-      editor: { languageField: 'language', height: 320 },
-      validation: [{ required: true, message: '请输入 main 主方法' }],
-    },
-  ],
-}
-
 const json = (body) => ({
   status: 200,
   contentType: 'application/json',
@@ -85,9 +14,6 @@ const openProblemPage = async (page, { onAdd = () => {}, addFailure = '', addDel
     const path = new URL(request.url()).pathname
     if (path.endsWith('/sysuser/info')) {
       return route.fulfill(json({ code: 1000, data: { nickName: '测试管理员' } }))
-    }
-    if (path.endsWith('/question/metadata')) {
-      return route.fulfill(json({ code: 1000, data: metadata }))
     }
     if (path.endsWith('/question/list')) {
       const rows = addedPayload
@@ -188,8 +114,8 @@ test('动态校验、Markdown/Monaco 编辑器与完整提交链路可用', asyn
     title: '两数之和',
     difficult: 1,
     content: markdownContent,
-    defaultCode: 'class Solution {}',
-    mainFac: 'public static void main(String[] args) {}',
+    defaultCode: expect.stringContaining('class Solution'),
+    mainFac: expect.stringContaining('public static void main'),
   })
   expect(submitted.language).toBeUndefined()
   await expect(page.getByText('添加成功')).toBeVisible()
@@ -202,7 +128,7 @@ test('创建失败时保留抽屉并明确展示后端原因', async ({ page }) 
   await page.getByRole('button', { name: '添加题目' }).click()
 
   await page.locator('[data-field-name="title"] input').fill('重复题目')
-  await page.locator('[data-field-name="content"] .cm-content').fill('这是完整的题目内容')
+  await page.locator('[data-field-name="content"] .cm-content').fill('这是完整的题目内容123')
   await page.getByRole('button', { name: '创建题目' }).click()
 
   await expect(page.getByRole('dialog')).toBeVisible()
