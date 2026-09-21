@@ -30,7 +30,8 @@
             </if>
         </where>
         ORDER BY
-            te.create_time DESC
+            te.create_time DESC,
+            te.exam_id DESC
     </select>
 
 </mapper>

@@ -72,6 +72,13 @@ export function normalizeContestPage(response) {
   const rows = Array.isArray(response) ? response : response?.rows
   if (!Array.isArray(rows)) throw new Error('竞赛列表数据格式异常，请联系技术支持')
   const records = rows.map(mapContest).filter(Boolean)
+  records.sort((left, right) => {
+    const leftTime = parseContestTimestamp(left.createTime)
+    const rightTime = parseContestTimestamp(right.createTime)
+    if (leftTime == null) return rightTime == null ? 0 : 1
+    if (rightTime == null) return -1
+    return rightTime - leftTime
+  })
   const total = Number(Array.isArray(response) ? records.length : response.total)
   if (!Number.isSafeInteger(total) || total < 0)
     throw new Error('竞赛总数数据格式异常，请联系技术支持')

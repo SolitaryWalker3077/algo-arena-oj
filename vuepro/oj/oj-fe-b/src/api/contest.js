@@ -10,6 +10,10 @@ const LIST_ENDPOINT = '/system/exam/list'
 const CACHE_MS = 30000
 let allRowsCache = null
 
+export const clearContestResultsCache = () => {
+  allRowsCache = null
+}
+
 /** The only contest endpoint currently implemented by ExamController. */
 export const getContestPage = async (query) => {
   const response = await request.get(LIST_ENDPOINT, {

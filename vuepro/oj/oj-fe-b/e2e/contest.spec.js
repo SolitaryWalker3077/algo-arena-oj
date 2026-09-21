@@ -172,3 +172,30 @@ test('切页失败时恢复上次成功的页码和列表', async ({ page }) => 
   await expect(page.getByText('竞赛1', { exact: true })).toBeVisible()
   await expect(page).toHaveURL(/current=1/)
 })
+test('opening the list shows the newest contest despite saved ascending sort and page', async ({
+  page,
+}) => {
+  const requests = []
+  await setup(page, (url) => {
+    requests.push(url)
+    return {
+      code: 1000,
+      rows: [
+        { ...contests[0], title: 'Older', createTime: '2026-09-20 10:00:00' },
+        { ...contests[1], title: 'Newest', createTime: '2026-09-21 10:00:00' },
+      ],
+      total: 2,
+    }
+  })
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'contestManageQuery',
+      JSON.stringify({ current: 3, size: 10, sortField: 'title', sortOrder: 'asc' }),
+    ),
+  )
+  await page.goto('/admin/contest')
+  await expect(page.locator('.manage-table .el-table__body tr').first()).toContainText('Newest')
+  expect(requests[0].searchParams.get('pageNum')).toBe('1')
+  await expect(page).toHaveURL(/sortField=createTime/)
+  await expect(page).toHaveURL(/sortOrder=desc/)
+})

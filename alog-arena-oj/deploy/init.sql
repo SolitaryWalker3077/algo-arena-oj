@@ -55,8 +55,8 @@ create table if not exists tb_exam
     `status`      tinyint         not null default '0' comment '发布状态 0:未发布 1:已发布,默认为0:未发布',
     `create_by`   bigint          not null comment '创建人',
     `create_time` datetime        not null comment '创建时间',
-    `update_by`   bigint          not null comment '更新用户',
-    `update_time` datetime        not null comment '更新时间',
+    `update_by`   bigint          comment '更新用户',
+    `update_time` datetime        comment '更新时间',
     primary key (exam_id)
 );
 
@@ -70,7 +70,7 @@ create table if not exists tb_exam_question
     `question_order`   bigint          not null comment '题目顺序',
     `create_by`        bigint          not null comment '创建人',
     `create_time`      datetime        not null comment '创建时间',
-    `update_by`        bigint          not null comment '更新用户',
-    `update_time`      datetime        not null comment '更新时间',
+    `update_by`        bigint          comment '更新用户',
+    `update_time`      datetime        comment '更新时间',
     primary key (exam_question_id)
 );

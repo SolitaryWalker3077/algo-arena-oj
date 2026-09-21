@@ -60,7 +60,7 @@
             :icon="Refresh"
             :loading="loading"
             aria-label="刷新竞赛列表"
-            @click="loadContests"
+            @click="refreshContests"
         /></el-tooltip>
       </div>
       <el-button type="primary" :icon="Plus" @click="router.push({ name: 'contestCreate' })"
@@ -92,7 +92,7 @@
               plain
               :icon="Refresh"
               :loading="loading"
-              @click="loadContests"
+              @click="refreshContests"
               >重试</el-button
             ><el-button
               v-if="loadError.severe || timeoutStreak >= 3"
@@ -263,7 +263,12 @@
             <p class="app-table-empty__desc">
               {{ loadError ? '请检查错误信息并重试' : '当前筛选条件下没有竞赛' }}
             </p>
-            <el-button v-if="loadError" type="primary" plain :icon="Refresh" @click="loadContests"
+            <el-button
+              v-if="loadError"
+              type="primary"
+              plain
+              :icon="Refresh"
+              @click="refreshContests"
               >重试</el-button
             >
           </div></template
@@ -313,7 +318,7 @@ import {
   WarningFilled,
 } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
-import { getContestResults } from '@/api/contest'
+import { clearContestResultsCache, getContestResults } from '@/api/contest'
 import {
   formatContestTime,
   getContestPhase,
@@ -420,6 +425,18 @@ const readQuery = (query) => {
   sortField.value = typeof query.sortField === 'string' ? query.sortField : 'createTime'
   sortOrder.value = query.sortOrder === 'asc' ? 'asc' : 'desc'
 }
+const newestFirstQuery = (query) => ({
+  ...query,
+  current: 1,
+  pageNum: undefined,
+  sortField: 'createTime',
+  sortOrder: 'desc',
+})
+const needsNewestFirst = (query) =>
+  Number(query.current ?? query.pageNum ?? 1) !== 1 ||
+  (query.sortField != null && query.sortField !== 'createTime') ||
+  (query.sortOrder != null && query.sortOrder !== 'desc')
+
 const currentQuery = () => ({
   current: pagination.current,
   size: pagination.size,
@@ -512,6 +529,11 @@ const loadContests = async () => {
     if (requestId === loadId) loading.value = false
   }
 }
+const refreshContests = () => {
+  clearContestResultsCache()
+  loadContests()
+}
+
 watch(
   () => route.query,
   (query) => {
@@ -526,16 +548,21 @@ watch(
 onMounted(() => {
   window.addEventListener('resize', onResize)
   document.addEventListener('visibilitychange', schedulePhaseRefresh)
+  clearContestResultsCache()
   if (!Object.keys(route.query).length) {
     try {
       const saved = JSON.parse(localStorage.getItem('contestManageQuery') || 'null')
       if (saved && typeof saved === 'object') {
-        router.replace({ name: 'contestManage', query: saved })
+        router.replace({ name: 'contestManage', query: newestFirstQuery(saved) })
         return
       }
     } catch {
       /* ignore corrupt saved filters */
     }
+  }
+  if (needsNewestFirst(route.query)) {
+    router.replace({ name: 'contestManage', query: newestFirstQuery(route.query) })
+    return
   }
   readQuery(route.query)
   loadContests()

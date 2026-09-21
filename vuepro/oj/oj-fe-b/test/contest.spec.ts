@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { get } = vi.hoisted(() => ({ get: vi.fn() }))
 vi.mock('@/utils/request', () => ({ default: { get } }))
 
-import { getContestPage, getContestResults } from '../src/api/contest'
+import { clearContestResultsCache, getContestPage, getContestResults } from '../src/api/contest'
 import {
   formatContestTime,
   getContestPhase,
@@ -24,9 +24,36 @@ const row = (title: string, status = 0, createName = '张三') => ({
   createTime: '2026-09-20 10:00:00',
 })
 
-beforeEach(() => get.mockReset())
+beforeEach(() => {
+  get.mockReset()
+  clearContestResultsCache()
+})
 
 describe('contest backend contract', () => {
+  it('orders each returned page by newest creation time', () => {
+    const page = normalizeContestPage({
+      rows: [
+        { ...row('Older'), createTime: '2026-09-20 10:00:00' },
+        { ...row('Newest'), createTime: '2026-09-21 10:00:00' },
+      ],
+      total: 2,
+    })
+    expect(page.records.map((contest) => contest?.title)).toEqual(['Newest', 'Older'])
+  })
+
+  it('refetches advanced-filter results after cache invalidation', async () => {
+    get
+      .mockResolvedValueOnce({ rows: [row('Older')], total: 1 })
+      .mockResolvedValueOnce({ rows: [row('Newest')], total: 1 })
+    const query = { status: 0, sortField: 'createTime', sortOrder: 'desc' }
+    const first = await getContestResults(query)
+    clearContestResultsCache()
+    const refreshed = await getContestResults(query)
+    expect(first.records[0].title).toBe('Older')
+    expect(refreshed.records[0].title).toBe('Newest')
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
   it('sends only page, title and time fields supported by ExamQueryDto', async () => {
     get.mockResolvedValue({ code: 1000, rows: [row('算法赛')], total: 1 })
     const page = await getContestPage({
