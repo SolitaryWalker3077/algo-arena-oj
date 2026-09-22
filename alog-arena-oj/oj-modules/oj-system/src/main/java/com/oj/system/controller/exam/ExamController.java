@@ -5,6 +5,7 @@ import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.system.entity.exam.dto.ExamAddDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
+import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
 import com.oj.system.service.exam.IExamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,9 +30,15 @@ public class ExamController extends BaseController {
     }
 
     //添加竞赛:接口地址:/exam/add
-    @Operation(summary = "添加竞赛")
+    @Operation(summary = "不包含题目添加竞赛")
     @PostMapping("/add")
     public Result<Void> add(@RequestBody ExamAddDto examAddDto) {
         return toResult(examService.add(examAddDto));
+    }
+
+    @Operation(summary = "包含题目添加竞赛")
+    @PostMapping("/question/add")
+    public Result<Void> questionAdd(@RequestBody ExamQuestionAddDto examQuestionAddDto) {
+       return toResult(examService.questionAdd(examQuestionAddDto));
     }
 }
