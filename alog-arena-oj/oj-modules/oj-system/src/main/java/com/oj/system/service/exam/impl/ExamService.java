@@ -21,10 +21,8 @@ import com.oj.system.mapper.exam.ExamQuestionMapper;
 import com.oj.system.mapper.question.QuestionMapper;
 import com.oj.system.service.exam.IExamService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
-import java.lang.module.Configuration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -128,7 +126,7 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     private ExamInfo getExamInfo(Long examId) {
         ExamInfo examInfo = examMapper.selectById(examId);
         if (examInfo == null) {
-            throw new ServiceException(ResultCode. EXAM_NOT_EXISTS );
+            throw new ServiceException(ResultCode.EXAM_NOT_EXISTS );
         }
         return examInfo;
     }
