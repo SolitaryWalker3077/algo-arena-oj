@@ -2,8 +2,14 @@
   <div class="contest-form-page">
     <div class="form-head">
       <div>
-        <h2>{{ isEdit ? '编辑竞赛' : '添加竞赛' }}</h2>
-        <p>先保存基本信息，再从题库选择竞赛题目。</p>
+        <h2>{{ isEdit ? '竞赛题目编辑' : '添加竞赛' }}</h2>
+        <p>
+          {{
+            isEdit
+              ? '查看竞赛信息与题目，修改后可保存基本信息。'
+              : '先保存基本信息，再从题库选择竞赛题目。'
+          }}
+        </p>
       </div>
       <el-button @click="router.push({ name: 'contestManage' })">返回列表</el-button>
     </div>
@@ -23,6 +29,24 @@
         class="form-alert"
       />
       <el-alert
+        v-if="questionsError"
+        :title="`竞赛详情加载失败：${questionsError}`"
+        type="error"
+        show-icon
+        :closable="false"
+        class="form-alert"
+      >
+        <el-button size="small" :loading="detailLoading" @click="loadDetail">重试</el-button>
+      </el-alert>
+      <el-alert
+        v-if="editLocked"
+        title="竞赛已开赛，无法修改基本信息或题目"
+        type="warning"
+        show-icon
+        :closable="false"
+        class="form-alert"
+      />
+      <el-alert
         v-if="createdWithoutId"
         title="竞赛已创建，但创建接口未返回竞赛 ID，暂无法关联题目。"
         type="warning"
@@ -31,10 +55,17 @@
         class="form-alert"
         ><el-button size="small" @click="startAnotherContest">新建另一场竞赛</el-button></el-alert
       >
-      <el-form :model="form" label-width="100px" class="basic-form" @submit.prevent="saveBasic">
+      <el-form
+        v-if="!isEdit || detailLoaded"
+        :model="form"
+        label-width="100px"
+        class="basic-form"
+        @submit.prevent="saveBasic"
+      >
         <el-form-item label="竞赛标题" :error="showError('title')">
           <el-input
             v-model="form.title"
+            :disabled="editLocked"
             maxlength="50"
             show-word-limit
             placeholder="请输入竞赛标题"
@@ -46,6 +77,7 @@
         <el-form-item label="开始时间" :error="showError('startTime')">
           <el-date-picker
             v-model="form.startTime"
+            :disabled="editLocked"
             type="datetime"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
@@ -57,6 +89,7 @@
         <el-form-item label="结束时间" :error="showError('endTime')">
           <el-date-picker
             v-model="form.endTime"
+            :disabled="editLocked"
             type="datetime"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
@@ -70,7 +103,7 @@
             type="primary"
             native-type="submit"
             :loading="saving"
-            :disabled="detailLoading || createdWithoutId"
+            :disabled="detailLoading || createdWithoutId || editLocked"
           >
             保存基本信息
           </el-button>
@@ -90,21 +123,22 @@
           <h3>竞赛题目</h3>
           <p>共 {{ contestQuestions.length }} 道题目</p>
         </div>
-        <el-button type="primary" :icon="Plus" :disabled="!contestId" @click="openPicker"
+        <el-button
+          type="primary"
+          :icon="Plus"
+          :disabled="!contestId || !detailLoaded || editLocked"
+          @click="openPicker"
           >添加题目</el-button
         >
       </div>
-      <el-alert
-        v-if="questionsError"
-        :title="questionsError"
-        type="error"
-        show-icon
-        :closable="false"
-        class="form-alert"
+      <el-table
+        v-if="detailLoaded"
+        :data="visibleQuestions"
+        stripe
+        border
+        style="width: 100%"
+        class="question-table"
       >
-        <el-button size="small" @click="loadDetail">重试</el-button>
-      </el-alert>
-      <el-table :data="visibleQuestions" stripe border style="width: 100%" class="question-table">
         <el-table-column prop="id" label="题目ID" min-width="180" />
         <el-table-column prop="title" label="题目标题" min-width="220" show-overflow-tooltip>
           <template #default="{ row }"
@@ -133,7 +167,7 @@
         >
       </el-table>
       <el-pagination
-        v-if="contestQuestions.length > questionPageSize"
+        v-if="detailLoaded && contestQuestions.length > questionPageSize"
         v-model:current-page="questionPage"
         :page-size="questionPageSize"
         :total="contestQuestions.length"
@@ -251,7 +285,7 @@ import {
   getContestDetail,
   updateContest,
 } from '@/api/contest'
-import { formatContestTime, parseContestTimestamp } from '@/api/contestPolicy'
+import { formatContestTime, hasStarted, parseContestTimestamp } from '@/api/contestPolicy'
 import { BASE_DIFFICULTY_OPTIONS, getProblemPage, mapProblemFromApi } from '@/api/problem'
 
 const route = useRoute()
@@ -266,6 +300,9 @@ const attempted = ref(false)
 const savedForm = ref(JSON.stringify({ title: '', startTime: '', endTime: '' }))
 const saving = ref(false)
 const detailLoading = ref(false)
+const detailLoaded = ref(false)
+const originalStartTime = ref('')
+const now = ref(Date.now())
 const formError = ref('')
 const createdWithoutId = ref(false)
 const contestQuestions = ref([])
@@ -287,6 +324,8 @@ const availableQuestions = ref([])
 const selectedIds = reactive(new Set())
 const adding = ref(false)
 let pickerRequestId = 0
+let detailRequestId = 0
+let startTimeTimer
 
 const difficultyOptions = BASE_DIFFICULTY_OPTIONS
 const difficultyLabel = (value) =>
@@ -300,6 +339,15 @@ const visibleQuestions = computed(() =>
     questionPage.value * questionPageSize,
   ),
 )
+const editLocked = computed(
+  () =>
+    isEdit.value &&
+    detailLoaded.value &&
+    hasStarted({ startTime: originalStartTime.value }, now.value),
+)
+watch(editLocked, (locked) => {
+  if (locked) pickerVisible.value = false
+})
 const currentForm = () =>
   JSON.stringify({ title: form.title.trim(), startTime: form.startTime, endTime: form.endTime })
 const dirty = computed(() => currentForm() !== savedForm.value)
@@ -356,32 +404,55 @@ watch(
 
 const loadDetail = async () => {
   if (!contestId.value) return
+  const requestId = ++detailRequestId
+  const id = contestId.value
   detailLoading.value = true
   questionsLoading.value = true
   questionsError.value = ''
+  detailLoaded.value = false
   try {
-    const detail = await getContestDetail(contestId.value)
+    const detail = await getContestDetail(id)
+    if (requestId !== detailRequestId) return
     Object.assign(form, {
       title: detail?.title || '',
       startTime: normalizeTime(detail?.startTime),
       endTime: normalizeTime(detail?.endTime),
     })
+    originalStartTime.value = detail.startTime
+    now.value = Date.now()
     contestQuestions.value = (detail?.examQuestionList || []).map(mapQuestion)
     questionPage.value = Math.min(
       questionPage.value,
       Math.max(1, Math.ceil(contestQuestions.value.length / questionPageSize)),
     )
     savedForm.value = currentForm()
+    detailLoaded.value = true
   } catch (error) {
+    if (requestId !== detailRequestId) return
     questionsError.value = error?.message || '加载竞赛详情失败，请检查网络连接'
     if (!error?.handled) ElMessage.error(questionsError.value)
   } finally {
-    detailLoading.value = false
-    questionsLoading.value = false
+    if (requestId === detailRequestId) {
+      detailLoading.value = false
+      questionsLoading.value = false
+    }
   }
 }
 
+watch(
+  () => route.params.examId,
+  (id) => {
+    if (!isEdit.value || !id || String(id) === contestId.value) return
+    contestId.value = String(id)
+    originalStartTime.value = ''
+    questionPage.value = 1
+    contestQuestions.value = []
+    loadDetail()
+  },
+)
+
 const saveBasic = async () => {
+  if (editLocked.value) return
   attempted.value = true
   if (Object.keys(errors.value).length || saving.value) return
   saving.value = true
@@ -448,7 +519,7 @@ const loadAvailableQuestions = async () => {
   }
 }
 const openPicker = () => {
-  if (!contestId.value) return
+  if (!contestId.value || editLocked.value) return
   pickerVisible.value = true
   selectedIds.clear()
   pickerPage.value = 1
@@ -465,7 +536,7 @@ const toggleSelection = (id, checked) => {
   else selectedIds.delete(id)
 }
 const confirmAdd = async () => {
-  if (!contestId.value || !selectedIds.size || adding.value) return
+  if (!contestId.value || !selectedIds.size || adding.value || editLocked.value) return
   adding.value = true
   pickerError.value = ''
   try {
@@ -502,6 +573,9 @@ onBeforeRouteLeave(async () => {
 })
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnload)
+  startTimeTimer = setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
   if (contestId.value) loadDetail()
   else {
     try {
@@ -529,7 +603,11 @@ onMounted(() => {
     savedForm.value = JSON.stringify({ title: '', startTime: '', endTime: '' })
   }
 })
-onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => {
+  detailRequestId += 1
+  clearInterval(startTimeTimer)
+  window.removeEventListener('beforeunload', beforeUnload)
+})
 </script>
 
 <style lang="scss" scoped>

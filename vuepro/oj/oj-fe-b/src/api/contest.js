@@ -37,8 +37,23 @@ export const createContest = async (values) => {
 export const updateContest = (id, values) =>
   request.put('/system/exam/edit', { ...values, examId: requireId(id, '竞赛ID') })
 
-export const getContestDetail = (id) =>
-  request.get('/system/exam/detail', { params: { examId: requireId(id, '竞赛ID') } })
+export const getContestDetail = async (id) => {
+  const detail = await request.get('/system/exam/detail', {
+    params: { examId: requireId(id, '竞赛ID') },
+  })
+  if (
+    !detail ||
+    typeof detail !== 'object' ||
+    Array.isArray(detail) ||
+    typeof detail.title !== 'string' ||
+    detail.startTime == null ||
+    detail.endTime == null ||
+    (detail.examQuestionList != null && !Array.isArray(detail.examQuestionList))
+  ) {
+    throw new Error('竞赛详情数据格式异常，请稍后重试')
+  }
+  return detail
+}
 
 export const addContestQuestions = (id, questionIds) =>
   request.post('/system/exam/question/add', {

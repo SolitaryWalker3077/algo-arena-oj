@@ -5,7 +5,7 @@
 <mapper namespace="com.oj.system.mapper.exam.ExamMapper">
     <select id="selectExamList" resultType="com.oj.system.entity.exam.vo.ExamVO">
         SELECT
-            te.exam_id,
+            te.exam_id AS examId,
             te.title,
             te.start_time,
             te.end_time,

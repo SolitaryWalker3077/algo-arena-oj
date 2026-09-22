@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { get } = vi.hoisted(() => ({ get: vi.fn() }))
 vi.mock('@/utils/request', () => ({ default: { get } }))
 
-import { clearContestResultsCache, getContestPage, getContestResults } from '../src/api/contest'
+import {
+  clearContestResultsCache,
+  getContestDetail,
+  getContestPage,
+  getContestResults,
+} from '../src/api/contest'
 import {
   formatContestTime,
   getContestPhase,
@@ -30,6 +35,21 @@ beforeEach(() => {
 })
 
 describe('contest backend contract', () => {
+  it('requests details with the exact contest ID and validates the payload', async () => {
+    const id = '9007199254740993123'
+    const detail = {
+      title: '算法赛',
+      startTime: '2026-09-22 09:00:00',
+      endTime: '2026-09-22 11:00:00',
+      examQuestionList: [{ questionId: '9007199254740993124', title: '两数之和', difficult: 1 }],
+    }
+    get.mockResolvedValueOnce(detail).mockResolvedValueOnce({ ...detail, examQuestionList: {} })
+    expect(await getContestDetail(id)).toEqual(detail)
+    expect(get).toHaveBeenCalledWith('/system/exam/detail', { params: { examId: id } })
+    await expect(getContestDetail(id)).rejects.toThrow('数据格式异常')
+    await expect(getContestDetail('bad-id')).rejects.toThrow('竞赛ID无效')
+  })
+
   it('orders each returned page by newest creation time', () => {
     const page = normalizeContestPage({
       rows: [
@@ -225,10 +245,14 @@ describe('contest display and query rules', () => {
     expect(getContestPhase(contest, start)).toBe('ongoing')
     expect(getContestPhase(contest, end - 1)).toBe('ongoing')
     expect(getContestPhase(contest, end)).toBe('ended')
+    expect(hasStarted(contest, start - 1)).toBe(false)
+    expect(hasStarted(contest, start)).toBe(true)
     expect(hasStarted(contest, end)).toBe(true)
     expect(getContestPhase({ ...contest, endTime: contest.startTime }, start)).toBe('invalid')
     expect(getContestPhase({ ...contest, endTime: 'broken' }, start)).toBe('unknown')
     expect(invalidEndTime({ ...contest, endTime: contest.startTime })).toBe(true)
+    expect(hasStarted({ ...contest, endTime: contest.startTime }, start)).toBe(true)
+    expect(hasStarted({ ...contest, endTime: 'broken' }, start - 1)).toBe(false)
   })
 
   it('compares explicit offsets as instants without losing milliseconds', () => {

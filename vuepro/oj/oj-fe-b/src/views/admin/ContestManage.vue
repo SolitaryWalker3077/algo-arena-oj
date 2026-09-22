@@ -215,8 +215,12 @@
         >
           <template #default="{ row }"
             ><div class="row-actions">
-              <template v-if="row.status === 0"
-                ><el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID">
+              <el-tag v-if="hasStarted(row, now)" type="danger" size="small" round>
+                <el-icon><WarningFilled /></el-icon>
+                {{ phaseOf(row) === 'ended' ? '已结束' : '已开赛' }}
+              </el-tag>
+              <template v-else>
+                <el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID">
                   <span
                     ><el-button
                       size="small"
@@ -225,32 +229,27 @@
                       :icon="Edit"
                       :disabled="!row.id"
                       @click="router.push({ name: 'contestEdit', params: { examId: row.id } })"
-                      >编辑</el-button
+                      >题目编辑</el-button
                     ></span
                   ></el-tooltip
-                ><el-tooltip content="后端尚未提供删除竞赛接口"
-                  ><span
-                    ><el-button size="small" link type="danger" :icon="Delete" disabled
-                      >删除</el-button
-                    ></span
-                  ></el-tooltip
-                ><el-tooltip content="未发布竞赛无需撤销发布；后端也尚未提供该接口"
-                  ><span
-                    ><el-button size="small" link type="warning" :icon="RefreshLeft" disabled
-                      >撤销发布</el-button
-                    ></span
-                  ></el-tooltip
-                ></template
-              ><el-tag v-else type="danger" size="small" round
-                ><el-icon><WarningFilled /></el-icon>
-                {{
-                  phaseOf(row) === 'ongoing'
-                    ? '已开赛'
-                    : phaseOf(row) === 'ended'
-                      ? '已结束'
-                      : '已发布'
-                }}</el-tag
-              >
+                ><template v-if="row.status === 0"
+                  ><el-tooltip content="后端尚未提供删除竞赛接口"
+                    ><span
+                      ><el-button size="small" link type="danger" :icon="Delete" disabled
+                        >删除</el-button
+                      ></span
+                    ></el-tooltip
+                  ><el-tooltip content="未发布竞赛无需撤销发布；后端也尚未提供该接口"
+                    ><span
+                      ><el-button size="small" link type="warning" :icon="RefreshLeft" disabled
+                        >撤销发布</el-button
+                      ></span
+                    ></el-tooltip
+                  ></template
+                ><el-tag v-else type="danger" size="small" round
+                  ><el-icon><WarningFilled /></el-icon> 已发布</el-tag
+                >
+              </template>
             </div></template
           >
         </el-table-column>
@@ -324,6 +323,7 @@ import { clearContestResultsCache, getContestResults } from '@/api/contest'
 import {
   formatContestTime,
   getContestPhase,
+  hasStarted,
   invalidEndTime,
   parseContestTimestamp,
   shortenTitle,

@@ -117,5 +117,7 @@ export const getContestPhase = (row, now = Date.now()) => {
   return 'ongoing'
 }
 
-export const hasStarted = (row, now = Date.now()) =>
-  ['ongoing', 'ended'].includes(getContestPhase(row, now))
+export const hasStarted = (row, now = Date.now()) => {
+  const start = parseContestTimestamp(row.startTime)
+  return start != null && now >= start
+}

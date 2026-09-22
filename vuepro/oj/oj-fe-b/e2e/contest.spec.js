@@ -8,8 +8,8 @@ const json = (body) => ({
 const contests = Array.from({ length: 12 }, (_, index) => ({
   examId: String(9007199254740993000n + BigInt(index)),
   title: `竞赛${index + 1}`,
-  startTime: '2026-09-22T09:00:00',
-  endTime: '2026-09-22T11:00:00',
+  startTime: '2999-09-22T09:00:00',
+  endTime: '2999-09-22T11:00:00',
   status: index % 2,
   createName: index % 2 ? '李四' : '张三',
   createTime: '2026-09-21 10:00:00',
@@ -62,12 +62,88 @@ test('竞赛菜单导航、真实列表参数、筛选和只读操作', async ({
   await expect(page).toHaveURL(/status=0/)
   await page.reload()
   await expect(page.getByText('竞赛11', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '编辑' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '题目编辑' })).toBeEnabled()
   await expect(page.getByRole('button', { name: '删除' })).toBeDisabled()
   await page.getByRole('button', { name: '添加竞赛' }).click()
   await expect(page).toHaveURL('/admin/contest/new')
   await expect(page.getByRole('button', { name: '保存基本信息' })).toBeEnabled()
   await expect(page.getByLabel('竞赛标题')).toBeVisible()
+})
+
+test('从题目编辑入口加载竞赛详情并分页展示题目', async ({ page }) => {
+  await setup(page)
+  const requestedIds = []
+  await page.route('**/system/exam/detail?*', async (route) => {
+    requestedIds.push(new URL(route.request().url()).searchParams.get('examId'))
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    return route.fulfill(
+      json({
+        code: 1000,
+        data: {
+          title: '竞赛1',
+          startTime: '2999-09-22 09:00:00',
+          endTime: '2999-09-22 11:00:00',
+          examQuestionList: Array.from({ length: 12 }, (_, index) => ({
+            questionId: String(9007199254740994000n + BigInt(index)),
+            title: `题目${index + 1}`,
+            difficult: (index % 3) + 1,
+          })),
+        },
+      }),
+    )
+  })
+  await page.goto('/admin/contest')
+  await page
+    .locator('.manage-table .el-table__body tr')
+    .first()
+    .getByRole('button', { name: '题目编辑' })
+    .click()
+  await expect(page).toHaveURL(`/admin/contest/${contests[0].examId}/edit`)
+  await expect(page.getByText('正在加载竞赛…')).toBeVisible()
+  await expect(page.getByLabel('竞赛标题')).toHaveValue('竞赛1')
+  await expect(page.getByLabel('竞赛开始时间')).toHaveValue('2999-09-22 09:00:00')
+  await expect(page.getByLabel('竞赛结束时间')).toHaveValue('2999-09-22 11:00:00')
+  await expect(page.locator('.question-table .el-table__body tr')).toHaveCount(10)
+  await expect(page.locator('.question-table')).toContainText('9007199254740994000')
+  await expect(page.locator('.question-table')).toContainText('题目1')
+  await expect(page.locator('.question-table')).toContainText('简单')
+  await page.locator('.table-pagination .el-pager .number').filter({ hasText: '2' }).click()
+  await expect(page.locator('.question-table')).toContainText('题目12')
+  expect(requestedIds).toEqual([contests[0].examId])
+})
+
+test('竞赛详情失败显示后端原因并允许重试', async ({ page }) => {
+  await setup(page)
+  let requests = 0
+  await page.route('**/system/exam/detail?*', async (route) => {
+    requests += 1
+    return route.fulfill(
+      json(
+        requests === 1
+          ? { code: 2000, msg: '竞赛不存在' }
+          : {
+              code: 1000,
+              data: {
+                title: '竞赛1',
+                startTime: '2999-09-22 09:00:00',
+                endTime: '2999-09-22 11:00:00',
+                examQuestionList: [],
+              },
+            },
+      ),
+    )
+  })
+  await page.goto('/admin/contest')
+  await page
+    .locator('.manage-table .el-table__body tr')
+    .first()
+    .getByRole('button', { name: '题目编辑' })
+    .click()
+  await expect(page.getByText('竞赛详情加载失败：竞赛不存在')).toBeVisible()
+  await expect(page.getByLabel('竞赛标题')).toHaveCount(0)
+  await page.getByRole('button', { name: '重试' }).click()
+  await expect(page.getByLabel('竞赛标题')).toHaveValue('竞赛1')
+  expect(requests).toBe(2)
 })
 
 test('错误码提示和重试，四个响应式断点', async ({ page }) => {
@@ -140,8 +216,9 @@ test('开赛状态按开始与结束时刻展示', async ({ page }) => {
     { title: '进行赛', startTime: localTime(-3600000), endTime: localTime(3600000) },
     { title: '结束赛', startTime: localTime(-7200000), endTime: localTime(-3600000) },
     { title: '异常赛', startTime: localTime(7200000), endTime: localTime(3600000) },
-  ].map((contest) => ({
+  ].map((contest, index) => ({
     ...contest,
+    examId: String(9007199254740993000n + BigInt(index)),
     status: 0,
     createName: '测试管理员',
     createTime: localTime(-86400000),
@@ -158,9 +235,48 @@ test('开赛状态按开始与结束时刻展示', async ({ page }) => {
       page
         .locator('.el-table__body tr')
         .filter({ hasText: title })
-        .getByText(label, { exact: true }),
+        .getByText(label, { exact: true })
+        .first(),
     ).toBeVisible()
   }
+  await expect(
+    page
+      .locator('.el-table__body tr')
+      .filter({ hasText: '未来赛' })
+      .getByRole('button', { name: '题目编辑' }),
+  ).toBeEnabled()
+  for (const title of ['进行赛', '结束赛']) {
+    await expect(
+      page.locator('.el-table__body tr').filter({ hasText: title }).locator('.row-actions button'),
+    ).toHaveCount(0)
+  }
+})
+
+test('直接访问已开赛竞赛只能查看，不能修改', async ({ page }) => {
+  await setup(page)
+  await page.route('**/system/exam/detail?*', (route) =>
+    route.fulfill(
+      json({
+        code: 1000,
+        data: {
+          title: '已开赛竞赛',
+          startTime: '2000-01-01 09:00:00',
+          endTime: '2999-01-01 09:00:00',
+          examQuestionList: [
+            { questionId: '9007199254740994000', title: '两数之和', difficult: 1 },
+          ],
+        },
+      }),
+    ),
+  )
+  await page.goto(`/admin/contest/${contests[0].examId}/edit`)
+  await expect(page.getByText('竞赛已开赛，无法修改基本信息或题目')).toBeVisible()
+  await expect(page.getByLabel('竞赛标题')).toBeDisabled()
+  await expect(page.getByLabel('竞赛开始时间')).toBeDisabled()
+  await expect(page.getByLabel('竞赛结束时间')).toBeDisabled()
+  await expect(page.getByRole('button', { name: '保存基本信息' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '添加题目' })).toBeDisabled()
+  await expect(page.locator('.question-table')).toContainText('两数之和')
 })
 
 test('切页失败时恢复上次成功的页码和列表', async ({ page }) => {

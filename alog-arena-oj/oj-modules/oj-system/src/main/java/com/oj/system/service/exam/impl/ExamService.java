@@ -62,6 +62,7 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     @Override
     public boolean questionAdd(ExamQuestionAddDto examQuestionAddDto) {
         ExamInfo examInfo = getExamInfo(examQuestionAddDto.getExamId());
+        checkExamNotStarted(examInfo);
         Set<Long> questionIdSet = examQuestionAddDto.getQuestionIdSet();
         if (CollectionUtil.isEmpty(questionIdSet)) {
             //一条题目不添加
@@ -104,6 +105,7 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     @Override
     public int  edit(ExamEditDto examEditDto) {
         ExamInfo examInfo = getExamInfo(examEditDto.getExamId());
+        checkExamNotStarted(examInfo);
         checkExamParams(examEditDto,examEditDto.getExamId());
 
         examInfo.setTitle(examEditDto.getTitle());
@@ -127,6 +129,12 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
 
         if (examSaveDto.getStartTime().isAfter(examSaveDto.getEndTime())) {
             throw new ServiceException(ResultCode.EXAM_START_TIME_AFTER_END_TIME);
+        }
+    }
+
+    private void checkExamNotStarted(ExamInfo examInfo) {
+        if (examInfo.getStartTime() != null && !LocalDateTime.now().isBefore(examInfo.getStartTime())) {
+            throw new ServiceException(ResultCode.EXAM_STARTED);
         }
     }
 
