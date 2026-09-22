@@ -1,14 +1,18 @@
 package com.oj.system.entity.exam.vo;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.oj.system.entity.question.vo.QuestionVO;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-public class ExamVO {
-
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ExamDetailVO {
     private String title;
+
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
@@ -16,11 +20,5 @@ public class ExamVO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
-    private Integer status;
-
-    private String createName;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime createTime;
-
+    private List<QuestionVO> examQuestionList;
 }

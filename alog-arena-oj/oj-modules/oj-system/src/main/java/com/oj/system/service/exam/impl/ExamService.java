@@ -12,8 +12,10 @@ import com.oj.system.entity.exam.ExamQuestionInfo;
 import com.oj.system.entity.exam.dto.ExamAddDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
+import com.oj.system.entity.exam.vo.ExamDetailVO;
 import com.oj.system.entity.exam.vo.ExamVO;
 import com.oj.system.entity.question.QuestionsInfo;
+import com.oj.system.entity.question.vo.QuestionVO;
 import com.oj.system.mapper.exam.ExamMapper;
 import com.oj.system.mapper.exam.ExamQuestionMapper;
 import com.oj.system.mapper.question.QuestionMapper;
@@ -22,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
+import java.lang.module.Configuration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,10 +71,9 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
 
     @Override
     public boolean questionAdd(ExamQuestionAddDto examQuestionAddDto) {
-        ExamInfo examInfo = getExamInfo(examQuestionAddDto);
+        ExamInfo examInfo = getExamInfo(examQuestionAddDto.getExamId());
         Set<Long> questionIdSet = examQuestionAddDto.getQuestionIdSet();
         if (CollectionUtil.isEmpty(questionIdSet)) {
-            //TODO 返回不做处理
             //一条题目不添加
             return true;
         }
@@ -83,6 +85,32 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         }
         return saveExamQuestion(questionIdSet, examInfo);
     }
+
+    @Override
+    public ExamDetailVO detail(Long examId) {
+        ExamDetailVO examDetailVO = new ExamDetailVO();
+        ExamInfo examInfo = getExamInfo(examId);
+        BeanUtil.copyProperties(examInfo,examDetailVO );
+
+        List<ExamQuestionInfo> examQuestionInfoList = examQuestionMapper.selectList(new LambdaQueryWrapper<ExamQuestionInfo>()
+                .select(ExamQuestionInfo::getQuestionId)
+                .eq(ExamQuestionInfo::getExamId, examId)
+                .orderByAsc(ExamQuestionInfo::getQuestionOrder));
+        if (CollectionUtil.isEmpty(examQuestionInfoList)) {
+            //返回详情 只包含竞赛的基本信息
+            return examDetailVO;
+        }
+        List<Long> qustionIdList = examQuestionInfoList.stream().map(ExamQuestionInfo::getQuestionId).toList();
+        List<QuestionsInfo> questionsInfoList = questionMapper.selectList(new LambdaQueryWrapper<QuestionsInfo>()
+                .select(QuestionsInfo::getQuestionId, QuestionsInfo::getTitle, QuestionsInfo::getDifficult)
+                .in(QuestionsInfo::getQuestionId, qustionIdList));
+        //List<QuestionVO> questionVOList = new ArrayList<>();
+        List<QuestionVO> questionVOList = BeanUtil.copyToList(questionsInfoList, QuestionVO.class);
+        examDetailVO.setExamQuestionList(questionVOList);
+        return examDetailVO;
+    }
+
+
 
     private boolean saveExamQuestion(Set<Long> questionIdSet, ExamInfo examInfo) {
         int num = 1;
@@ -97,11 +125,14 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         return saveBatch(examQuestionInfoList);
     }
 
-    private ExamInfo getExamInfo(ExamQuestionAddDto examQuestionAddDto) {
-        ExamInfo examInfo = examMapper.selectById(examQuestionAddDto.getExamId());
+    private ExamInfo getExamInfo(Long examId) {
+        ExamInfo examInfo = examMapper.selectById(examId);
         if (examInfo == null) {
             throw new ServiceException(ResultCode. EXAM_NOT_EXISTS );
         }
         return examInfo;
     }
+
+
+
 }
