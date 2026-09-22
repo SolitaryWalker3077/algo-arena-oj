@@ -2,6 +2,7 @@ package com.oj.system.service.exam;
 
 
 import com.oj.system.entity.exam.dto.ExamAddDto;
+import com.oj.system.entity.exam.dto.ExamEditDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
 import com.oj.system.entity.exam.vo.ExamDetailVO;
@@ -18,4 +19,6 @@ public interface IExamService {
     boolean questionAdd(ExamQuestionAddDto examQuestionAddDto);
 
     ExamDetailVO detail(Long examId);
+
+    int edit(ExamEditDto examEditDto);
 }

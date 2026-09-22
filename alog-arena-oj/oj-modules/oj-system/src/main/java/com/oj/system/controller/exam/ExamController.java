@@ -4,6 +4,7 @@ import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.system.entity.exam.dto.ExamAddDto;
+import com.oj.system.entity.exam.dto.ExamEditDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
 import com.oj.system.entity.exam.vo.ExamDetailVO;
@@ -47,5 +48,11 @@ public class ExamController extends BaseController {
     @GetMapping("/detail")
     public Result<ExamDetailVO> detail(Long examId) {
         return Result.success(examService.detail(examId));
+    }
+
+    @Operation(summary = "修改竞赛基本信息")
+    @PutMapping("/edit")
+    public Result<Void> edit(@RequestBody ExamEditDto examEditDto) {
+        return toResult(examService.edit(examEditDto));
     }
 }

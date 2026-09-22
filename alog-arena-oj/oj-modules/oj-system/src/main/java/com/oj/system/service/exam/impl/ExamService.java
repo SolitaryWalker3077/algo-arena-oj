@@ -10,6 +10,7 @@ import com.oj.security.expection.ServiceException;
 import com.oj.system.entity.exam.ExamInfo;
 import com.oj.system.entity.exam.ExamQuestionInfo;
 import com.oj.system.entity.exam.dto.ExamAddDto;
+import com.oj.system.entity.exam.dto.ExamEditDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
 import com.oj.system.entity.exam.vo.ExamDetailVO;
@@ -48,24 +49,14 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
 
     @Override
     public int add(ExamAddDto examAddDto) {
-        List<ExamInfo> examInfos = examMapper.selectList(new LambdaQueryWrapper<ExamInfo>()
-                .eq(ExamInfo::getTitle, examAddDto.getTitle()));
-
-        if (CollectionUtil.isNotEmpty(examInfos)) {
-            throw new ServiceException(ResultCode.FAILED_ALREADY_EXISTS);
-        }
-        if (examAddDto.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new ServiceException(ResultCode.EXAM_START_TIME_BEFORE_CURRENT_TIME);
-        }
-
-        if (examAddDto.getStartTime().isAfter(examAddDto.getEndTime())) {
-            throw new ServiceException(ResultCode.EXAM_START_TIME_AFTER_END_TIME);
-        }
+        checkExamParams(examAddDto,null);
 
         ExamInfo exam = new ExamInfo();
         BeanUtil.copyProperties(examAddDto, exam);
         return examMapper.insert(exam);
     }
+
+
 
     @Override
     public boolean questionAdd(ExamQuestionAddDto examQuestionAddDto) {
@@ -109,6 +100,34 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     }
 
 
+    @Override
+    public int  edit(ExamEditDto examEditDto) {
+        ExamInfo examInfo = getExamInfo(examEditDto.getExamId());
+        checkExamParams(examEditDto,examEditDto.getExamId());
+
+        examInfo.setTitle(examEditDto.getTitle());
+        examInfo.setStartTime(examEditDto.getStartTime());
+        examInfo.setEndTime(examEditDto.getEndTime());
+        return examMapper.updateById(examInfo);
+    }
+
+    private void checkExamParams(ExamAddDto examSaveDto , Long examId) {
+        List<ExamInfo> examInfos = examMapper
+                .selectList(new LambdaQueryWrapper<ExamInfo>()
+                .eq(ExamInfo::getTitle, examSaveDto.getTitle())
+                .ne(examId != null,ExamInfo::getExamId,examId));
+
+        if (CollectionUtil.isNotEmpty(examInfos)) {
+            throw new ServiceException(ResultCode.FAILED_ALREADY_EXISTS);
+        }
+        if (examSaveDto.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new ServiceException(ResultCode.EXAM_START_TIME_BEFORE_CURRENT_TIME);
+        }
+
+        if (examSaveDto.getStartTime().isAfter(examSaveDto.getEndTime())) {
+            throw new ServiceException(ResultCode.EXAM_START_TIME_AFTER_END_TIME);
+        }
+    }
 
     private boolean saveExamQuestion(Set<Long> questionIdSet, ExamInfo examInfo) {
         int num = 1;
