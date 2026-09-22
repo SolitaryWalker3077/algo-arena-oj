@@ -34,8 +34,8 @@ public class ExamController extends BaseController {
     //添加竞赛:接口地址:/exam/add
     @Operation(summary = "不包含题目添加竞赛")
     @PostMapping("/add")
-    public Result<Void> add(@RequestBody ExamAddDto examAddDto) {
-        return toResult(examService.add(examAddDto));
+    public Result<String> add(@RequestBody ExamAddDto examAddDto) {
+        return Result.success(examService.add(examAddDto));
     }
 
     @Operation(summary = "包含题目添加竞赛")

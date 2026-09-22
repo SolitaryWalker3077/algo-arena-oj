@@ -68,10 +68,6 @@
       >
     </div>
 
-    <p class="api-note" role="note">
-      后端目前只提供竞赛列表接口；竞赛新增、编辑、删除及撤销发布暂无法保存。
-    </p>
-
     <div class="table-card">
       <el-alert
         v-if="loadError"
@@ -220,13 +216,19 @@
           <template #default="{ row }"
             ><div class="row-actions">
               <template v-if="row.status === 0"
-                ><el-tooltip content="后端尚未提供竞赛详情及编辑接口，且列表未返回竞赛ID"
-                  ><span
-                    ><el-button size="small" link type="primary" :icon="Edit" disabled
+                ><el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID">
+                  <span
+                    ><el-button
+                      size="small"
+                      link
+                      type="primary"
+                      :icon="Edit"
+                      :disabled="!row.id"
+                      @click="router.push({ name: 'contestEdit', params: { examId: row.id } })"
                       >编辑</el-button
                     ></span
                   ></el-tooltip
-                ><el-tooltip content="后端尚未提供删除接口，且列表未返回竞赛ID"
+                ><el-tooltip content="后端尚未提供删除竞赛接口"
                   ><span
                     ><el-button size="small" link type="danger" :icon="Delete" disabled
                       >删除</el-button

@@ -14,7 +14,7 @@ public interface IExamService {
 
     List<ExamVO> list(ExamQueryDto examQueryDto);
 
-    int add(ExamAddDto examAddDto);
+    String add(ExamAddDto examAddDto);
 
     boolean questionAdd(ExamQuestionAddDto examQuestionAddDto);
 

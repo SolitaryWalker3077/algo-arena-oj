@@ -14,7 +14,6 @@ export const clearContestResultsCache = () => {
   allRowsCache = null
 }
 
-/** The only contest endpoint currently implemented by ExamController. */
 export const getContestPage = async (query) => {
   const response = await request.get(LIST_ENDPOINT, {
     params: normalizeContestQuery(query),
@@ -22,6 +21,30 @@ export const getContestPage = async (query) => {
   })
   return normalizeContestPage(response)
 }
+
+const requireId = (id, label) => {
+  const value = String(id ?? '')
+  if (!/^\d+$/.test(value)) throw new Error(`${label}无效`)
+  return value
+}
+
+export const createContest = async (values) => {
+  const result = await request.post('/system/exam/add', values)
+  const id = result && typeof result === 'object' ? (result.examId ?? result.id) : result
+  return id == null || id === '' ? '' : requireId(id, '新竞赛ID')
+}
+
+export const updateContest = (id, values) =>
+  request.put('/system/exam/edit', { ...values, examId: requireId(id, '竞赛ID') })
+
+export const getContestDetail = (id) =>
+  request.get('/system/exam/detail', { params: { examId: requireId(id, '竞赛ID') } })
+
+export const addContestQuestions = (id, questionIds) =>
+  request.post('/system/exam/question/add', {
+    examId: requireId(id, '竞赛ID'),
+    questionIdSet: questionIds.map((questionId) => requireId(questionId, '题目ID')),
+  })
 
 const requiresClientQuery = (query) =>
   (query.status !== '' && query.status != null) ||
