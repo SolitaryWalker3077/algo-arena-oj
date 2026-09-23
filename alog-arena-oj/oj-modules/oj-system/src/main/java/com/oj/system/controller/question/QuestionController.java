@@ -28,11 +28,6 @@ public class QuestionController extends BaseController {
     private IQuestionService questionService;
 
     @Operation(summary = "题目列表")
-//    @Parameters({
-//            @Parameter(name = "pageNum", in = ParameterIn.QUERY, description = "页码，从 1 开始", example = "1"),
-//            @Parameter(name = "pageSize", in = ParameterIn.QUERY, description = "每页条数，1 到 500", example = "10"),
-//            @Parameter(name = "difficult", in = ParameterIn.QUERY, description = "可选，留空查询全部；1 简单、2 中等、3 困难", example = "1")
-//    })
     @GetMapping("/list")
     public TableDataInfo list(@Validated @ParameterObject QuestionQueryDto questionQueryDto) {
         return getDataTable(questionService.list(questionQueryDto));

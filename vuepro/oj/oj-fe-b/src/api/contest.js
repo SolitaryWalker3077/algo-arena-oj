@@ -61,6 +61,14 @@ export const addContestQuestions = (id, questionIds) =>
     questionIdSet: questionIds.map((questionId) => requireId(questionId, '题目ID')),
   })
 
+export const deleteContestQuestion = (examId, questionId) =>
+  request.delete('/system/exam/question/delete', {
+    params: {
+      examId: requireId(examId, '竞赛ID'),
+      questionId: requireId(questionId, '题目ID'),
+    },
+  })
+
 const requiresClientQuery = (query) =>
   (query.status !== '' && query.status != null) ||
   Boolean(query.createName) ||

@@ -2,7 +2,7 @@
   <div class="contest-form-page">
     <div class="form-head">
       <div>
-        <h2>{{ isEdit ? '竞赛题目编辑' : '添加竞赛' }}</h2>
+        <h2>{{ isEdit ? '竞赛编辑' : '添加竞赛' }}</h2>
         <p>
           {{
             isEdit
@@ -131,6 +131,24 @@
           >添加题目</el-button
         >
       </div>
+      <el-alert
+        v-if="deleteError"
+        :title="`删除题目“${deleteError.title}”失败：${deleteError.message}`"
+        type="error"
+        show-icon
+        closable
+        class="form-alert"
+        @close="deleteError = null"
+      >
+        <el-button
+          size="small"
+          :loading="deletingIds.has(deleteError.id)"
+          :disabled="editLocked"
+          @click="retryDelete"
+        >
+          重试
+        </el-button>
+      </el-alert>
       <el-table
         v-if="detailLoaded"
         :data="visibleQuestions"
@@ -152,14 +170,18 @@
             }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" align="center">
-          <template #default>
-            <el-tooltip content="竞赛题目编辑接口待接入"
-              ><span><el-button link type="primary" disabled>编辑</el-button></span></el-tooltip
+        <el-table-column label="操作" width="120" align="center">
+          <template #default="{ row }">
+            <el-button
+              link
+              type="danger"
+              :loading="deletingIds.has(row.id)"
+              :disabled="editLocked || deletingIds.has(row.id)"
+              :aria-label="`删除题目 ${row.title}`"
+              @click="requestDelete(row)"
             >
-            <el-tooltip content="竞赛题目删除接口待接入"
-              ><span><el-button link type="danger" disabled>删除</el-button></span></el-tooltip
-            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
         <template #empty
@@ -176,6 +198,35 @@
         class="table-pagination"
       />
     </section>
+
+    <el-dialog
+      v-model="deleteDialogVisible"
+      title="删除题目"
+      width="min(480px, 92vw)"
+      class="delete-confirm-dialog"
+      :close-on-click-modal="!confirmingDelete"
+      :close-on-press-escape="!confirmingDelete"
+      :show-close="!confirmingDelete"
+      @closed="resetDeleteDialog"
+    >
+      <p class="delete-warning">确定要删除题目“{{ pendingDelete?.title }}”吗？此操作不可撤销。</p>
+      <el-checkbox v-model="skipFutureDeleteConfirmation" :disabled="confirmingDelete">
+        下次不再提醒
+      </el-checkbox>
+      <template #footer>
+        <el-button :disabled="confirmingDelete" @click="deleteDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="danger"
+          :loading="confirmingDelete"
+          :disabled="confirmingDelete"
+          @click="confirmDelete"
+        >
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog
       v-model="pickerVisible"
@@ -282,11 +333,18 @@ import {
   addContestQuestions,
   clearContestResultsCache,
   createContest,
+  deleteContestQuestion,
   getContestDetail,
   updateContest,
 } from '@/api/contest'
 import { formatContestTime, hasStarted, parseContestTimestamp } from '@/api/contestPolicy'
 import { BASE_DIFFICULTY_OPTIONS, getProblemPage, mapProblemFromApi } from '@/api/problem'
+import {
+  clearQuestionDeleteConfirmationPreference,
+  createQuestionDeleteConfirmationSession,
+  saveQuestionDeleteConfirmationPreference,
+  shouldSkipQuestionDeleteConfirmation,
+} from '@/utils/deleteConfirmationPreference'
 
 const route = useRoute()
 const router = useRouter()
@@ -323,9 +381,16 @@ const pickerTotal = ref(0)
 const availableQuestions = ref([])
 const selectedIds = reactive(new Set())
 const adding = ref(false)
+const deletingIds = reactive(new Set())
+const deleteDialogVisible = ref(false)
+const pendingDelete = ref(null)
+const skipFutureDeleteConfirmation = ref(false)
+const confirmingDelete = ref(false)
+const deleteError = ref(null)
 let pickerRequestId = 0
 let detailRequestId = 0
 let startTimeTimer
+let deleteConfirmationSessionId = createQuestionDeleteConfirmationSession()
 
 const difficultyOptions = BASE_DIFFICULTY_OPTIONS
 const difficultyLabel = (value) =>
@@ -346,7 +411,9 @@ const editLocked = computed(
     hasStarted({ startTime: originalStartTime.value }, now.value),
 )
 watch(editLocked, (locked) => {
-  if (locked) pickerVisible.value = false
+  if (!locked) return
+  pickerVisible.value = false
+  if (!confirmingDelete.value) deleteDialogVisible.value = false
 })
 const currentForm = () =>
   JSON.stringify({ title: form.title.trim(), startTime: form.startTime, endTime: form.endTime })
@@ -443,10 +510,14 @@ watch(
   () => route.params.examId,
   (id) => {
     if (!isEdit.value || !id || String(id) === contestId.value) return
+    clearQuestionDeleteConfirmationPreference(contestId.value, deleteConfirmationSessionId)
     contestId.value = String(id)
+    deleteConfirmationSessionId = createQuestionDeleteConfirmationSession()
     originalStartTime.value = ''
     questionPage.value = 1
     contestQuestions.value = []
+    deleteError.value = null
+    deleteDialogVisible.value = false
     loadDetail()
   },
 )
@@ -553,6 +624,82 @@ const confirmAdd = async () => {
   }
 }
 
+const resetDeleteDialog = () => {
+  if (confirmingDelete.value) return
+  pendingDelete.value = null
+  skipFutureDeleteConfirmation.value = false
+}
+
+const removeQuestionFromList = (questionId) => {
+  contestQuestions.value = contestQuestions.value.filter((item) => item.id !== questionId)
+  questionPage.value = Math.min(
+    questionPage.value,
+    Math.max(1, Math.ceil(contestQuestions.value.length / questionPageSize)),
+  )
+}
+
+const performDelete = async (question) => {
+  if (!contestId.value || !question?.id || deletingIds.has(question.id) || editLocked.value) return
+  const examId = contestId.value
+  deletingIds.add(question.id)
+  deleteError.value = null
+  try {
+    await deleteContestQuestion(examId, question.id)
+    if (contestId.value === examId) removeQuestionFromList(question.id)
+    ElMessage.success(`题目“${question.title}”已删除`)
+    return true
+  } catch (error) {
+    if (contestId.value === examId)
+      deleteError.value = {
+        id: question.id,
+        title: question.title,
+        message: error?.message || '网络异常，请检查连接后重试',
+      }
+    return false
+  } finally {
+    deletingIds.delete(question.id)
+  }
+}
+
+const requestDelete = (question) => {
+  if (deletingIds.has(question.id) || editLocked.value) return
+  if (shouldSkipQuestionDeleteConfirmation(contestId.value, deleteConfirmationSessionId)) {
+    performDelete(question)
+    return
+  }
+  pendingDelete.value = question
+  skipFutureDeleteConfirmation.value = false
+  deleteDialogVisible.value = true
+}
+
+const confirmDelete = async () => {
+  if (!pendingDelete.value || confirmingDelete.value) return
+  confirmingDelete.value = true
+  const question = pendingDelete.value
+  try {
+    if (
+      skipFutureDeleteConfirmation.value &&
+      !saveQuestionDeleteConfirmationPreference(contestId.value, deleteConfirmationSessionId)
+    ) {
+      ElMessage.warning('浏览器未能保存提醒偏好，下次删除时仍会询问确认')
+    }
+    await performDelete(question)
+    deleteDialogVisible.value = false
+  } finally {
+    confirmingDelete.value = false
+  }
+}
+
+const retryDelete = () => {
+  if (!deleteError.value) return
+  performDelete({ id: deleteError.value.id, title: deleteError.value.title })
+}
+
+const clearDeleteConfirmationSession = () => {
+  if (!contestId.value) return
+  clearQuestionDeleteConfirmationPreference(contestId.value, deleteConfirmationSessionId)
+}
+
 const beforeUnload = (event) => {
   if (!dirty.value || saving.value) return
   event.preventDefault()
@@ -573,6 +720,7 @@ onBeforeRouteLeave(async () => {
 })
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnload)
+  window.addEventListener('pagehide', clearDeleteConfirmationSession)
   startTimeTimer = setInterval(() => {
     now.value = Date.now()
   }, 1000)
@@ -605,8 +753,10 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   detailRequestId += 1
+  clearDeleteConfirmationSession()
   clearInterval(startTimeTimer)
   window.removeEventListener('beforeunload', beforeUnload)
+  window.removeEventListener('pagehide', clearDeleteConfirmationSession)
 })
 </script>
 
@@ -687,6 +837,16 @@ p,
   padding: 20px;
   color: var(--app-text-secondary);
 }
+.delete-warning {
+  margin-bottom: 18px;
+  color: var(--app-text-primary);
+  line-height: 1.6;
+}
+:deep(.delete-confirm-dialog .el-dialog__footer) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .picker-filters {
   display: flex;
   gap: 10px;
@@ -724,6 +884,9 @@ p,
   }
   .question-table {
     overflow-x: auto;
+  }
+  :deep(.delete-confirm-dialog .el-dialog__footer) {
+    flex-wrap: wrap;
   }
 }
 </style>

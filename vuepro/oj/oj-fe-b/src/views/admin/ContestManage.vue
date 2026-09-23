@@ -229,7 +229,7 @@
                       :icon="Edit"
                       :disabled="!row.id"
                       @click="router.push({ name: 'contestEdit', params: { examId: row.id } })"
-                      >题目编辑</el-button
+                      >编辑</el-button
                     ></span
                   ></el-tooltip
                 ><template v-if="row.status === 0"

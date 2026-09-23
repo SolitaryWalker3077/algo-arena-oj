@@ -112,6 +112,101 @@ test('从题目编辑入口加载竞赛详情并分页展示题目', async ({ pa
   expect(requestedIds).toEqual([contests[0].examId])
 })
 
+test('删除竞赛题目支持会话内确认偏好、跨竞赛重置、失败重试和防重复提交', async ({ page }) => {
+  await setup(page)
+  const questions = [
+    { questionId: '9007199254740994000', title: '两数之和', difficult: 1 },
+    { questionId: '9007199254740994001', title: '最长子序列', difficult: 2 },
+  ]
+  const deleteRequests = []
+  let failFirstDelete = true
+
+  await page.route('**/system/exam/detail?*', (route) =>
+    route.fulfill(
+      json({
+        code: 1000,
+        data: {
+          title: '竞赛1',
+          startTime: '2999-09-22 09:00:00',
+          endTime: '2999-09-22 11:00:00',
+          examQuestionList: questions,
+        },
+      }),
+    ),
+  )
+  await page.route('**/system/exam/question/delete?*', async (route) => {
+    const url = new URL(route.request().url())
+    deleteRequests.push({
+      method: route.request().method(),
+      examId: url.searchParams.get('examId'),
+      questionId: url.searchParams.get('questionId'),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    if (failFirstDelete) {
+      failFirstDelete = false
+      return route.fulfill(json({ code: 2000, msg: '题目已被其他竞赛流程锁定' }))
+    }
+    return route.fulfill(json({ code: 1000, data: null }))
+  })
+
+  await page.goto(`/admin/contest/${contests[0].examId}/edit`)
+  await page.getByRole('button', { name: '删除题目 两数之和' }).click()
+  const dialog = page.getByRole('dialog', { name: '删除题目' })
+  await expect(dialog.getByText(/确定要删除题目“两数之和”吗？此操作不可撤销/)).toBeVisible()
+  await dialog.getByRole('button', { name: '取消' }).click()
+  await expect(dialog).toBeHidden()
+  expect(deleteRequests).toHaveLength(0)
+
+  await page.getByRole('button', { name: '删除题目 两数之和' }).click()
+  await expect(dialog).toBeVisible()
+  await dialog.locator('.el-checkbox').click()
+  await dialog.getByRole('button', { name: '确定' }).click()
+  await expect(dialog.getByRole('button', { name: '确定' })).toBeDisabled()
+  await expect(page.getByText(/删除题目“两数之和”失败：题目已被其他竞赛流程锁定/)).toBeVisible()
+  await expect(page.locator('.question-table')).toContainText('两数之和')
+  expect(
+    await page.evaluate(() =>
+      Object.keys(localStorage).some(
+        (key) =>
+          key.startsWith('contestQuestionDeleteSkipConfirmation:') &&
+          localStorage.getItem(key) === 'true',
+      ),
+    ),
+  ).toBe(true)
+
+  await page.getByRole('button', { name: '重试' }).click()
+  await expect(page.locator('.question-table')).not.toContainText('两数之和')
+  await expect(page.getByText('题目“两数之和”已删除')).toBeVisible()
+
+  await page.getByRole('button', { name: '删除题目 最长子序列' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('.question-table')).not.toContainText('最长子序列')
+
+  await page.goto(`/admin/contest/${contests[1].examId}/edit`)
+  await page.getByRole('button', { name: '删除题目 两数之和' }).click()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(/确定要删除题目“两数之和”吗？此操作不可撤销/)).toBeVisible()
+  await dialog.getByRole('button', { name: '取消' }).click()
+
+  expect(deleteRequests).toEqual([
+    {
+      method: 'DELETE',
+      examId: contests[0].examId,
+      questionId: '9007199254740994000',
+    },
+    {
+      method: 'DELETE',
+      examId: contests[0].examId,
+      questionId: '9007199254740994000',
+    },
+    {
+      method: 'DELETE',
+      examId: contests[0].examId,
+      questionId: '9007199254740994001',
+    },
+  ])
+})
+
 test('竞赛详情失败显示后端原因并允许重试', async ({ page }) => {
   await setup(page)
   let requests = 0

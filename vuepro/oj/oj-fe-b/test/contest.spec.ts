@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { get } = vi.hoisted(() => ({ get: vi.fn() }))
-vi.mock('@/utils/request', () => ({ default: { get } }))
+const { get, deleteRequest } = vi.hoisted(() => ({ get: vi.fn(), deleteRequest: vi.fn() }))
+vi.mock('@/utils/request', () => ({ default: { get, delete: deleteRequest } }))
 
 import {
   clearContestResultsCache,
+  deleteContestQuestion,
   getContestDetail,
   getContestPage,
   getContestResults,
@@ -31,10 +32,24 @@ const row = (title: string, status = 0, createName = '张三') => ({
 
 beforeEach(() => {
   get.mockReset()
+  deleteRequest.mockReset()
   clearContestResultsCache()
 })
 
 describe('contest backend contract', () => {
+  it('deletes a contest question with exact string IDs', async () => {
+    deleteRequest.mockResolvedValue(undefined)
+    await deleteContestQuestion('9007199254740993123', '9007199254740993124')
+    expect(deleteRequest).toHaveBeenCalledWith('/system/exam/question/delete', {
+      params: {
+        examId: '9007199254740993123',
+        questionId: '9007199254740993124',
+      },
+    })
+    expect(() => deleteContestQuestion('bad-id', '1')).toThrow('竞赛ID无效')
+    expect(() => deleteContestQuestion('1', 'bad-id')).toThrow('题目ID无效')
+  })
+
   it('requests details with the exact contest ID and validates the payload', async () => {
     const id = '9007199254740993123'
     const detail = {

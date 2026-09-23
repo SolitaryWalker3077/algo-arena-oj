@@ -78,6 +78,15 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     }
 
     @Override
+    public int questionDelete(Long examId, Long questionId) {
+        ExamInfo examInfo = getExamInfo(examId);
+        checkExamNotStarted(examInfo);
+
+        return examQuestionMapper.delete(new LambdaQueryWrapper<ExamQuestionInfo>()
+                .eq(ExamQuestionInfo::getExamId,examId).eq(ExamQuestionInfo::getQuestionId,questionId));
+    }
+
+    @Override
     public ExamDetailVO detail(Long examId) {
         ExamDetailVO examDetailVO = new ExamDetailVO();
         ExamInfo examInfo = getExamInfo(examId);
@@ -132,6 +141,10 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         }
     }
 
+    /**
+     * 判断竞赛是否开赛
+     * @param examInfo
+     * */
     private void checkExamNotStarted(ExamInfo examInfo) {
         if (examInfo.getStartTime() != null && !LocalDateTime.now().isBefore(examInfo.getStartTime())) {
             throw new ServiceException(ResultCode.EXAM_STARTED);
@@ -151,6 +164,12 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         return saveBatch(examQuestionInfoList);
     }
 
+    /**
+     * 根据竞赛id查询竞赛的信息
+     * @param  examId
+     * @return 竞赛详情信息
+     *
+     ** */
     private ExamInfo getExamInfo(Long examId) {
         ExamInfo examInfo = examMapper.selectById(examId);
         if (examInfo == null) {
@@ -158,7 +177,4 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         }
         return examInfo;
     }
-
-
-
 }

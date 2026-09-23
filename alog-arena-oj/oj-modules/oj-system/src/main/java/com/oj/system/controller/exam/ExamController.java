@@ -44,6 +44,12 @@ public class ExamController extends BaseController {
        return toResult(examService.questionAdd(examQuestionAddDto));
     }
 
+    @Operation(summary = "竞赛题目删除")
+    @DeleteMapping("/question/delete")
+    public Result<Void> questionDelete(Long examId,Long questionId) {
+        return toResult(examService.questionDelete(examId,questionId));
+    }
+
     @Operation(summary = "竞赛详情功能")
     @GetMapping("/detail")
     public Result<ExamDetailVO> detail(Long examId) {
