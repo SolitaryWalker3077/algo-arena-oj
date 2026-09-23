@@ -11,8 +11,8 @@ import com.oj.system.entity.question.QuestionsInfo;
 import com.oj.system.entity.question.dto.QuestionAddDto;
 import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
-import com.oj.system.entity.question.vo.QuestionDetailVO;
-import com.oj.system.entity.question.vo.QuestionVO;
+import com.oj.system.entity.question.vo.QuestionDetailVo;
+import com.oj.system.entity.question.vo.QuestionVo;
 import com.oj.system.mapper.question.QuestionMapper;
 import com.oj.system.service.question.IQuestionService;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ public class QuestionService implements IQuestionService {
     private QuestionMapper questionMapper;
 
     @Override
-    public List<QuestionVO> list(QuestionQueryDto questionQueryDto) {
+    public List<QuestionVo> list(QuestionQueryDto questionQueryDto) {
         PageHelper.startPage(questionQueryDto.getPageNum(),questionQueryDto.getPageSize());
         return questionMapper.selectQuestionList(questionQueryDto);
     }
@@ -52,12 +52,12 @@ public class QuestionService implements IQuestionService {
 
 
     @Override
-    public QuestionDetailVO detail(Long questionId) {
+    public QuestionDetailVo detail(Long questionId) {
         QuestionsInfo question = questionMapper.selectById(questionId);
         if(question == null) {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
-        QuestionDetailVO questionDetailVO = new QuestionDetailVO();
+        QuestionDetailVo questionDetailVO = new QuestionDetailVo();
         BeanUtil.copyProperties(question,questionDetailVO);
         return questionDetailVO;
     }

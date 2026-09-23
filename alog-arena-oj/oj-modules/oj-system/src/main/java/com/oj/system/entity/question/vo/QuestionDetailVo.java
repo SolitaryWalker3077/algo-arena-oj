@@ -1,18 +1,11 @@
 package com.oj.system.entity.question.vo;
 
-
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
-
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class QuestionVO {
+public class QuestionDetailVo {
 
     /** 雪花 ID 超出 JavaScript 安全整数范围，对外按 JSON 字符串返回。 */
     @JsonSerialize(using = ToStringSerializer.class)
@@ -22,9 +15,16 @@ public class QuestionVO {
 
     private Integer difficult;
 
-    private String createName;
+    private Long timeLimit;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime createTime;
+    private Long spaceLimit;
+
+    private String content;
+
+    private String questionCase;
+
+    private String defaultCode;
+
+    private String mainFac;
 
 }

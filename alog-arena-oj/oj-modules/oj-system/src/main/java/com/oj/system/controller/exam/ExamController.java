@@ -7,7 +7,7 @@ import com.oj.system.entity.exam.dto.ExamAddDto;
 import com.oj.system.entity.exam.dto.ExamEditDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
-import com.oj.system.entity.exam.vo.ExamDetailVO;
+import com.oj.system.entity.exam.vo.ExamDetailVo;
 import com.oj.system.service.exam.IExamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,7 +52,7 @@ public class ExamController extends BaseController {
 
     @Operation(summary = "竞赛详情功能")
     @GetMapping("/detail")
-    public Result<ExamDetailVO> detail(Long examId) {
+    public Result<ExamDetailVo> detail(Long examId) {
         return Result.success(examService.detail(examId));
     }
 

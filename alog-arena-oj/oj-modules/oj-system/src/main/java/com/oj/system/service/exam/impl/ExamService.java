@@ -14,10 +14,10 @@ import com.oj.system.entity.exam.dto.ExamAddDto;
 import com.oj.system.entity.exam.dto.ExamEditDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
-import com.oj.system.entity.exam.vo.ExamDetailVO;
-import com.oj.system.entity.exam.vo.ExamVO;
+import com.oj.system.entity.exam.vo.ExamDetailVo;
+import com.oj.system.entity.exam.vo.ExamVo;
 import com.oj.system.entity.question.QuestionsInfo;
-import com.oj.system.entity.question.vo.QuestionVO;
+import com.oj.system.entity.question.vo.QuestionVo;
 import com.oj.system.mapper.exam.ExamMapper;
 import com.oj.system.mapper.exam.ExamQuestionMapper;
 import com.oj.system.mapper.question.QuestionMapper;
@@ -43,7 +43,7 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     private ExamQuestionMapper examQuestionMapper;
 
     @Override
-    public List<ExamVO> list(ExamQueryDto examQueryDto) {
+    public List<ExamVo> list(ExamQueryDto examQueryDto) {
         PageHelper.startPage(examQueryDto.getPageNum(), examQueryDto.getPageSize());
         return examMapper.selectExamList(examQueryDto);
     }
@@ -88,8 +88,8 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     }
 
     @Override
-    public ExamDetailVO detail(Long examId) {
-        ExamDetailVO examDetailVO = new ExamDetailVO();
+    public ExamDetailVo detail(Long examId) {
+        ExamDetailVo examDetailVO = new ExamDetailVo();
         ExamInfo examInfo = getExamInfo(examId);
         BeanUtil.copyProperties(examInfo,examDetailVO );
 
@@ -106,8 +106,8 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
                 .select(QuestionsInfo::getQuestionId, QuestionsInfo::getTitle, QuestionsInfo::getDifficult)
                 .in(QuestionsInfo::getQuestionId, qustionIdList));
         //List<QuestionVO> questionVOList = new ArrayList<>();
-        List<QuestionVO> questionVOList = BeanUtil.copyToList(questionsInfoList, QuestionVO.class);
-        examDetailVO.setExamQuestionList(questionVOList);
+        List<QuestionVo> questionVoList = BeanUtil.copyToList(questionsInfoList, QuestionVo.class);
+        examDetailVO.setExamQuestionList(questionVoList);
         return examDetailVO;
     }
 

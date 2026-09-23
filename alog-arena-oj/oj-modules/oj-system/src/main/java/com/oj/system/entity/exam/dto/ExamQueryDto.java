@@ -2,9 +2,7 @@ package com.oj.system.entity.exam.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.oj.common.entity.PageQueryDto;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 

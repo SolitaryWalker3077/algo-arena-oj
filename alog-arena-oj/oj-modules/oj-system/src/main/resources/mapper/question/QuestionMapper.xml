@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.oj.system.mapper.question.QuestionMapper">
 
-    <select id="selectQuestionList" resultType="com.oj.system.entity.question.vo.QuestionVO">
+    <select id="selectQuestionList" resultType="com.oj.system.entity.question.vo.QuestionVo">
         SELECT
             tq.question_id,
             tq.title,

@@ -5,14 +5,14 @@ import com.oj.system.entity.exam.dto.ExamAddDto;
 import com.oj.system.entity.exam.dto.ExamEditDto;
 import com.oj.system.entity.exam.dto.ExamQueryDto;
 import com.oj.system.entity.exam.dto.ExamQuestionAddDto;
-import com.oj.system.entity.exam.vo.ExamDetailVO;
-import com.oj.system.entity.exam.vo.ExamVO;
+import com.oj.system.entity.exam.vo.ExamDetailVo;
+import com.oj.system.entity.exam.vo.ExamVo;
 
 import java.util.List;
 
 public interface IExamService {
 
-    List<ExamVO> list(ExamQueryDto examQueryDto);
+    List<ExamVo> list(ExamQueryDto examQueryDto);
 
     String add(ExamAddDto examAddDto);
 
@@ -20,7 +20,7 @@ public interface IExamService {
 
     int questionDelete(Long examId, Long questionId);
 
-    ExamDetailVO detail(Long examId);
+    ExamDetailVo detail(Long examId);
 
     int edit(ExamEditDto examEditDto);
 

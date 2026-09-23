@@ -3,7 +3,7 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.oj.system.mapper.exam.ExamMapper">
-    <select id="selectExamList" resultType="com.oj.system.entity.exam.vo.ExamVO">
+    <select id="selectExamList" resultType="com.oj.system.entity.exam.vo.ExamVo">
         SELECT
             te.exam_id AS examId,
             te.title,

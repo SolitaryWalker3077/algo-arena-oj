@@ -6,12 +6,9 @@ import com.oj.common.entity.TableDataInfo;
 import com.oj.system.entity.question.dto.QuestionAddDto;
 import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
-import com.oj.system.entity.question.vo.QuestionDetailVO;
+import com.oj.system.entity.question.vo.QuestionDetailVo;
 import com.oj.system.service.question.IQuestionService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +39,7 @@ public class QuestionController extends BaseController {
 
     @Operation(summary = "获取题目详情")
     @GetMapping("/detail")
-    public Result<QuestionDetailVO> detail(Long questionId) {
+    public Result<QuestionDetailVo> detail(Long questionId) {
         return Result.success(questionService.detail(questionId));
     }
 
