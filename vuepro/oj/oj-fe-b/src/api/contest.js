@@ -69,6 +69,12 @@ export const deleteContestQuestion = (examId, questionId) =>
     },
   })
 
+export const deleteContest = (examId) =>
+  request.delete('/system/exam/delete', {
+    params: { examId: requireId(examId, '竞赛ID') },
+    errorMessagePrefix: '删除失败：',
+  })
+
 const requiresClientQuery = (query) =>
   (query.status !== '' && query.status != null) ||
   Boolean(query.createName) ||

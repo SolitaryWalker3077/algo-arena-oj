@@ -232,14 +232,22 @@
                       >编辑</el-button
                     ></span
                   ></el-tooltip
+                ><el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID"
+                  ><span
+                    ><el-button
+                      size="small"
+                      link
+                      type="danger"
+                      :icon="Delete"
+                      :loading="deletingIds.has(row.id)"
+                      :disabled="!row.id || deletingIds.has(row.id)"
+                      :aria-label="`删除竞赛 ${row.title}`"
+                      @click="requestContestDelete(row)"
+                      >删除</el-button
+                    ></span
+                  ></el-tooltip
                 ><template v-if="row.status === 0"
-                  ><el-tooltip content="后端尚未提供删除竞赛接口"
-                    ><span
-                      ><el-button size="small" link type="danger" :icon="Delete" disabled
-                        >删除</el-button
-                      ></span
-                    ></el-tooltip
-                  ><el-tooltip content="未发布竞赛无需撤销发布；后端也尚未提供该接口"
+                  ><el-tooltip content="未发布竞赛无需撤销发布；后端尚未提供撤销接口"
                     ><span
                       ><el-button size="small" link type="warning" :icon="RefreshLeft" disabled
                         >撤销发布</el-button
@@ -293,6 +301,33 @@
       </div>
     </div>
 
+    <el-dialog
+      v-model="deleteDialogVisible"
+      title="删除竞赛"
+      width="min(480px, 92vw)"
+      class="contest-delete-dialog"
+      :close-on-click-modal="!confirmingDelete"
+      :close-on-press-escape="!confirmingDelete"
+      :show-close="!confirmingDelete"
+      @closed="resetDeleteDialog"
+    >
+      <p class="delete-warning">确定要删除此竞赛吗？此操作不可撤销</p>
+      <p class="delete-target">目标竞赛：{{ pendingDelete?.title }}</p>
+      <template #footer>
+        <el-button :disabled="confirmingDelete" @click="deleteDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="danger"
+          :loading="confirmingDelete"
+          :disabled="confirmingDelete"
+          @click="confirmContestDelete"
+        >
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="supportVisible" title="联系技术支持" width="min(420px, 90vw)"
       ><p>请将以下错误信息、发生时间及页面地址提供给系统管理员：</p>
       <p class="support-detail">
@@ -308,6 +343,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import {
   Delete,
   Edit,
@@ -319,7 +355,7 @@ import {
   WarningFilled,
 } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
-import { clearContestResultsCache, getContestResults } from '@/api/contest'
+import { clearContestResultsCache, deleteContest, getContestResults } from '@/api/contest'
 import {
   formatContestTime,
   getContestPhase,
@@ -344,6 +380,10 @@ const loading = ref(false)
 const loadError = ref(null)
 const timeoutStreak = ref(0)
 const supportVisible = ref(false)
+const deletingIds = reactive(new Set())
+const deleteDialogVisible = ref(false)
+const pendingDelete = ref(null)
+const confirmingDelete = ref(false)
 const viewportWidth = ref(window.innerWidth)
 const now = ref(Date.now())
 let searchTimer
@@ -536,6 +576,49 @@ const refreshContests = () => {
   loadContests()
 }
 
+const resetDeleteDialog = () => {
+  if (!confirmingDelete.value) pendingDelete.value = null
+}
+
+const requestContestDelete = (row) => {
+  if (!row?.id || deletingIds.has(row.id)) return
+  pendingDelete.value = row
+  deleteDialogVisible.value = true
+}
+
+const confirmContestDelete = async () => {
+  const contest = pendingDelete.value
+  if (!contest?.id || confirmingDelete.value || deletingIds.has(contest.id)) return
+  if (hasStarted(contest, Date.now())) {
+    deleteDialogVisible.value = false
+    ElMessage.warning('竞赛已经开始，无法删除')
+    return
+  }
+
+  confirmingDelete.value = true
+  deletingIds.add(contest.id)
+  try {
+    await deleteContest(contest.id)
+    contests.value = contests.value.filter((item) => item.id !== contest.id)
+    total.value = Math.max(0, total.value - 1)
+    clearContestResultsCache()
+    deleteDialogVisible.value = false
+    ElMessage.success('竞赛删除成功')
+
+    // 删除当前页最后一条记录后，自动回到仍有数据的上一页。
+    if (!contests.value.length && pagination.current > 1 && total.value > 0) {
+      pagination.current -= 1
+      commitQuery()
+    }
+  } catch (error) {
+    // 请求拦截器会优先展示后端返回的具体原因；仅兜底未统一处理的异常。
+    if (!error?.handled) ElMessage.error(`删除失败：${error?.message || '网络异常，请稍后重试'}`)
+  } finally {
+    deletingIds.delete(contest.id)
+    confirmingDelete.value = false
+  }
+}
+
 watch(
   () => route.query,
   (query) => {
@@ -712,11 +795,22 @@ onBeforeUnmount(() => {
     transform: translateY(1px);
   }
 }
+.delete-warning {
+  color: var(--app-text-primary);
+  font-weight: 600;
+}
+.delete-target,
 .support-detail {
+  margin-top: 12px;
   padding: 12px;
   border-radius: 6px;
   background: var(--app-hover-bg);
   overflow-wrap: anywhere;
+}
+:deep(.contest-delete-dialog .el-dialog__footer) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 @media (min-width: 768px) and (max-width: 1199px) {
   .contest-manage .table-card {
@@ -749,6 +843,9 @@ onBeforeUnmount(() => {
     .pagination-box {
       justify-content: center;
     }
+  }
+  :deep(.contest-delete-dialog .el-dialog__footer) {
+    flex-wrap: wrap;
   }
 }
 </style>

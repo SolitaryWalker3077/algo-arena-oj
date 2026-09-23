@@ -123,6 +123,17 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         return examMapper.updateById(examInfo);
     }
 
+    @Override
+    public int delete(Long examId) {
+        ExamInfo examInfo = getExamInfo(examId);
+        checkExamNotStarted(examInfo);
+        examQuestionMapper.delete(new LambdaQueryWrapper<ExamQuestionInfo>()
+                .eq(ExamQuestionInfo::getExamId,examId));
+        return examMapper.deleteById(examInfo);
+    }
+
+
+
     private void checkExamParams(ExamAddDto examSaveDto , Long examId) {
         List<ExamInfo> examInfos = examMapper
                 .selectList(new LambdaQueryWrapper<ExamInfo>()

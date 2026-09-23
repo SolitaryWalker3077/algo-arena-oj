@@ -62,12 +62,58 @@ test('竞赛菜单导航、真实列表参数、筛选和只读操作', async ({
   await expect(page).toHaveURL(/status=0/)
   await page.reload()
   await expect(page.getByText('竞赛11', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '题目编辑' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: '删除' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '编辑' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '删除竞赛 竞赛11' })).toBeEnabled()
   await page.getByRole('button', { name: '添加竞赛' }).click()
   await expect(page).toHaveURL('/admin/contest/new')
   await expect(page.getByRole('button', { name: '保存基本信息' })).toBeEnabled()
   await expect(page.getByLabel('竞赛标题')).toBeVisible()
+})
+
+test('删除竞赛支持确认、防重复提交、失败保留和成功后即时移除', async ({ page }) => {
+  await setup(page)
+  const deleteRequests = []
+  let failFirstDelete = true
+  await page.route('**/system/exam/delete?*', async (route) => {
+    const url = new URL(route.request().url())
+    deleteRequests.push({
+      method: route.request().method(),
+      examId: url.searchParams.get('examId'),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    if (failFirstDelete) {
+      failFirstDelete = false
+      return route.fulfill(json({ code: 2000, msg: '该竞赛存在关联数据，请先移除关联内容' }))
+    }
+    return route.fulfill(json({ code: 1000, data: null }))
+  })
+
+  await page.goto('/admin/contest')
+  const targetRow = page
+    .locator('.manage-table .el-table__body tr')
+    .filter({ has: page.getByText('竞赛1', { exact: true }) })
+  await targetRow.getByRole('button', { name: '删除竞赛 竞赛1' }).click()
+  const dialog = page.getByRole('dialog', { name: '删除竞赛' })
+  await expect(dialog.getByText('确定要删除此竞赛吗？此操作不可撤销')).toBeVisible()
+  await expect(dialog.getByText('目标竞赛：竞赛1')).toBeVisible()
+  await dialog.getByRole('button', { name: '取消' }).click()
+  await expect(dialog).toBeHidden()
+  expect(deleteRequests).toHaveLength(0)
+
+  await targetRow.getByRole('button', { name: '删除竞赛 竞赛1' }).click()
+  await dialog.getByRole('button', { name: '确定' }).click()
+  await expect(dialog.getByRole('button', { name: '确定' })).toBeDisabled()
+  await expect(page.getByText('删除失败：该竞赛存在关联数据，请先移除关联内容')).toBeVisible()
+  await expect(targetRow).toBeVisible()
+  expect(deleteRequests).toHaveLength(1)
+
+  await dialog.getByRole('button', { name: '确定' }).click()
+  await expect(page.getByText('竞赛删除成功')).toBeVisible()
+  await expect(targetRow).toHaveCount(0)
+  expect(deleteRequests).toEqual([
+    { method: 'DELETE', examId: contests[0].examId },
+    { method: 'DELETE', examId: contests[0].examId },
+  ])
 })
 
 test('从题目编辑入口加载竞赛详情并分页展示题目', async ({ page }) => {
@@ -96,7 +142,7 @@ test('从题目编辑入口加载竞赛详情并分页展示题目', async ({ pa
   await page
     .locator('.manage-table .el-table__body tr')
     .first()
-    .getByRole('button', { name: '题目编辑' })
+    .getByRole('button', { name: '编辑' })
     .click()
   await expect(page).toHaveURL(`/admin/contest/${contests[0].examId}/edit`)
   await expect(page.getByText('正在加载竞赛…')).toBeVisible()
@@ -232,7 +278,7 @@ test('竞赛详情失败显示后端原因并允许重试', async ({ page }) => 
   await page
     .locator('.manage-table .el-table__body tr')
     .first()
-    .getByRole('button', { name: '题目编辑' })
+    .getByRole('button', { name: '编辑' })
     .click()
   await expect(page.getByText('竞赛详情加载失败：竞赛不存在')).toBeVisible()
   await expect(page.getByLabel('竞赛标题')).toHaveCount(0)
@@ -338,7 +384,7 @@ test('开赛状态按开始与结束时刻展示', async ({ page }) => {
     page
       .locator('.el-table__body tr')
       .filter({ hasText: '未来赛' })
-      .getByRole('button', { name: '题目编辑' }),
+      .getByRole('button', { name: '编辑' }),
   ).toBeEnabled()
   for (const title of ['进行赛', '结束赛']) {
     await expect(

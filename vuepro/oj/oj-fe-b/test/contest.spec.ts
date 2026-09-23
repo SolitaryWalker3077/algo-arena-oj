@@ -5,6 +5,7 @@ vi.mock('@/utils/request', () => ({ default: { get, delete: deleteRequest } }))
 
 import {
   clearContestResultsCache,
+  deleteContest,
   deleteContestQuestion,
   getContestDetail,
   getContestPage,
@@ -37,6 +38,16 @@ beforeEach(() => {
 })
 
 describe('contest backend contract', () => {
+  it('deletes a contest with an exact validated ID and contextual error message', async () => {
+    deleteRequest.mockResolvedValue(undefined)
+    await deleteContest('9007199254740993123')
+    expect(deleteRequest).toHaveBeenCalledWith('/system/exam/delete', {
+      params: { examId: '9007199254740993123' },
+      errorMessagePrefix: '删除失败：',
+    })
+    expect(() => deleteContest('1 OR 1=1')).toThrow('竞赛ID无效')
+  })
+
   it('deletes a contest question with exact string IDs', async () => {
     deleteRequest.mockResolvedValue(undefined)
     await deleteContestQuestion('9007199254740993123', '9007199254740993124')

@@ -61,4 +61,10 @@ public class ExamController extends BaseController {
     public Result<Void> edit(@RequestBody ExamEditDto examEditDto) {
         return toResult(examService.edit(examEditDto));
     }
+
+    @Operation(summary = "删除竞赛")
+    @DeleteMapping("/delete")
+    public Result<Void> delete(Long examId) {
+        return toResult(examService.delete(examId));
+    }
 }

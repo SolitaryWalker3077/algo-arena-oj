@@ -41,14 +41,18 @@ const redirectToLogin = () => {
   const currentRoute = router.currentRoute.value
   if (currentRoute.name === 'login') return
 
-  const query = currentRoute.fullPath && currentRoute.fullPath !== '/'
-    ? { redirect: currentRoute.fullPath }
-    : undefined
+  const query =
+    currentRoute.fullPath && currentRoute.fullPath !== '/'
+      ? { redirect: currentRoute.fullPath }
+      : undefined
   router.replace({ name: 'login', query }).catch(() => {})
 }
 
-const rejectWithMessage = (error, unauthorized = false) => {
-  const message = error?.message || '操作失败，请稍后重试'
+const rejectWithMessage = (error, unauthorized = false, config = {}) => {
+  const detail = error?.message || '操作失败，请稍后重试'
+  const prefix = typeof config?.errorMessagePrefix === 'string' ? config.errorMessagePrefix : ''
+  const message = prefix && !detail.startsWith(prefix) ? `${prefix}${detail}` : detail
+  error.message = message
   ElMessage.error(message)
   if (unauthorized) redirectToLogin()
   error.handled = true
@@ -61,11 +65,8 @@ request.interceptors.request.use(
     try {
       return attachAuthorization(config, getToken())
     } catch (error) {
-      const unauthorized = shouldRedirectForUnauthorized(
-        error.code === UNAUTHORIZED_CODE,
-        config,
-      )
-      return rejectWithMessage(error, unauthorized)
+      const unauthorized = shouldRedirectForUnauthorized(error.code === UNAUTHORIZED_CODE, config)
+      return rejectWithMessage(error, unauthorized, config)
     }
   },
   (error) => Promise.reject(error),
@@ -81,7 +82,7 @@ request.interceptors.response.use(
         error.code === UNAUTHORIZED_CODE,
         response.config,
       )
-      return rejectWithMessage(error, unauthorized)
+      return rejectWithMessage(error, unauthorized, response.config)
     }
   },
   (error) => {
@@ -92,7 +93,7 @@ request.interceptors.response.use(
     friendlyError.code = failure.code
     friendlyError.cause = error
     const unauthorized = shouldRedirectForUnauthorized(failure.unauthorized, error.config)
-    return rejectWithMessage(friendlyError, unauthorized)
+    return rejectWithMessage(friendlyError, unauthorized, error.config)
   },
 )
 
