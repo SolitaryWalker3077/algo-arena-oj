@@ -803,7 +803,7 @@ onBeforeUnmount(() => {
   .manage-table :deep(th.el-table__cell) {
     color: var(--app-text-regular);
   }
-  :deep(.el-button--primary:not(.is-plain)) {
+  :deep(.el-button--primary:not(.is-plain):not(.is-link)) {
     color: #0b2a3a;
   }
   .title-cell {
@@ -847,53 +847,41 @@ onBeforeUnmount(() => {
     font-weight: 600;
     letter-spacing: 0.04em;
   }
-  /* 操作栏内竞赛进行状态标签（已开赛/已结束） */
+  /* 操作栏只展示状态，不使用按钮样式或动态效果。 */
   .phase-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    width: 84px;
-    height: 26px;
-    border-radius: 5px;
+    gap: 6px;
+    min-width: 82px;
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.05em;
-    color: #fff;
+    line-height: 1;
+    letter-spacing: 0.02em;
     white-space: nowrap;
-    margin-right: 10px;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-    overflow: hidden;
+    box-sizing: border-box;
   }
   .phase-badge::before {
     content: '';
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #fff;
+    background: currentColor;
     flex-shrink: 0;
-    opacity: 0.85;
   }
   .phase-badge.ongoing {
-    background: linear-gradient(135deg, #409eff 0%, #337ecc 100%);
-    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-  .phase-badge.ongoing::before {
-    animation: phase-pulse 1.8s ease-in-out infinite;
+    color: #086987;
+    background: var(--app-brand-active-bg);
+    border-color: rgba(50, 197, 255, 0.38);
   }
   .phase-badge.ended {
-    background: linear-gradient(135deg, #a8a8a8 0%, #858585 100%);
-    box-shadow: 0 2px 6px rgba(130, 130, 130, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  }
-  @keyframes phase-pulse {
-    0%, 100% { opacity: 0.45; }
-    50% { opacity: 1; }
-  }
-  html.dark .phase-badge.ended {
-    background: linear-gradient(135deg, #7a7a7a 0%, #5a5a5a 100%);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    color: var(--app-text-regular);
+    background: var(--app-hover-bg);
+    border-color: var(--app-border-color);
   }
   .pagination-box {
     display: flex;
@@ -914,6 +902,10 @@ onBeforeUnmount(() => {
   :deep(.el-button:active) {
     transform: translateY(1px);
   }
+}
+:global(html.dark .contest-manage .phase-badge.ongoing) {
+  color: #7cddff;
+  border-color: rgba(64, 201, 255, 0.35);
 }
 .delete-warning {
   color: var(--app-text-primary);
