@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.PageHelper;
+import com.oj.common.constants.Constants;
 import com.oj.common.enums.ResultCode;
 import com.oj.security.expection.ServiceException;
 import com.oj.system.entity.exam.ExamInfo;
@@ -132,6 +133,16 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         return examMapper.deleteById(examInfo);
     }
 
+    @Override
+    public int publish(Long examId) {
+        ExamInfo examInfo = getExamInfo(examId);
+        Long count = examQuestionMapper.selectCount(new LambdaQueryWrapper<ExamQuestionInfo>().eq(ExamQuestionInfo::getExamId, examId));
+        if(count == null || count <= 0) {
+            throw new ServiceException(ResultCode.EXAM_QUESTION_NOT_EXISTS);
+        }
+        examInfo.setStatus(Constants.TRUE);
+        return examMapper.updateById(examInfo);
+    }
 
 
     private void checkExamParams(ExamAddDto examSaveDto , Long examId) {

@@ -67,4 +67,11 @@ public class ExamController extends BaseController {
     public Result<Void> delete(Long examId) {
         return toResult(examService.delete(examId));
     }
+
+
+    @Operation(summary = "发布竞赛")
+    @PutMapping("/publish")
+    public Result<Void> publish(Long examId) {
+        return toResult(examService.publish(examId));
+    }
 }
