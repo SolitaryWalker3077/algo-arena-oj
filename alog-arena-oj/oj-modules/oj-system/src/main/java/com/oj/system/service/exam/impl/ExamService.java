@@ -144,6 +144,13 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         return examMapper.updateById(examInfo);
     }
 
+    @Override
+    public int cancelPublish(Long examId) {
+        ExamInfo examInfo = getExamInfo(examId);
+        checkExamNotStarted(examInfo);
+        examInfo.setStatus(Constants.FALSE);
+        return examMapper.updateById(examInfo);
+    }
 
     private void checkExamParams(ExamAddDto examSaveDto , Long examId) {
         List<ExamInfo> examInfos = examMapper

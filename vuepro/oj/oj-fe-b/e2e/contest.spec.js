@@ -67,7 +67,72 @@ test('竞赛菜单导航、真实列表参数、筛选和只读操作', async ({
   await page.getByRole('button', { name: '添加竞赛' }).click()
   await expect(page).toHaveURL('/admin/contest/new')
   await expect(page.getByRole('button', { name: '保存基本信息' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '发布', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '暂不发布' })).toBeEnabled()
   await expect(page.getByLabel('竞赛标题')).toBeVisible()
+})
+
+test('发布与撤销发布防止重复提交并即时切换列表状态', async ({ page }) => {
+  await setup(page)
+  const publicationRequests = []
+  await page.route('**/system/exam/publish?*', async (route) => {
+    const url = new URL(route.request().url())
+    publicationRequests.push({
+      action: 'publish',
+      method: route.request().method(),
+      examId: url.searchParams.get('examId'),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    return route.fulfill(json({ code: 1000, data: null }))
+  })
+  await page.route('**/system/exam/cancelPublish?*', async (route) => {
+    const url = new URL(route.request().url())
+    publicationRequests.push({
+      action: 'cancel',
+      method: route.request().method(),
+      examId: url.searchParams.get('examId'),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    return route.fulfill(json({ code: 1000, data: null }))
+  })
+
+  await page.goto('/admin/contest')
+  const unpublishedRow = page
+    .locator('.manage-table .el-table__body tr')
+    .filter({ has: page.getByText('竞赛1', { exact: true }) })
+  const publishButton = unpublishedRow.getByRole('button', { name: '发布竞赛 竞赛1' })
+  await publishButton.click()
+  await publishButton.click({ force: true })
+  await expect(unpublishedRow.getByRole('button', { name: '撤销发布竞赛 竞赛1' })).toBeVisible()
+  await expect(page.getByText('竞赛发布成功')).toBeVisible()
+
+  const publishedRow = page
+    .locator('.manage-table .el-table__body tr')
+    .filter({ has: page.getByText('竞赛2', { exact: true }) })
+  await publishedRow.getByRole('button', { name: '撤销发布竞赛 竞赛2' }).click()
+  await expect(publishedRow.getByRole('button', { name: '发布竞赛 竞赛2' })).toBeVisible()
+  await expect(page.getByText('竞赛已撤销发布')).toBeVisible()
+
+  expect(publicationRequests).toEqual([
+    { action: 'publish', method: 'PUT', examId: contests[0].examId },
+    { action: 'cancel', method: 'PUT', examId: contests[1].examId },
+  ])
+})
+
+test('已开赛竞赛仅显示状态标签且不渲染操作按钮', async ({ page }) => {
+  const started = {
+    ...contests[0],
+    startTime: new Date(Date.now() - 3600000).toISOString(),
+    endTime: new Date(Date.now() + 3600000).toISOString(),
+  }
+  await setup(page, () => ({ code: 1000, rows: [started], total: 1 }))
+  await page.goto('/admin/contest')
+
+  const row = page
+    .locator('.manage-table .el-table__body tr')
+    .filter({ has: page.getByText('竞赛1', { exact: true }) })
+  await expect(row.locator('.terminal-status-tag')).toHaveText('已开赛')
+  await expect(row.getByRole('button')).toHaveCount(0)
 })
 
 test('删除竞赛支持确认、防重复提交、失败保留和成功后即时移除', async ({ page }) => {
@@ -156,6 +221,45 @@ test('从题目编辑入口加载竞赛详情并分页展示题目', async ({ pa
   await page.locator('.table-pagination .el-pager .number').filter({ hasText: '2' }).click()
   await expect(page.locator('.question-table')).toContainText('题目12')
   expect(requestedIds).toEqual([contests[0].examId])
+})
+
+test('编辑页发布展示易懂失败原因，重试成功后返回列表', async ({ page }) => {
+  await setup(page)
+  await page.route('**/system/exam/detail?*', (route) =>
+    route.fulfill(
+      json({
+        code: 1000,
+        data: {
+          title: '待发布竞赛',
+          startTime: '2999-09-22 09:00:00',
+          endTime: '2999-09-22 11:00:00',
+          status: 0,
+          examQuestionList: [],
+        },
+      }),
+    ),
+  )
+  let attempts = 0
+  await page.route('**/system/exam/publish?*', (route) => {
+    attempts += 1
+    return route.fulfill(
+      json(
+        attempts === 1 ? { code: 3204, msg: '为竞赛新增的题目不存在' } : { code: 1000, data: null },
+      ),
+    )
+  })
+
+  await page.goto(`/admin/contest/${contests[0].examId}/edit`)
+  const publishButton = page.getByRole('button', { name: '发布', exact: true })
+  await expect(publishButton).toBeEnabled()
+  await publishButton.click()
+  await expect(page.getByText('发布失败：竞赛暂无题目，请先添加至少一道题目后再发布')).toBeVisible()
+  await expect(page).toHaveURL(`/admin/contest/${contests[0].examId}/edit`)
+
+  await publishButton.click()
+  await expect(page.getByText('竞赛发布成功')).toBeVisible()
+  await expect(page).toHaveURL(/\/admin\/contest(?:\?|$)/)
+  expect(attempts).toBe(2)
 })
 
 test('删除竞赛题目支持会话内确认偏好、跨竞赛重置、失败重试和防重复提交', async ({ page }) => {
@@ -386,38 +490,53 @@ test('开赛状态按开始与结束时刻展示', async ({ page }) => {
       .filter({ hasText: '未来赛' })
       .getByRole('button', { name: '编辑' }),
   ).toBeEnabled()
-  for (const title of ['进行赛', '结束赛']) {
-    await expect(
-      page.locator('.el-table__body tr').filter({ hasText: title }).locator('.row-actions button'),
-    ).toHaveCount(0)
+  for (const [title, label] of [
+    ['进行赛', '已开赛'],
+    ['结束赛', '已结束'],
+  ]) {
+    const terminalRow = page.locator('.el-table__body tr').filter({ hasText: title })
+    await expect(terminalRow.locator('.terminal-status-tag')).toHaveText(label)
+    await expect(terminalRow.getByRole('button')).toHaveCount(0)
   }
+  const invalidRow = page.locator('.el-table__body tr').filter({ hasText: '异常赛' })
+  await expect(invalidRow.locator('.terminal-status-tag')).toHaveCount(0)
+  await expect(invalidRow.locator('.row-actions button')).toHaveCount(3)
 })
 
-test('直接访问已开赛竞赛只能查看，不能修改', async ({ page }) => {
+test('直接访问已开赛或已结束竞赛只显示信息和精确状态标签', async ({ page }) => {
   await setup(page)
-  await page.route('**/system/exam/detail?*', (route) =>
-    route.fulfill(
+  await page.route('**/system/exam/detail?*', (route) => {
+    const examId = new URL(route.request().url()).searchParams.get('examId')
+    const ended = examId === contests[1].examId
+    return route.fulfill(
       json({
         code: 1000,
         data: {
-          title: '已开赛竞赛',
+          title: ended ? '已结束竞赛' : '已开赛竞赛',
           startTime: '2000-01-01 09:00:00',
-          endTime: '2999-01-01 09:00:00',
+          endTime: ended ? '2000-01-01 11:00:00' : '2999-01-01 09:00:00',
           examQuestionList: [
             { questionId: '9007199254740994000', title: '两数之和', difficult: 1 },
           ],
         },
       }),
-    ),
-  )
+    )
+  })
   await page.goto(`/admin/contest/${contests[0].examId}/edit`)
   await expect(page.getByText('竞赛已开赛，无法修改基本信息或题目')).toBeVisible()
+  await expect(page.locator('.form-card .terminal-status-tag')).toHaveText('已开赛')
   await expect(page.getByLabel('竞赛标题')).toBeDisabled()
   await expect(page.getByLabel('竞赛开始时间')).toBeDisabled()
   await expect(page.getByLabel('竞赛结束时间')).toBeDisabled()
-  await expect(page.getByRole('button', { name: '保存基本信息' })).toBeDisabled()
-  await expect(page.getByRole('button', { name: '添加题目' })).toBeDisabled()
   await expect(page.locator('.question-table')).toContainText('两数之和')
+  for (const name of ['保存基本信息', '添加题目', '删除题目 两数之和', '发布', '暂不发布'])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
+
+  await page.goto(`/admin/contest/${contests[1].examId}/edit`)
+  await expect(page.getByText('竞赛已结束，无法修改基本信息或题目')).toBeVisible()
+  await expect(page.locator('.form-card .terminal-status-tag')).toHaveText('已结束')
+  for (const name of ['保存基本信息', '添加题目', '删除题目 两数之和', '发布', '暂不发布'])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
 })
 
 test('切页失败时恢复上次成功的页码和列表', async ({ page }) => {

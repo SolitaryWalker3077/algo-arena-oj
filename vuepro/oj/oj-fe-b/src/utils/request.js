@@ -49,7 +49,8 @@ const redirectToLogin = () => {
 }
 
 const rejectWithMessage = (error, unauthorized = false, config = {}) => {
-  const detail = error?.message || '操作失败，请稍后重试'
+  const mappedMessage = config?.errorMessageMap?.[error?.code]
+  const detail = mappedMessage || error?.message || '操作失败，请稍后重试'
   const prefix = typeof config?.errorMessagePrefix === 'string' ? config.errorMessagePrefix : ''
   const message = prefix && !detail.startsWith(prefix) ? `${prefix}${detail}` : detail
   error.message = message

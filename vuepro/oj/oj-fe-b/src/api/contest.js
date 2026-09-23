@@ -75,6 +75,27 @@ export const deleteContest = (examId) =>
     errorMessagePrefix: '删除失败：',
   })
 
+const PUBLICATION_TIMEOUT = 10000
+const publicationErrorMessages = {
+  3204: '竞赛暂无题目，请先添加至少一道题目后再发布',
+  3206: '竞赛暂无题目，请先添加至少一道题目后再发布',
+}
+
+export const publishContest = (examId) =>
+  request.put('/system/exam/publish', null, {
+    params: { examId: requireId(examId, '竞赛ID') },
+    timeout: PUBLICATION_TIMEOUT,
+    errorMessagePrefix: '发布失败：',
+    errorMessageMap: publicationErrorMessages,
+  })
+
+export const cancelPublishContest = (examId) =>
+  request.put('/system/exam/cancelPublish', null, {
+    params: { examId: requireId(examId, '竞赛ID') },
+    timeout: PUBLICATION_TIMEOUT,
+    errorMessagePrefix: '撤销发布失败：',
+  })
+
 const requiresClientQuery = (query) =>
   (query.status !== '' && query.status != null) ||
   Boolean(query.createName) ||

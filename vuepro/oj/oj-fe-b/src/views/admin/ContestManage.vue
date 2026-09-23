@@ -127,7 +127,6 @@
             ><span v-else class="title-cell">{{ row.title || '—' }}</span
             ><small v-if="viewportWidth >= 768 && viewportWidth < 1200" class="tablet-dates"
               >{{ formatContestTime(row.startTime) }} 至 {{ formatContestTime(row.endTime) }} ·
-              {{ phaseLabel(row) }} ·
               {{ row.status === 1 ? '已发布' : row.status === 0 ? '未发布' : '状态未知' }}</small
             ></template
           >
@@ -159,16 +158,20 @@
           ></el-table-column
         >
         <el-table-column
-          v-if="viewportWidth < 768 || viewportWidth >= 1200"
           prop="phase"
-          label="是否开赛"
+          label="竞赛状态"
           sortable="custom"
           :width="viewportWidth >= 1600 ? 108 : 70"
           align="center"
           ><template #default="{ row }"
-            ><el-tag :type="phaseTagType(row)" size="small" round>{{
-              phaseLabel(row)
-            }}</el-tag></template
+            ><el-tag
+              :class="{ 'terminal-status-tag': isTerminalPhase(row) }"
+              :type="phaseTagType(row)"
+              :effect="isTerminalPhase(row) ? 'dark' : 'light'"
+              size="small"
+              round
+              >{{ phaseLabel(row) }}</el-tag
+            ></template
           ></el-table-column
         >
         <el-table-column
@@ -209,17 +212,13 @@
         >
         <el-table-column
           label="操作"
-          :width="viewportWidth >= 1600 ? 250 : 220"
+          :width="viewportWidth >= 1600 ? 330 : 285"
           :fixed="viewportWidth < 768 ? 'right' : false"
           align="center"
         >
           <template #default="{ row }"
             ><div class="row-actions">
-              <el-tag v-if="hasStarted(row, now)" type="danger" size="small" round>
-                <el-icon><WarningFilled /></el-icon>
-                {{ phaseOf(row) === 'ended' ? '已结束' : '已开赛' }}
-              </el-tag>
-              <template v-else>
+              <template v-if="!isTerminalPhase(row)">
                 <el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID">
                   <span
                     ><el-button
@@ -240,23 +239,35 @@
                       type="danger"
                       :icon="Delete"
                       :loading="deletingIds.has(row.id)"
-                      :disabled="!row.id || deletingIds.has(row.id)"
+                      :disabled="!row.id || deletingIds.has(row.id) || publishingIds.has(row.id)"
                       :aria-label="`删除竞赛 ${row.title}`"
                       @click="requestContestDelete(row)"
                       >删除</el-button
                     ></span
                   ></el-tooltip
-                ><template v-if="row.status === 0"
-                  ><el-tooltip content="未发布竞赛无需撤销发布；后端尚未提供撤销接口"
-                    ><span
-                      ><el-button size="small" link type="warning" :icon="RefreshLeft" disabled
-                        >撤销发布</el-button
-                      ></span
-                    ></el-tooltip
-                  ></template
-                ><el-tag v-else type="danger" size="small" round
-                  ><el-icon><WarningFilled /></el-icon> 已发布</el-tag
+                ><el-tooltip
+                  v-if="canManagePublication"
+                  :disabled="Boolean(row.id)"
+                  content="竞赛列表接口未返回竞赛 ID"
                 >
+                  <span>
+                    <el-button
+                      size="small"
+                      link
+                      :type="row.status === 1 ? 'warning' : 'success'"
+                      :icon="row.status === 1 ? RefreshLeft : Promotion"
+                      :loading="publishingIds.has(row.id)"
+                      :disabled="!row.id || publishingIds.has(row.id) || deletingIds.has(row.id)"
+                      :aria-label="`${row.status === 1 ? '撤销发布' : '发布'}竞赛 ${row.title}`"
+                      @click="togglePublication(row)"
+                    >
+                      {{ row.status === 1 ? '撤销发布' : '发布' }}
+                    </el-button>
+                  </span>
+                </el-tooltip>
+              </template>
+              <template v-else>
+                <span class="phase-badge" :class="phaseOf(row)">{{ phaseLabel(row) }}</span>
               </template>
             </div></template
           >
@@ -341,13 +352,14 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Delete,
   Edit,
   Plus,
+  Promotion,
   Refresh,
   RefreshLeft,
   Search,
@@ -355,7 +367,13 @@ import {
   WarningFilled,
 } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
-import { clearContestResultsCache, deleteContest, getContestResults } from '@/api/contest'
+import {
+  cancelPublishContest,
+  clearContestResultsCache,
+  deleteContest,
+  getContestResults,
+  publishContest,
+} from '@/api/contest'
 import {
   formatContestTime,
   getContestPhase,
@@ -365,6 +383,7 @@ import {
   shortenTitle,
 } from '@/api/contestPolicy'
 import { normalizePageSize } from '@/utils/pagination'
+import { getToken } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -381,6 +400,7 @@ const loadError = ref(null)
 const timeoutStreak = ref(0)
 const supportVisible = ref(false)
 const deletingIds = reactive(new Set())
+const publishingIds = reactive(new Set())
 const deleteDialogVisible = ref(false)
 const pendingDelete = ref(null)
 const confirmingDelete = ref(false)
@@ -391,6 +411,9 @@ let phaseTimer
 let loadId = 0
 let hasSuccessfulPage = false
 let skipNextRouteLoad = false
+
+// 当前 B 端登录态只签发给管理员，接口侧仍由网关再次校验管理员身份。
+const canManagePublication = computed(() => Boolean(getToken()))
 
 const phaseOf = (row) => getContestPhase(row, now.value)
 const phaseLabel = (row) =>
@@ -405,6 +428,7 @@ const phaseTagType = (row) =>
   ({ upcoming: 'info', ongoing: 'primary', ended: 'info', invalid: 'danger', unknown: 'info' })[
     phaseOf(row)
   ]
+const isTerminalPhase = (row) => ['ongoing', 'ended'].includes(phaseOf(row))
 
 /** Refresh exactly when the next visible contest starts or ends. */
 const schedulePhaseRefresh = () => {
@@ -574,6 +598,48 @@ const loadContests = async () => {
 const refreshContests = () => {
   clearContestResultsCache()
   loadContests()
+}
+
+const applyPublicationStatus = (contestId, status) => {
+  const row = contests.value.find((item) => item.id === contestId)
+  if (!row) return
+  row.status = status
+  if (filters.status !== '' && Number(filters.status) !== status) {
+    contests.value = contests.value.filter((item) => item.id !== contestId)
+    total.value = Math.max(0, total.value - 1)
+  }
+}
+
+const togglePublication = async (row) => {
+  if (
+    !canManagePublication.value ||
+    !row?.id ||
+    publishingIds.has(row.id) ||
+    deletingIds.has(row.id)
+  )
+    return
+  if (hasStarted(row, Date.now())) {
+    ElMessage.warning('竞赛已经开始，无法发布或撤销发布')
+    return
+  }
+
+  const isPublished = row.status === 1
+  publishingIds.add(row.id)
+  try {
+    if (isPublished) await cancelPublishContest(row.id)
+    else await publishContest(row.id)
+    applyPublicationStatus(row.id, isPublished ? 0 : 1)
+    clearContestResultsCache()
+    ElMessage.success(isPublished ? '竞赛已撤销发布' : '竞赛发布成功')
+  } catch (error) {
+    // 统一请求层会展示后端的具体原因和超时提示，这里仅处理非请求异常。
+    if (!error?.handled)
+      ElMessage.error(
+        `${isPublished ? '撤销发布' : '发布'}失败：${error?.message || '网络异常，请稍后重试'}`,
+      )
+  } finally {
+    publishingIds.delete(row.id)
+  }
 }
 
 const resetDeleteDialog = () => {
@@ -774,6 +840,60 @@ onBeforeUnmount(() => {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+  }
+  .terminal-status-tag {
+    min-width: 72px;
+    justify-content: center;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  /* 操作栏内竞赛进行状态标签（已开赛/已结束） */
+  .phase-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 84px;
+    height: 26px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #fff;
+    white-space: nowrap;
+    margin-right: 10px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .phase-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+  .phase-badge.ongoing {
+    background: linear-gradient(135deg, #409eff 0%, #337ecc 100%);
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .phase-badge.ongoing::before {
+    animation: phase-pulse 1.8s ease-in-out infinite;
+  }
+  .phase-badge.ended {
+    background: linear-gradient(135deg, #a8a8a8 0%, #858585 100%);
+    box-shadow: 0 2px 6px rgba(130, 130, 130, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+  @keyframes phase-pulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+  html.dark .phase-badge.ended {
+    background: linear-gradient(135deg, #7a7a7a 0%, #5a5a5a 100%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   .pagination-box {
     display: flex;

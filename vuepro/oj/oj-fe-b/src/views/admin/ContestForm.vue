@@ -17,7 +17,17 @@
     <section class="form-card" v-loading="detailLoading" element-loading-text="正在加载竞赛…">
       <div class="section-head">
         <h3>基本信息</h3>
-        <el-tag v-if="contestId" type="success" size="small">已保存</el-tag>
+        <el-tag
+          v-if="terminalView"
+          class="terminal-status-tag"
+          :type="terminalTagType"
+          effect="dark"
+          size="small"
+          round
+        >
+          {{ terminalLabel }}
+        </el-tag>
+        <el-tag v-else-if="contestId" type="success" size="small">已保存</el-tag>
         <el-tag v-else type="info" size="small">未保存</el-tag>
       </div>
       <el-alert
@@ -40,7 +50,7 @@
       </el-alert>
       <el-alert
         v-if="editLocked"
-        title="竞赛已开赛，无法修改基本信息或题目"
+        :title="`竞赛${terminalLabel || '已经开始'}，无法修改基本信息或题目`"
         type="warning"
         show-icon
         :closable="false"
@@ -98,7 +108,7 @@
             @change="touch('endTime')"
           />
         </el-form-item>
-        <el-form-item>
+        <el-form-item v-if="!terminalView">
           <el-button
             type="primary"
             native-type="submit"
@@ -124,6 +134,7 @@
           <p>共 {{ contestQuestions.length }} 道题目</p>
         </div>
         <el-button
+          v-if="!terminalView"
           type="primary"
           :icon="Plus"
           :disabled="!contestId || !detailLoaded || editLocked"
@@ -141,6 +152,7 @@
         @close="deleteError = null"
       >
         <el-button
+          v-if="!terminalView"
           size="small"
           :loading="deletingIds.has(deleteError.id)"
           :disabled="editLocked"
@@ -170,7 +182,7 @@
             }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" align="center">
+        <el-table-column v-if="!terminalView" label="操作" width="120" align="center">
           <template #default="{ row }">
             <el-button
               link
@@ -185,7 +197,9 @@
           </template>
         </el-table-column>
         <template #empty
-          ><div class="empty-message">暂无题目，点击“添加题目”从题库选择</div></template
+          ><div class="empty-message">
+            {{ terminalView ? '暂无题目' : '暂无题目，点击“添加题目”从题库选择' }}
+          </div></template
         >
       </el-table>
       <el-pagination
@@ -197,6 +211,35 @@
         background
         class="table-pagination"
       />
+    </section>
+
+    <section v-if="!terminalView" class="form-actions-card">
+      <div>
+        <h3>完成竞赛编辑</h3>
+        <p>发布后竞赛将进入已发布状态；暂不发布会保存当前内容并返回列表。</p>
+      </div>
+      <div class="form-actions">
+        <el-button
+          :loading="savingForLater"
+          :disabled="formActionBusy || detailLoading || createdWithoutId || editLocked"
+          @click="saveForLater"
+        >
+          暂不发布
+        </el-button>
+        <el-tooltip :disabled="!editLocked" content="竞赛已经开始，无法发布">
+          <span>
+            <el-button
+              v-if="canManagePublication"
+              type="primary"
+              :loading="publishing"
+              :disabled="formActionBusy || detailLoading || createdWithoutId || editLocked"
+              @click="publishFromForm"
+            >
+              发布
+            </el-button>
+          </span>
+        </el-tooltip>
+      </div>
     </section>
 
     <el-dialog
@@ -335,9 +378,15 @@ import {
   createContest,
   deleteContestQuestion,
   getContestDetail,
+  publishContest,
   updateContest,
 } from '@/api/contest'
-import { formatContestTime, hasStarted, parseContestTimestamp } from '@/api/contestPolicy'
+import {
+  formatContestTime,
+  getContestPhase,
+  hasStarted,
+  parseContestTimestamp,
+} from '@/api/contestPolicy'
 import { BASE_DIFFICULTY_OPTIONS, getProblemPage, mapProblemFromApi } from '@/api/problem'
 import {
   clearQuestionDeleteConfirmationPreference,
@@ -345,6 +394,7 @@ import {
   saveQuestionDeleteConfirmationPreference,
   shouldSkipQuestionDeleteConfirmation,
 } from '@/utils/deleteConfirmationPreference'
+import { getToken } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -357,9 +407,12 @@ const touched = reactive({ title: false, startTime: false, endTime: false })
 const attempted = ref(false)
 const savedForm = ref(JSON.stringify({ title: '', startTime: '', endTime: '' }))
 const saving = ref(false)
+const publishing = ref(false)
+const savingForLater = ref(false)
 const detailLoading = ref(false)
 const detailLoaded = ref(false)
 const originalStartTime = ref('')
+const originalEndTime = ref('')
 const now = ref(Date.now())
 const formError = ref('')
 const createdWithoutId = ref(false)
@@ -393,6 +446,9 @@ let startTimeTimer
 let deleteConfirmationSessionId = createQuestionDeleteConfirmationSession()
 
 const difficultyOptions = BASE_DIFFICULTY_OPTIONS
+// 当前 B 端登录态只签发给管理员，发布接口还会由网关再次校验身份。
+const canManagePublication = computed(() => Boolean(getToken()))
+const formActionBusy = computed(() => saving.value || publishing.value || savingForLater.value)
 const difficultyLabel = (value) =>
   difficultyOptions.find((item) => item.value === Number(value))?.label || '未知'
 const difficultyType = (value) =>
@@ -404,6 +460,19 @@ const visibleQuestions = computed(() =>
     questionPage.value * questionPageSize,
   ),
 )
+const contestPhase = computed(() =>
+  getContestPhase(
+    { startTime: originalStartTime.value, endTime: originalEndTime.value },
+    now.value,
+  ),
+)
+const terminalView = computed(
+  () => isEdit.value && detailLoaded.value && ['ongoing', 'ended'].includes(contestPhase.value),
+)
+const terminalLabel = computed(() =>
+  contestPhase.value === 'ended' ? '已结束' : contestPhase.value === 'ongoing' ? '已开赛' : '',
+)
+const terminalTagType = computed(() => (contestPhase.value === 'ongoing' ? 'primary' : 'info'))
 const editLocked = computed(
   () =>
     isEdit.value &&
@@ -486,6 +555,7 @@ const loadDetail = async () => {
       endTime: normalizeTime(detail?.endTime),
     })
     originalStartTime.value = detail.startTime
+    originalEndTime.value = detail.endTime
     now.value = Date.now()
     contestQuestions.value = (detail?.examQuestionList || []).map(mapQuestion)
     questionPage.value = Math.min(
@@ -514,6 +584,7 @@ watch(
     contestId.value = String(id)
     deleteConfirmationSessionId = createQuestionDeleteConfirmationSession()
     originalStartTime.value = ''
+    originalEndTime.value = ''
     questionPage.value = 1
     contestQuestions.value = []
     deleteError.value = null
@@ -522,17 +593,19 @@ watch(
   },
 )
 
-const saveBasic = async () => {
-  if (editLocked.value) return
+const saveBasic = async (options = {}) => {
+  const notify = options?.notify !== false
+  const reload = options?.reload !== false
+  if (editLocked.value) return false
   attempted.value = true
-  if (Object.keys(errors.value).length || saving.value) return
+  if (Object.keys(errors.value).length || saving.value) return false
   saving.value = true
   formError.value = ''
   const values = { title: form.title.trim(), startTime: form.startTime, endTime: form.endTime }
   try {
     if (contestId.value) {
       await updateContest(contestId.value, values)
-      ElMessage.success('竞赛基本信息已保存')
+      if (notify) ElMessage.success('竞赛基本信息已保存')
     } else {
       const id = await createContest(values)
       createdWithoutId.value = !id
@@ -544,7 +617,7 @@ const saveBasic = async () => {
           /* storage unavailable */
         }
       }
-      ElMessage.success('竞赛创建成功')
+      if (notify) ElMessage.success('竞赛创建成功')
     }
     savedForm.value = currentForm()
     clearContestResultsCache()
@@ -555,12 +628,49 @@ const saveBasic = async () => {
     }
     if (contestId.value && !isEdit.value)
       await router.replace({ name: 'contestEdit', params: { examId: contestId.value } })
-    if (contestId.value) await loadDetail()
+    if (contestId.value && reload) await loadDetail()
+    return true
   } catch (error) {
     formError.value = error?.message || '保存失败，请检查网络连接后重试'
     if (!error?.handled) ElMessage.error(formError.value)
+    return false
   } finally {
     saving.value = false
+  }
+}
+
+const ensureBasicSaved = () => {
+  if (contestId.value && !dirty.value) return Promise.resolve(true)
+  return saveBasic({ notify: false, reload: false })
+}
+
+const saveForLater = async () => {
+  if (formActionBusy.value || editLocked.value) return
+  savingForLater.value = true
+  try {
+    if (!(await ensureBasicSaved())) return
+    clearContestResultsCache()
+    ElMessage.success('竞赛已保存，暂未发布')
+    await router.push({ name: 'contestManage' })
+  } finally {
+    savingForLater.value = false
+  }
+}
+
+const publishFromForm = async () => {
+  if (!canManagePublication.value || formActionBusy.value || editLocked.value) return
+  publishing.value = true
+  try {
+    if (!(await ensureBasicSaved()) || !contestId.value) return
+    await publishContest(contestId.value)
+    clearContestResultsCache()
+    ElMessage.success('竞赛发布成功')
+    await router.push({ name: 'contestManage' })
+  } catch (error) {
+    // 后端失败原因和请求超时由统一请求层转换为易懂提示。
+    if (!error?.handled) ElMessage.error(`发布失败：${error?.message || '网络异常，请稍后重试'}`)
+  } finally {
+    publishing.value = false
   }
 }
 
@@ -806,8 +916,36 @@ p,
   padding: 24px;
   margin-bottom: 20px;
 }
+.form-actions-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+.form-actions-card p {
+  margin-top: 6px;
+  font-size: 13px;
+}
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
 .section-head {
   margin-bottom: 20px;
+}
+.terminal-status-tag {
+  min-width: 72px;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 .form-alert {
   margin-bottom: 18px;
@@ -872,6 +1010,14 @@ p,
   }
   .form-head {
     align-items: flex-start;
+  }
+  .form-actions-card {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 16px 12px;
+  }
+  .form-actions {
+    justify-content: flex-end;
   }
   .picker-filters {
     flex-wrap: wrap;

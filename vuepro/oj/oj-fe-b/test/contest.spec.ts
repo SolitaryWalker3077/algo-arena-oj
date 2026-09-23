@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { get, deleteRequest } = vi.hoisted(() => ({ get: vi.fn(), deleteRequest: vi.fn() }))
-vi.mock('@/utils/request', () => ({ default: { get, delete: deleteRequest } }))
+const { get, put, deleteRequest } = vi.hoisted(() => ({
+  get: vi.fn(),
+  put: vi.fn(),
+  deleteRequest: vi.fn(),
+}))
+vi.mock('@/utils/request', () => ({ default: { get, put, delete: deleteRequest } }))
 
 import {
+  cancelPublishContest,
   clearContestResultsCache,
   deleteContest,
   deleteContestQuestion,
   getContestDetail,
   getContestPage,
   getContestResults,
+  publishContest,
 } from '../src/api/contest'
 import {
   formatContestTime,
@@ -33,11 +39,37 @@ const row = (title: string, status = 0, createName = '张三') => ({
 
 beforeEach(() => {
   get.mockReset()
+  put.mockReset()
   deleteRequest.mockReset()
   clearContestResultsCache()
 })
 
 describe('contest backend contract', () => {
+  it('publishes and cancels publication with a validated ID and request timeout', async () => {
+    put.mockResolvedValue(undefined)
+    const id = '9007199254740993123'
+
+    await publishContest(id)
+    expect(put).toHaveBeenNthCalledWith(1, '/system/exam/publish', null, {
+      params: { examId: id },
+      timeout: 10000,
+      errorMessagePrefix: '发布失败：',
+      errorMessageMap: {
+        3204: '竞赛暂无题目，请先添加至少一道题目后再发布',
+        3206: '竞赛暂无题目，请先添加至少一道题目后再发布',
+      },
+    })
+
+    await cancelPublishContest(id)
+    expect(put).toHaveBeenNthCalledWith(2, '/system/exam/cancelPublish', null, {
+      params: { examId: id },
+      timeout: 10000,
+      errorMessagePrefix: '撤销发布失败：',
+    })
+    expect(() => publishContest('bad-id')).toThrow('竞赛ID无效')
+    expect(() => cancelPublishContest('bad-id')).toThrow('竞赛ID无效')
+  })
+
   it('deletes a contest with an exact validated ID and contextual error message', async () => {
     deleteRequest.mockResolvedValue(undefined)
     await deleteContest('9007199254740993123')
