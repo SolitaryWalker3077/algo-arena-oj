@@ -267,7 +267,15 @@
                 </el-tooltip>
               </template>
               <template v-else>
-                <span class="phase-badge" :class="phaseOf(row)">{{ phaseLabel(row) }}</span>
+                <el-tag
+                  class="terminal-status-tag"
+                  :type="phaseTagType(row)"
+                  effect="dark"
+                  size="small"
+                  round
+                >
+                  {{ phaseLabel(row) }}
+                </el-tag>
               </template>
             </div></template
           >
@@ -847,42 +855,6 @@ onBeforeUnmount(() => {
     font-weight: 600;
     letter-spacing: 0.04em;
   }
-  /* 操作栏只展示状态，不使用按钮样式或动态效果。 */
-  .phase-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 82px;
-    height: 28px;
-    padding: 0 12px;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    box-sizing: border-box;
-  }
-  .phase-badge::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-  }
-  .phase-badge.ongoing {
-    color: #086987;
-    background: var(--app-brand-active-bg);
-    border-color: rgba(50, 197, 255, 0.38);
-  }
-  .phase-badge.ended {
-    color: var(--app-text-regular);
-    background: var(--app-hover-bg);
-    border-color: var(--app-border-color);
-  }
   .pagination-box {
     display: flex;
     align-items: center;
@@ -902,10 +874,6 @@ onBeforeUnmount(() => {
   :deep(.el-button:active) {
     transform: translateY(1px);
   }
-}
-:global(html.dark .contest-manage .phase-badge.ongoing) {
-  color: #7cddff;
-  border-color: rgba(64, 201, 255, 0.35);
 }
 .delete-warning {
   color: var(--app-text-primary);

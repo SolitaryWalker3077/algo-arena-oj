@@ -131,7 +131,7 @@ test('已开赛竞赛仅显示状态标签且不渲染操作按钮', async ({ pa
   const row = page
     .locator('.manage-table .el-table__body tr')
     .filter({ has: page.getByText('竞赛1', { exact: true }) })
-  await expect(row.locator('.terminal-status-tag')).toHaveText('已开赛')
+  await expect(row.locator('.row-actions .terminal-status-tag')).toHaveText('已开赛')
   await expect(row.getByRole('button')).toHaveCount(0)
 })
 
@@ -495,7 +495,7 @@ test('开赛状态按开始与结束时刻展示', async ({ page }) => {
     ['结束赛', '已结束'],
   ]) {
     const terminalRow = page.locator('.el-table__body tr').filter({ hasText: title })
-    await expect(terminalRow.locator('.terminal-status-tag')).toHaveText(label)
+    await expect(terminalRow.locator('.row-actions .terminal-status-tag')).toHaveText(label)
     await expect(terminalRow.getByRole('button')).toHaveCount(0)
   }
   const invalidRow = page.locator('.el-table__body tr').filter({ hasText: '异常赛' })
