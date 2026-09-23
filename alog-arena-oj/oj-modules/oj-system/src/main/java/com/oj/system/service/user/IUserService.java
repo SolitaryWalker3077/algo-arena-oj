@@ -1,5 +1,6 @@
 package com.oj.system.service.user;
 
+import com.oj.system.entity.user.dto.UserDto;
 import com.oj.system.entity.user.dto.UserQueryDto;
 import com.oj.system.entity.user.vo.UserVo;
 
@@ -9,4 +10,6 @@ public interface IUserService {
 
 
     List<UserVo> list(UserQueryDto userQueryDTO);
+
+    int updateStatus(UserDto userDto);
 }
