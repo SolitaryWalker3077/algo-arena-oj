@@ -8,16 +8,12 @@
           :key="field.key"
           v-model="searchForm[field.key]"
           :placeholder="field.placeholder"
+          :inputmode="field.inputmode"
           clearable
           class="search-item"
           @keyup.enter="handleSearch"
         />
-        <el-select
-          v-model="searchForm.status"
-          placeholder="用户状态"
-          clearable
-          class="search-item"
-        >
+        <el-select v-model="searchForm.status" placeholder="用户状态" clearable class="search-item">
           <el-option
             v-for="opt in statusOptions"
             :key="opt.value"
@@ -65,8 +61,20 @@
         @sort-change="handleSortChange"
       >
         <el-table-column prop="id" label="用户ID" width="190" sortable="custom" align="center" />
-        <el-table-column prop="userAccount" label="用户账号" width="140" sortable="custom" show-overflow-tooltip />
-        <el-table-column prop="userName" label="用户昵称" width="120" sortable="custom" show-overflow-tooltip />
+        <el-table-column prop="sex" label="性别" width="90" align="center">
+          <template #default="{ row }">
+            <span :class="{ 'cell-empty': !formatSex(row.sex) }">{{
+              formatSex(row.sex) || '—'
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="userName"
+          label="用户昵称"
+          width="120"
+          sortable="custom"
+          show-overflow-tooltip
+        />
         <el-table-column prop="phone" label="手机号" width="130">
           <template #default="{ row }">
             <span :class="{ 'cell-empty': !row.phone }">{{ row.phone || '—' }}</span>
@@ -82,17 +90,46 @@
             <span :class="{ 'cell-empty': !row.wechatId }">{{ row.wechatId || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="学校/专业" width="200" show-overflow-tooltip>
+        <el-table-column label="学校/专业" width="200">
           <template #default="{ row }">
-            <span :class="{ 'cell-empty': !formatSchoolMajor(row) }">{{ formatSchoolMajor(row) || '—' }}</span>
+            <div class="school-major-cell">
+              <div class="school-major-line">
+                <span class="school-major-label">学校：</span>
+                <span
+                  class="school-major-value"
+                  :class="{ 'cell-empty': !row.school }"
+                  :title="row.school || '—'"
+                >
+                  {{ row.school || '—' }}
+                </span>
+              </div>
+              <div class="school-major-line">
+                <span class="school-major-label">专业：</span>
+                <span
+                  class="school-major-value"
+                  :class="{ 'cell-empty': !row.major }"
+                  :title="row.major || '—'"
+                >
+                  {{ row.major || '—' }}
+                </span>
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="intro" label="个人介绍" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
-            <span class="intro-text" :class="{ 'cell-empty': !row.intro }">{{ row.intro || '—' }}</span>
+            <span class="intro-text" :class="{ 'cell-empty': !row.intro }">{{
+              row.intro || '—'
+            }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="用户状态" width="100" align="center" sortable="custom">
+        <el-table-column
+          prop="status"
+          label="用户状态"
+          width="100"
+          align="center"
+          sortable="custom"
+        >
           <template #default="{ row }">
             <el-tag
               :type="row.status === 1 ? 'success' : 'danger'"
@@ -100,30 +137,24 @@
               effect="light"
               round
             >
-              {{ row.status === 1 ? '启用' : '禁用' }}
+              {{ row.status === 1 ? '正常' : '拉黑' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleView(row)">
-              <el-icon><View /></el-icon>
-              详情
-            </el-button>
-            <el-button link type="primary" size="small" @click="handleEdit(row)">
-              <el-icon><Edit /></el-icon>
-              编辑
-            </el-button>
             <el-button
               link
-              :type="row.status === 1 ? 'danger' : 'success'"
+              :type="row.status === 1 ? 'danger' : 'primary'"
               size="small"
+              :loading="statusUpdatingIds.has(row.id)"
+              :disabled="statusUpdatingIds.has(row.id)"
               @click="handleToggleStatus(row)"
             >
               <el-icon>
                 <component :is="row.status === 1 ? Lock : Unlock" />
               </el-icon>
-              {{ row.status === 1 ? '禁用' : '启用' }}
+              {{ row.status === 1 ? '拉黑' : '解禁' }}
             </el-button>
           </template>
         </el-table-column>
@@ -135,7 +166,11 @@
             </div>
             <p class="app-table-empty__title">暂无用户数据</p>
             <p class="app-table-empty__desc">
-              {{ loadError ? '数据暂时无法获取，请检查网络后点击刷新重试' : '当前条件下还没有用户数据' }}
+              {{
+                loadError
+                  ? '数据暂时无法获取，请检查网络后点击刷新重试'
+                  : '当前条件下还没有用户数据'
+              }}
             </p>
             <el-button type="primary" plain :icon="Refresh" :loading="loading" @click="retryLoad">
               刷新重试
@@ -182,7 +217,11 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="账号" prop="userAccount">
-              <el-input v-model="editForm.userAccount" placeholder="请输入账号" :disabled="editMode === 'edit'" />
+              <el-input
+                v-model="editForm.userAccount"
+                placeholder="请输入账号"
+                :disabled="editMode === 'edit'"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -208,8 +247,8 @@
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-radio-group v-model="editForm.status">
-                <el-radio :value="1">启用</el-radio>
-                <el-radio :value="0">禁用</el-radio>
+                <el-radio :value="1">正常</el-radio>
+                <el-radio :value="0">拉黑</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -242,42 +281,13 @@
         <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
-
-    <!-- 详情弹窗（数据来自列表接口返回，无需额外请求） -->
-    <el-dialog v-model="detailVisible" title="用户详情" width="640px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="用户ID">{{ detailData.id }}</el-descriptions-item>
-        <el-descriptions-item label="用户账号">{{ detailData.userAccount }}</el-descriptions-item>
-        <el-descriptions-item label="用户昵称">{{ detailData.userName }}</el-descriptions-item>
-        <el-descriptions-item label="用户状态">
-          <el-tag
-            :type="detailData.status === 1 ? 'success' : 'danger'"
-            size="small"
-            effect="light"
-            round
-          >
-            {{ detailData.status === 1 ? '启用' : '禁用' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="手机号">{{ detailData.phone || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="邮箱">{{ detailData.email || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="微信号">{{ detailData.wechatId || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="学校">{{ detailData.school || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="专业">{{ detailData.major || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detailData.createTime || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="个人介绍" :span="2">{{ detailData.intro || '—' }}</el-descriptions-item>
-      </el-descriptions>
-      <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, View, Edit, Lock, Unlock, Refresh, User } from '@element-plus/icons-vue'
+import { Search, Plus, Lock, Unlock, Refresh, User } from '@element-plus/icons-vue'
 import PageSizeSelector from '@/components/PageSizeSelector.vue'
 import {
   getUserPage,
@@ -291,17 +301,17 @@ import {
 
 // ======================== 搜索配置（配置化：后端搜索字段变化只改这里） ========================
 const searchFields = [
-  { key: 'userAccount', placeholder: '用户账号' },
+  { key: 'userId', placeholder: '用户ID', inputmode: 'numeric' },
   { key: 'userName', placeholder: '用户昵称' },
   { key: 'phone', placeholder: '手机号' },
 ]
 const statusOptions = [
-  { label: '启用', value: 1 },
-  { label: '禁用', value: 0 },
+  { label: '正常', value: 1 },
+  { label: '拉黑', value: 0 },
 ]
 
 const searchForm = reactive({
-  userAccount: '',
+  userId: '',
   userName: '',
   phone: '',
   status: '',
@@ -314,7 +324,7 @@ const sortState = reactive({ prop: '', order: '' })
 // 前端列 prop → 后端排序字段映射（后端字段名变化只改这里）
 const SORT_FIELD_MAP = {
   id: 'id',
-  userAccount: 'userAccount',
+  sex: 'sex',
   userName: 'userName',
   status: 'status',
 }
@@ -342,6 +352,7 @@ const userList = ref([])
 const total = ref(0)
 const loading = ref(false)
 const loadError = ref(false)
+const statusUpdatingIds = ref(new Set())
 
 /**
  * 加载用户列表（stale-while-revalidate）：
@@ -352,9 +363,17 @@ const loadError = ref(false)
  *   （有旧数据时保留旧数据；瞬时网络提示由 request 拦截器统一弹出）。
  */
 const loadUsers = async ({ force = false } = {}) => {
-  const query = buildQuery()
-  const cached = peekUserPageCache(query)
-  const fresh = isUserPageCacheFresh(query)
+  let query
+  let cached
+  let fresh
+  try {
+    query = buildQuery()
+    cached = peekUserPageCache(query)
+    fresh = isUserPageCacheFresh(query)
+  } catch (error) {
+    ElMessage.warning(error.message)
+    return
+  }
 
   if (cached) {
     userList.value = cached.records
@@ -382,9 +401,7 @@ const loadUsers = async ({ force = false } = {}) => {
 
 const retryLoad = () => loadUsers({ force: true })
 
-// 学校/专业组合展示：任一字段缺失时优雅降级，避免出现 “ / ” 空组合
-const formatSchoolMajor = (row) =>
-  [row.school, row.major].filter((v) => v !== '' && v != null).join(' / ')
+const formatSex = (sex) => ({ 1: '男', 2: '女' })[Number(sex)] || ''
 
 // ======================== 搜索 / 排序 / 分页事件 ========================
 const handleSearch = () => {
@@ -393,7 +410,7 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
-  Object.assign(searchForm, { userAccount: '', userName: '', phone: '', status: '' })
+  Object.assign(searchForm, { userId: '', userName: '', phone: '', status: '' })
   pagination.current = 1
   loadUsers()
 }
@@ -437,27 +454,17 @@ const editRules = {
     { required: true, message: '请输入账号', trigger: 'blur' },
     { min: 3, max: 20, message: '账号长度 3-20 个字符', trigger: 'blur' },
   ],
-  userName: [
-    { required: true, message: '请输入昵称', trigger: 'blur' },
-  ],
+  userName: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
     { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' },
   ],
-  email: [
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
-  ],
+  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
 }
 
 const handleAdd = () => {
   Object.assign(editForm, createEmptyForm())
   editMode.value = 'add'
-  editVisible.value = true
-}
-
-const handleEdit = (row) => {
-  Object.assign(editForm, createEmptyForm(), { ...row })
-  editMode.value = 'edit'
   editVisible.value = true
 }
 
@@ -489,36 +496,34 @@ const handleSubmit = async () => {
   }
 }
 
-// ======================== 查看详情 ========================
-const detailVisible = ref(false)
-const detailData = ref({})
-
-const handleView = (row) => {
-  detailData.value = { ...row }
-  detailVisible.value = true
-}
-
-// ======================== 禁用 / 启用 ========================
-const handleToggleStatus = (row) => {
+// ======================== 拉黑 / 解禁 ========================
+const handleToggleStatus = async (row) => {
   const nextStatus = row.status === 1 ? 0 : 1
-  const action = nextStatus === 1 ? '启用' : '禁用'
-  ElMessageBox.confirm(`确定要${action}用户「${row.userName}」吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-    .then(async () => {
-      try {
-        await updateUserStatus(row.id, nextStatus)
-        row.status = nextStatus
-        clearUserPageCache()
-        ElMessage.success(`${action}成功`)
-        loadUsers()
-      } catch {
-        // 失败时不修改本地状态，错误提示由拦截器统一处理
-      }
+  const action = nextStatus === 1 ? '解禁' : '拉黑'
+  const displayName = row.userName || row.id
+
+  try {
+    await ElMessageBox.confirm(`确定要${action}用户「${displayName}」吗？`, `${action}确认`, {
+      confirmButtonText: action,
+      cancelButtonText: '取消',
+      type: 'warning',
     })
-    .catch(() => {})
+  } catch {
+    return
+  }
+
+  statusUpdatingIds.value.add(row.id)
+  try {
+    await updateUserStatus(row.id, nextStatus)
+    row.status = nextStatus
+    clearUserPageCache()
+    ElMessage.success(`${action}成功`)
+    await loadUsers({ force: true })
+  } catch {
+    // 失败时不修改本地状态，错误提示由拦截器统一处理
+  } finally {
+    statusUpdatingIds.value.delete(row.id)
+  }
 }
 
 // ======================== 初始化：首屏从后端加载 ========================
@@ -603,6 +608,33 @@ onMounted(() => {
       overflow: hidden;
     }
 
+    .school-major-cell {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 4px;
+      padding: 2px 0;
+      line-height: 20px;
+    }
+
+    .school-major-line {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+    }
+
+    .school-major-label {
+      flex-shrink: 0;
+      color: var(--app-text-regular);
+    }
+
+    .school-major-value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .cell-empty {
       color: var(--app-text-secondary);
     }
@@ -616,7 +648,6 @@ onMounted(() => {
       margin-top: 16px;
       padding-top: 14px;
       border-top: 1px solid var(--app-border-color);
-
     }
   }
 }
@@ -650,7 +681,6 @@ onMounted(() => {
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
-
     }
   }
 }

@@ -1,5 +1,8 @@
 import request from '@/utils/request'
 import { createTtlCache } from '@/utils/apiCache'
+import { normalizeUserPage, normalizeUserQuery } from '@/api/userPolicy'
+
+export { mapUserFromApi, normalizeUserPage, normalizeUserQuery } from '@/api/userPolicy'
 
 /**
  * 用户管理 API（前台用户，区别于 suser.js 的管理员登录）
@@ -16,16 +19,16 @@ import { createTtlCache } from '@/utils/apiCache'
 
 // 1) 接口路径集中配置（后端路径调整只改这里）
 export const ENDPOINTS = Object.freeze({
-  page: '/system/user/page',
+  page: '/system/user/list',
   add: '/system/user',
   update: '/system/user',
-  updateStatus: '/system/user/status',
+  updateStatus: '/system/user/updateStatus',
 })
 
 // 2) 列表缓存：30s TTL；新增/编辑/启停后调用 clearUserPageCache 主动失效
 const PAGE_TTL = 30 * 1000
 const userPageCache = createTtlCache({ ttl: PAGE_TTL })
-const cacheKeyOf = (params) => JSON.stringify(params)
+const cacheKeyOf = (params) => JSON.stringify(normalizeUserQuery(params))
 
 export const clearUserPageCache = () => userPageCache.clear()
 export const peekUserPageCache = (params) => userPageCache.peek(cacheKeyOf(params))
@@ -38,39 +41,19 @@ export const isUserPageCacheFresh = (params) => userPageCache.isFresh(cacheKeyOf
  * - 字段缺失时给默认值，避免页面渲染 undefined。
  * - 若后端字段名不同（如 wechat_no、introduction），只在此处改映射即可。
  */
-export function mapUserFromApi(raw = {}) {
-  // 兼容后端不同命名：userId/id、nickName/userName、mobile/phone、userStatus/status 等
-  const rawStatus = raw.status ?? raw.userStatus ?? raw.state
-  return {
-    id: raw.id == null
-      ? (raw.userId == null ? '' : String(raw.userId))
-      : String(raw.id),
-    userAccount: raw.userAccount ?? raw.account ?? '',
-    userName: raw.userName ?? raw.nickName ?? raw.nickname ?? '',
-    phone: raw.phone ?? raw.mobile ?? raw.telephone ?? '',
-    email: raw.email ?? raw.mail ?? '',
-    // 例：后端若叫 wechat，这里统一收口映射为 wechatId
-    wechatId: raw.wechatId ?? raw.wechat ?? raw.wechatNo ?? '',
-    school: raw.school ?? '',
-    major: raw.major ?? '',
-    intro: raw.intro ?? raw.introduction ?? raw.description ?? '',
-    status: Number(rawStatus ?? 1),
-    createTime: raw.createTime ?? raw.gmtCreate ?? '',
-  }
-}
-
 /** 前端视图模型 → 后端提交体（新增/编辑用） */
 export function mapUserToApi(user = {}) {
   return {
-    id: user.id || undefined,
+    userId: user.id || undefined,
     userAccount: user.userAccount,
-    userName: user.userName,
+    nickName: user.userName,
+    sex: user.sex,
     phone: user.phone,
     email: user.email,
-    wechatId: user.wechatId,
-    school: user.school,
-    major: user.major,
-    intro: user.intro,
+    wechat: user.wechatId,
+    schoolName: user.school,
+    majorName: user.major,
+    introduce: user.intro,
     status: Number(user.status),
   }
 }
@@ -82,32 +65,21 @@ export function mapUserToApi(user = {}) {
  *    - 直接返回数组
  * 统一归一为 { records: 用户视图模型[], total: number }
  */
-export function normalizeUserPage(res) {
-  if (Array.isArray(res)) {
-    return { records: res.map(mapUserFromApi), total: res.length }
-  }
-  const rawList = res?.records ?? res?.list ?? res?.rows ?? res?.data ?? []
-  const rawTotal = res?.total ?? res?.totalCount ?? res?.count ?? rawList.length
-  return {
-    records: (Array.isArray(rawList) ? rawList : []).map(mapUserFromApi),
-    total: Number(rawTotal) || 0,
-  }
-}
-
 /**
  * 分页查询用户（条件搜索 + 排序）
- * @param {Object} params { current, size, userAccount?, userName?, phone?, status?, sortField?, sortOrder? }
+ * @param {Object} params { current, size, userId?, userName?, phone?, status? }
  * @param {Object} [opts]
  * @param {boolean} [opts.force=false] true 时跳过缓存强制请求后端
  * @returns {Promise<{records: Array, total: number}>}
  */
 export async function getUserPage(params, { force = false } = {}) {
-  const key = cacheKeyOf(params)
+  const apiParams = normalizeUserQuery(params)
+  const key = cacheKeyOf(apiParams)
   if (!force) {
     const cached = userPageCache.get(key)
     if (cached) return cached
   }
-  const res = await request.get(ENDPOINTS.page, { params })
+  const res = await request.get(ENDPOINTS.page, { params: apiParams })
   const page = normalizeUserPage(res)
   userPageCache.set(key, page)
   return page
@@ -120,9 +92,9 @@ export const addUser = (data) => request.post(ENDPOINTS.add, mapUserToApi(data))
 export const updateUser = (data) => request.put(ENDPOINTS.update, mapUserToApi(data))
 
 /**
- * 启用/禁用用户
+ * 拉黑/解禁用户
  * @param {string|number} id 字符串形式的雪花 ID
- * @param {number} status 1=启用 0=禁用
+ * @param {number} status 1=正常 0=拉黑
  */
 export const updateUserStatus = (id, status) =>
-  request.put(ENDPOINTS.updateStatus, { id: String(id), status: Number(status) })
+  request.put(ENDPOINTS.updateStatus, { userId: String(id), status: Number(status) })
