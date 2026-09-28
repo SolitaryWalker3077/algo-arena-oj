@@ -15,6 +15,7 @@ const router = createRouter({
       path: '/c-oj/home',
       name: 'home',
       component: () => import('@/views/Home.vue'),
+      meta: { showBanner: true },
     },
     {
       path: '/c-oj/login',

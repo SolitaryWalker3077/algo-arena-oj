@@ -5,8 +5,12 @@
         <Navbar></Navbar>
       </div>
     </div>
-    <div v-if="$route.meta.showBanner">
-      <img src="@/assets/images/log-banner.png" class="banner-img">
+    <div v-if="$route.meta.showBanner" class="banner-wrap">
+      <img
+        src="@/assets/images/log-banner.png"
+        class="banner-img"
+        alt="OJ 竞技场"
+      >
     </div>
   </div>
   <RouterView />
@@ -25,11 +29,17 @@ import Navbar from '@/components/Navbar.vue'
   // background-color: #f7f7f7;
   padding-top: 20px;
 
-  .banner-img {
+  .banner-wrap {
     max-width: 1520px;
     margin: 0 auto;
+  }
+
+  .banner-img {
+    display: block;
+    width: 100%;
+    height: auto;
     border-radius: 16px;
-    width: "100%"
+    object-fit: cover;
   }
 
   .oj-main-layout-header {
