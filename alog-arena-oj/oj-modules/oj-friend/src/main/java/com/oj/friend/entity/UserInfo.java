@@ -5,11 +5,12 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.oj.common.entity.BaseEntity;
 import lombok.Data;
 
 @Data
 @TableName("tb_user")
-public class UserInfo {
+public class UserInfo extends BaseEntity {
     @JsonSerialize(using = ToStringSerializer.class)
     @TableId(value = "USER_ID", type = IdType.ASSIGN_ID)
     private Long userId;

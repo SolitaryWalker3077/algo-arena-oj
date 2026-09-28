@@ -26,4 +26,10 @@ public class UserController extends BaseController {
     public Result<Void> sendCode(@RequestBody UserDto userDto) {
         return toResult(userService.sendCode(userDto));
     }
+
+    @Operation(summary = "登录注册")
+    @PostMapping("/code/login")
+    public Result<String> codeLogin(@RequestBody UserDto userDto) {
+        return Result.success(userService.codeLogin(userDto.getPhone(),userDto.getCode()));
+    }
 }
