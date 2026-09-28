@@ -15,3 +15,10 @@ export function codeLoginService(params = {}) {
     data: params,
   });
 }
+
+export function logoutService() {
+  return service({
+    url: '/user/logout',
+    method: 'delete',
+  });
+}

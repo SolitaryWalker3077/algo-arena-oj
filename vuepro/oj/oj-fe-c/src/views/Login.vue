@@ -18,7 +18,7 @@
         <p>未注册手机号验证后将自动创建账号</p>
       </div>
 
-      <form class="form-box" novalidate @submit.prevent="loginFun">
+      <form class="form-box" novalidate @submit.prevent>
         <div
           class="form-item"
           :class="{ 'is-error': showPhoneError, 'is-valid': showPhoneSuccess }"
@@ -87,9 +87,10 @@
 
         <button
           class="submit-box"
-          type="submit"
+          type="button"
           :disabled="isSubmitting"
           :aria-busy="isSubmitting"
+          @click="loginFun"
         >
           <span v-if="isSubmitting" class="submit-spinner" aria-hidden="true"></span>
           {{ isSubmitting ? '正在登录…' : '登录 / 注册' }}
@@ -125,7 +126,6 @@ const feedback = reactive({ type: 'info', message: '', retryable: false })
 
 let countdownTimer
 let countdownEndsAt = 0
-let autoSubmitTimer
 let lastFailedAction = ''
 
 const phoneError = computed(() => {
@@ -167,10 +167,6 @@ function handlePhoneInput(value) {
 function handleCodeInput(value) {
   mobileForm.code = onlyDigits(value, 6)
   clearFeedback()
-  clearTimeout(autoSubmitTimer)
-  if (CODE_PATTERN.test(mobileForm.code) && PHONE_PATTERN.test(mobileForm.phone)) {
-    autoSubmitTimer = setTimeout(() => loginFun(), 350)
-  }
 }
 
 function clearFeedback() {
@@ -232,7 +228,6 @@ async function getCode() {
 }
 
 async function loginFun() {
-  clearTimeout(autoSubmitTimer)
   if (isSubmitting.value || !validateLoginForm()) return
   isSubmitting.value = true
   clearFeedback()
@@ -254,7 +249,6 @@ function retryLastAction() {
 
 onBeforeUnmount(() => {
   clearInterval(countdownTimer)
-  clearTimeout(autoSubmitTimer)
 })
 </script>
 

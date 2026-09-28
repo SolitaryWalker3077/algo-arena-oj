@@ -1,5 +1,6 @@
-export const TOKEN_KEY = 'Admin-oj-b-key'
+export const TOKEN_KEY = 'Admin-oj-b-key-token'
 export const ACCOUNT_KEY = 'adminAccount'
+
 
 const getStorage = (name) => {
   if (typeof window === 'undefined') return null
