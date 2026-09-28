@@ -1,4 +1,4 @@
-package com.oj.friend.service.impl;
+package com.oj.friend.service.user.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
@@ -12,10 +12,10 @@ import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
 import com.oj.common.enums.UserStatus;
-import com.oj.friend.entity.UserInfo;
-import com.oj.friend.entity.dto.UserDto;
-import com.oj.friend.mapper.UserMapper;
-import com.oj.friend.service.IUserService;
+import com.oj.friend.entity.user.UserInfo;
+import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.mapper.user.UserMapper;
+import com.oj.friend.service.user.IUserService;
 import com.oj.message.service.AliSmsService;
 import com.oj.redis.service.RedisService;
 import com.oj.security.expection.ServiceException;

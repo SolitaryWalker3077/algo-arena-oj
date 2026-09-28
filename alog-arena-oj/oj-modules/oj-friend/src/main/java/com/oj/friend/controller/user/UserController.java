@@ -1,11 +1,11 @@
-package com.oj.friend.controller;
+package com.oj.friend.controller.user;
 
 import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.vo.LoginUserVO;
-import com.oj.friend.entity.dto.UserDto;
-import com.oj.friend.service.IUserService;
+import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.service.user.IUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.oj.friend.entity.dto;
+package com.oj.friend.entity.user.dto;
 
 import lombok.Data;
 

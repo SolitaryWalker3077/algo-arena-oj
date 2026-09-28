@@ -1,4 +1,4 @@
-package com.oj.friend.entity;
+package com.oj.friend.entity.user;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
