@@ -1,7 +1,8 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { getToken, removeToken } from './cookie'
-import router from '@/router';
+import { notifyAuthExpired } from './authEvents'
+import { showAuthExpiredNotice } from './authNotice'
 
 //不同的功能，通过axios请求的是不同接⼝的地址
 //127.0.0.1:19090
@@ -29,11 +30,9 @@ service.interceptors.response.use(
  const code = res.data?.code;
  const msg = res.data?.msg || '请求失败，请稍后重试';
  if (code === 3001) {
- ElMessage.error(msg);
  removeToken()
- if (router.currentRoute.value.name !== 'login') {
- router.replace({ name: 'login' })
- }
+ notifyAuthExpired()
+ showAuthExpiredNotice()
  const authError = new Error(msg)
  authError.code = code
  return Promise.reject(authError);
@@ -47,6 +46,19 @@ service.interceptors.response.use(
  }
  },
  (error) => {
+ const status = error.response?.status
+ const responseCode = error.response?.data?.code
+ if (status === 401 || status === 403 || responseCode === 3001) {
+ const message = error.response?.data?.msg || '登录状态已过期'
+ removeToken()
+ notifyAuthExpired()
+ showAuthExpiredNotice()
+ const authError = new Error(message)
+ authError.code = 3001
+ authError.status = status
+ return Promise.reject(authError)
+ }
+
  let message = '请求失败，请稍后重试'
  if (error.code === 'ECONNABORTED') {
  message = '请求超时，请检查网络后重试'
@@ -59,8 +71,8 @@ service.interceptors.response.use(
  }
 
  const requestError = new Error(message)
- requestError.status = error.response?.status
- requestError.retryable = !error.response || error.code === 'ECONNABORTED' || error.response.status >= 500
+ requestError.status = status
+ requestError.retryable = !error.response || error.code === 'ECONNABORTED' || status >= 500
  return Promise.reject(requestError);
  }
 );

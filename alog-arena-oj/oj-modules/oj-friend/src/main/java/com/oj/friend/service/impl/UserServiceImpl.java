@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.Constants;
 import com.oj.common.constants.HttpConstants;
+import com.oj.common.entity.LoginUser;
+import com.oj.common.entity.Result;
+import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
 import com.oj.common.enums.UserStatus;
@@ -106,7 +109,7 @@ public class UserServiceImpl implements IUserService {
             userMapper.insert(user);
         }
         return tokenService.createToken(user.getUserId(),
-                secret, UserIdentify.ORDINARY.getValue(), user.getNickName());
+                secret, UserIdentify.ORDINARY.getValue(), user.getNickName(),user.getHeadImage());
 
     }
 
@@ -116,6 +119,18 @@ public class UserServiceImpl implements IUserService {
             token = token.replaceFirst(HttpConstants.PREFIX, StrUtil.EMPTY);
         }
         return tokenService.deleteLoginUser(token,secret);
+    }
+
+    @Override
+    public Result<LoginUserVO> info(String token) {
+        LoginUser loginUser = tokenService.getLoginUser(token, secret);
+        if(loginUser == null) {
+            return Result.fail(ResultCode.FAILED_UNAUTHORIZED);
+        }
+        LoginUserVO  loginUserVO = new LoginUserVO();
+        loginUserVO.setNickName(loginUser.getNickName());
+        loginUserVO.setHeadImage(loginUser.getHeadImage());
+        return Result.success(loginUserVO) ;
     }
 
     private void checkCode(String phone, String code) {

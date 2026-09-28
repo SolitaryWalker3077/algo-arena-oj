@@ -7,4 +7,6 @@ public class LoginUserVO {
 
     private String nickName; //昵称
 
+    private String headImage;
+
 }

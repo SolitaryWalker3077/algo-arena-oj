@@ -51,7 +51,7 @@ public class SysUserServiceImpl implements ISysUserService {
         if(BCryptUtils.matchesPassword(password,sysUserInfo.getPassword())) {
             //jwttoken = 生产jwttoken方法
             String token = tokenService.createToken(sysUserInfo.getUserId(),
-                    secret, UserIdentify.ADMIN.getValue(),sysUserInfo.getNickName());
+                    secret, UserIdentify.ADMIN.getValue(),sysUserInfo.getNickName(),null);
 
             return Result.success(token);
         }

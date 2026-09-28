@@ -16,9 +16,19 @@ export function codeLoginService(params = {}) {
   });
 }
 
-export function logoutService() {
+export function getUserInfoService() {
+  return service({
+    url: '/user/info',
+    method: 'get',
+  });
+}
+
+export function logoutService(token) {
   return service({
     url: '/user/logout',
     method: 'delete',
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : undefined,
   });
 }

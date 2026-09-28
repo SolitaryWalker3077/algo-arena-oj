@@ -60,8 +60,6 @@ public class SysUserController extends BaseController {
         return sysUserService.info(normalizedToken);
     }
 
-
-
     @Operation(summary = "新增管理员",description = "根据用户信息新增管理员")
     @ApiResponse(responseCode = "1000",description = "操作成功")
     @ApiResponse(responseCode = "2000",description = "服务器繁忙,稍后重试")

@@ -93,7 +93,7 @@
           @click="loginFun"
         >
           <span v-if="isSubmitting" class="submit-spinner" aria-hidden="true"></span>
-          {{ isSubmitting ? '正在登录…' : '登录 / 注册' }}
+          {{ submitButtonText }}
         </button>
       </form>
 
@@ -106,8 +106,10 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { setToken } from '@/utils/cookie'
 import { sendCodeService, codeLoginService } from '@/apis/user'
+import { fetchCurrentUser, syncAuthentication, userState } from '@/stores/user'
 import router from '@/router'
 
 const PHONE_PATTERN = /^1[2-9]\d{9}$/
@@ -153,6 +155,11 @@ const codeButtonText = computed(() => {
   if (isSendingCode.value) return '发送中…'
   if (countdown.value > 0) return `${countdown.value}s 后可重发`
   return '获取验证码'
+})
+const submitButtonText = computed(() => {
+  if (!isSubmitting.value) return '登录 / 注册'
+  if (userState.isLoading) return '正在加载用户信息…'
+  return '正在登录…'
 })
 
 function onlyDigits(value, maxLength) {
@@ -234,6 +241,12 @@ async function loginFun() {
   try {
     const result = await codeLoginService({ phone: mobileForm.phone, code: mobileForm.code })
     setToken(result.data)
+    syncAuthentication()
+    try {
+      await fetchCurrentUser({ force: true })
+    } catch (error) {
+      ElMessage.warning(`登录成功，但${error.message || '用户信息加载失败，请稍后重试'}`)
+    }
     await router.replace({ name: 'home' })
   } catch (error) {
     setFeedback('error', error.message || '登录失败，请检查后重试', Boolean(error.retryable), 'login')

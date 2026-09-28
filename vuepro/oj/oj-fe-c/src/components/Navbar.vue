@@ -8,11 +8,24 @@
       </el-menu>
     </div>
     <div class="oj-navbar-users">
-      <img v-if="isLogin" class="oj-message" @click="goMessage" src="@/assets/message/message.png" />
-      <el-dropdown v-if="isLogin">
+      <img v-if="userState.isAuthenticated" class="oj-message" @click="goMessage" src="@/assets/message/message.png" />
+      <div v-if="userState.isAuthenticated && userState.isLoading" class="user-loading" role="status">
+        <span class="user-loading-spinner" aria-hidden="true"></span>
+        <span>加载中</span>
+      </div>
+      <button
+        v-else-if="userState.isAuthenticated && userState.error"
+        class="user-load-error"
+        type="button"
+        :title="userState.error"
+        @click="loadUserInfo"
+      >
+        用户信息加载失败，点击重试
+      </button>
+      <el-dropdown v-else-if="userState.isAuthenticated">
         <div class="oj-navbar-name">
-          <img class="oj-head-image" v-if="isLogin" :src="userInfo.headImage" />
-          <span>{{ userInfo.nickName }}</span>
+          <img class="oj-head-image" :src="avatarUrl" alt="用户头像" />
+          <span>{{ userState.profile.nickName }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -26,16 +39,16 @@
                 <span>我的竞赛</span>
               </div>
             </el-dropdown-item>
-            <el-dropdown-item>
+            <el-dropdown-item :disabled="isLoggingOut" @click="handleLogout">
               <div class="oj-navabar-item">
-                <span @click="handleLogout">退出登录</span>
+                <span>{{ isLoggingOut ? '正在退出…' : '退出登录' }}</span>
               </div>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
       <button
-        v-if="!isLogin"
+        v-if="!userState.isAuthenticated"
         class="oj-navbar-login-btn"
         type="button"
         @click="goLogin"
@@ -47,17 +60,29 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import defaultAvatar from '@/assets/images/headimage.jpg'
 import { logoutService } from '@/apis/user'
 import { getToken, removeToken } from '@/utils/cookie'
+import { clearCurrentUser, fetchCurrentUser, userState } from '@/stores/user'
+import { showAuthExpiredNotice } from '@/utils/authNotice'
 
 const router = useRouter()
-const isLogin = ref(Boolean(getToken()))
-const userInfo = reactive({
-  headImage: defaultAvatar,
-  nickName: 'OJ用户',
+const avatarUrl = computed(() => userState.profile.headImage || defaultAvatar)
+const isLoggingOut = ref(false)
+
+async function loadUserInfo() {
+  try {
+    await fetchCurrentUser({ force: Boolean(userState.error) })
+  } catch {
+    // 错误文案由用户 Store 统一提供并在导航栏展示。
+  }
+}
+
+onMounted(() => {
+  if (userState.isAuthenticated && !userState.hasLoaded) loadUserInfo()
 })
 
 function goLogin() {
@@ -81,14 +106,26 @@ function goMyExam() {
 }
 
 async function handleLogout() {
+  if (isLoggingOut.value) return
+
+  isLoggingOut.value = true
+  const token = getToken()
+  const logoutRequest = logoutService(token)
+
+  // 退出操作立即反映到界面，后端请求继续使用点击时捕获的 Token。
+  removeToken()
+  clearCurrentUser()
+  showAuthExpiredNotice()
+  await router.replace({ name: 'home' })
+
   try {
-    await logoutService()
-  } catch {
-    // 即使服务端会话已失效，也应清理本地登录状态。
+    await logoutRequest
+  } catch (error) {
+    if (error.code !== 3001) {
+      ElMessage.error(error.message || '服务端退出失败，本地登录状态已清除')
+    }
   } finally {
-    removeToken()
-    isLogin.value = false
-    goHome()
+    isLoggingOut.value = false
   }
 }
 </script>
@@ -153,6 +190,36 @@ async function handleLogout() {
     align-items: center;
   }
 
+  .user-loading,
+  .user-load-error {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    margin-left: 15px;
+    color: #667078;
+    font-size: 14px;
+  }
+
+  .user-load-error {
+    max-width: 220px;
+    padding: 0 10px;
+    color: #e4564f;
+    background: #fef0f0;
+    border: 1px solid #fbc4c4;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .user-loading-spinner {
+    width: 15px;
+    height: 15px;
+    margin-right: 7px;
+    border: 2px solid #c9edf9;
+    border-top-color: #32c5ff;
+    border-radius: 50%;
+    animation: user-spin 0.7s linear infinite;
+  }
+
   .oj-navbar-login-btn {
     padding: 0 8px;
     line-height: 60px;
@@ -202,5 +269,9 @@ async function handleLogout() {
     justify-content: center;
     padding: 0 32px;
   }
+}
+
+@keyframes user-spin {
+  to { transform: rotate(360deg); }
 }
 </style>

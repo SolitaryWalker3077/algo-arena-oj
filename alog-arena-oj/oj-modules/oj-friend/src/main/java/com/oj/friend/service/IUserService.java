@@ -1,5 +1,7 @@
 package com.oj.friend.service;
 
+import com.oj.common.entity.Result;
+import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.friend.entity.dto.UserDto;
 
 public interface IUserService {
@@ -8,4 +10,6 @@ public interface IUserService {
     String codeLogin(String phone,String code);
 
     boolean logout(String normalizedToken);
+
+    Result<LoginUserVO> info(String normalizedToken);
 }

@@ -24,7 +24,7 @@ public class TokenService {
     @Autowired
     private RedisService redisService;
 
-    public String createToken(Long userId,String secret,Integer identity,String nickName) {
+    public String createToken(Long userId,String secret,Integer identity,String nickName,String headImage) {
         //用jwt生成token
         Map<String,Object> claims = new HashMap<>();
         String userKey = UUID.fastUUID().toString();//UUID唯一通识码
@@ -39,6 +39,7 @@ public class TokenService {
         LoginUser loginUser = new LoginUser();
         loginUser.setIdentity(identity);
         loginUser.setNickName(nickName);
+        loginUser.setHeadImage(headImage);
         redisService.setCacheObject(tokenKey,loginUser, CacheConstants.EXP, TimeUnit.MINUTES);
         return token; //过期时间设置为720min
     }
