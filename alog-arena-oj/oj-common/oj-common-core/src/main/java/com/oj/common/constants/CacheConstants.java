@@ -17,4 +17,8 @@ public class CacheConstants {
      * 刷新时间
      */
     public static final long REFRESH_TIME = 3L;
+
+    public static final String PHONE_CODE_KEY = "p:c:";
+
+    public static final String CODE_TIME_KEY = "c:t:";
 }
