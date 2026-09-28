@@ -1,5 +1,6 @@
 package com.oj.friend.controller;
 
+import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.friend.entity.dto.UserDto;
@@ -7,10 +8,7 @@ import com.oj.friend.service.IUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user")
@@ -31,5 +29,17 @@ public class UserController extends BaseController {
     @PostMapping("/code/login")
     public Result<String> codeLogin(@RequestBody UserDto userDto) {
         return Result.success(userService.codeLogin(userDto.getPhone(),userDto.getCode()));
+    }
+
+    //退出登录:
+    //接口地址:/friend/user/logout
+    @Operation(summary = "退出登录")
+    @DeleteMapping("/logout")
+    public Result<Void> logout(@RequestHeader(HttpConstants.AUTHENTICATION) String token) {
+        // 如果 token 包含指定前缀，则移除该前缀；否则保持原值
+        String normalizedToken = token.startsWith(HttpConstants.PREFIX)
+                ? token.substring(HttpConstants.PREFIX.length())
+                : token;
+        return toResult(userService.logout(normalizedToken));
     }
 }

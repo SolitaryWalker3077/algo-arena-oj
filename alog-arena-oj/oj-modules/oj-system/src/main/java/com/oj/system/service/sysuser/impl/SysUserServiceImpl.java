@@ -1,7 +1,9 @@
 package com.oj.system.service.sysuser.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.oj.common.constants.HttpConstants;
 import com.oj.common.entity.LoginUser;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.vo.LoginUserVO;
@@ -59,8 +61,10 @@ public class SysUserServiceImpl implements ISysUserService {
 
     @Override
     public boolean logout(String token) {
+        if (StrUtil.isNotEmpty(token) && token.startsWith(HttpConstants.PREFIX)) {
+            token = token.replaceFirst(HttpConstants.PREFIX, StrUtil.EMPTY);
+        }
         return tokenService.deleteLoginUser(token,secret);
-
     }
 
     @Override

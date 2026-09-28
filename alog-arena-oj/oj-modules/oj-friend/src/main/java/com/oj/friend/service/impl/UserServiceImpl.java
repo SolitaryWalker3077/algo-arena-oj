@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.Constants;
+import com.oj.common.constants.HttpConstants;
 import com.oj.common.enums.ResultCode;
 import com.oj.common.enums.UserIdentify;
 import com.oj.common.enums.UserStatus;
@@ -107,6 +108,14 @@ public class UserServiceImpl implements IUserService {
         return tokenService.createToken(user.getUserId(),
                 secret, UserIdentify.ORDINARY.getValue(), user.getNickName());
 
+    }
+
+    @Override
+    public boolean logout(String token) {
+        if (StrUtil.isNotEmpty(token) && token.startsWith(HttpConstants.PREFIX)) {
+            token = token.replaceFirst(HttpConstants.PREFIX, StrUtil.EMPTY);
+        }
+        return tokenService.deleteLoginUser(token,secret);
     }
 
     private void checkCode(String phone, String code) {

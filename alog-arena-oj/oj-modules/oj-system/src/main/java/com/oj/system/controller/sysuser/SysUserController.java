@@ -45,7 +45,7 @@ public class SysUserController extends BaseController {
         String normalizedToken = token.startsWith(HttpConstants.PREFIX)
                 ? token.substring(HttpConstants.PREFIX.length())
                 : token;
-        return toResult( sysUserService.logout(normalizedToken));
+        return toResult(sysUserService.logout(normalizedToken));
     }
 
     //获取用户信息
