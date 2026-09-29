@@ -1,6 +1,8 @@
 package com.oj.friend.service.exam.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.entity.exam.vo.ExamVo;
@@ -10,6 +12,8 @@ import com.oj.friend.service.exam.IExamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -33,12 +37,17 @@ public class ExamServiceImpl implements IExamService {
         //从redis当中获取 竞赛列表的数据
         Long total = examCacheManager.getListSize(examQueryDto.getType());
         List<ExamVo> examVoList;
-        if(total == null||total == 0) {
+        if (total == null || total <= 0) {
             examVoList = list(examQueryDto);
             examCacheManager.refreshCache(examQueryDto.getType());
+            total = new PageInfo<>(examVoList).getTotal();
         } else {
-            examCacheManager.getExamVOList(examQueryDto);
+            examVoList = examCacheManager.getExamVOList(examQueryDto);
+            total = examCacheManager.getListSize(examQueryDto.getType());
         }
-        return null;
+        if (CollectionUtil.isEmpty(examVoList)) {
+            return TableDataInfo.empty();
+        }
+        return TableDataInfo.success(examVoList,total);
     }
 }
