@@ -23,7 +23,7 @@ import java.util.List;
 
 @Slf4j
 @Service
-public class QuestionService implements IQuestionService {
+public class QuestionServiceImpl implements IQuestionService {
 
     @Autowired
     private QuestionMapper questionMapper;

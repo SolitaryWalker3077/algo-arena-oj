@@ -18,6 +18,7 @@ import com.oj.system.entity.exam.vo.ExamDetailVo;
 import com.oj.system.entity.exam.vo.ExamVo;
 import com.oj.system.entity.question.QuestionsInfo;
 import com.oj.system.entity.question.vo.QuestionVo;
+import com.oj.system.manager.ExamCacheManager;
 import com.oj.system.mapper.exam.ExamMapper;
 import com.oj.system.mapper.exam.ExamQuestionMapper;
 import com.oj.system.mapper.question.QuestionMapper;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo> implements IExamService {
+public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo> implements IExamService {
 
     @Autowired
     private ExamMapper examMapper;
@@ -41,6 +42,9 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
 
     @Autowired
     private ExamQuestionMapper examQuestionMapper;
+
+    @Autowired
+    private ExamCacheManager examCacheManager;
 
     @Override
     public List<ExamVo> list(ExamQueryDto examQueryDto) {
@@ -57,8 +61,6 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
         examMapper.insert(exam);
         return exam.getExamId().toString();
     }
-
-
 
     @Override
     public boolean questionAdd(ExamQuestionAddDto examQuestionAddDto) {
@@ -136,11 +138,17 @@ public class ExamService extends ServiceImpl<ExamQuestionMapper,ExamQuestionInfo
     @Override
     public int publish(Long examId) {
         ExamInfo examInfo = getExamInfo(examId);
-        Long count = examQuestionMapper.selectCount(new LambdaQueryWrapper<ExamQuestionInfo>().eq(ExamQuestionInfo::getExamId, examId));
+        if(examInfo.getEndTime().isBefore(LocalDateTime.now())) {
+            throw new ServiceException(ResultCode.EXAM_IS_FINISH);
+        }
+        Long count = examQuestionMapper
+                .selectCount(new LambdaQueryWrapper<ExamQuestionInfo>().eq(ExamQuestionInfo::getExamId, examId));
         if(count == null || count <= 0) {
             throw new ServiceException(ResultCode.EXAM_QUESTION_NOT_EXISTS);
         }
         examInfo.setStatus(Constants.TRUE);
+        //将要发布的竞赛数据存储在redis
+        examCacheManager.addCache(examInfo);
         return examMapper.updateById(examInfo);
     }
 
