@@ -37,3 +37,6 @@ build/
 
 ### scripts ###
 scripts/
+
+### logs ###
+logs/

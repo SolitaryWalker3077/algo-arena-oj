@@ -28,6 +28,7 @@ public class ExamController extends BaseController {
         return getDataTable(examService.list(examQueryDto));
     }
 
+    @Operation(summary = "C端竞赛列表优化:引入redis")
     @GetMapping("/semiLogin/redis/list")
     public TableDataInfo RedisList(@Validated ExamQueryDto examQueryDto) {
         return examService.redisList(examQueryDto);
