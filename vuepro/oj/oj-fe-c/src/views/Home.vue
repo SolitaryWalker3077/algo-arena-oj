@@ -13,7 +13,11 @@
       >
     </div>
   </div>
-  <RouterView />
+  <RouterView v-slot="{ Component }">
+    <Transition name="page-fade" mode="out-in">
+      <component :is="Component" :key="$route.fullPath" />
+    </Transition>
+  </RouterView>
 </template>
 
 <script setup>
@@ -32,6 +36,8 @@ import Navbar from '@/components/Navbar.vue'
   .banner-wrap {
     max-width: 1520px;
     margin: 0 auto;
+    overflow: hidden;
+    border-radius: 16px;
   }
 
   .banner-img {
@@ -74,6 +80,28 @@ import Navbar from '@/components/Navbar.vue'
     background: url("@/assets/index_bg.png") left top no-repeat;
     background-size: cover;
     overflow: hidden;
+  }
+}
+
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+@media (max-width: 760px) {
+  .oj-main-layout {
+    .banner-wrap { border-radius: 10px; }
+    .banner-img {
+      min-height: 0;
+      height: auto;
+      object-fit: contain;
+    }
   }
 }
 </style>

@@ -2,7 +2,13 @@
   <div class="oj-navbar">
     <div class="oj-navbar-menus">
       <img class="oj-navbar-logo" src="@/assets/logo.png" alt="OJ 竞技场首页" @click="goHome" />
-      <el-menu router class="oj-navbar-menu" mode="horizontal">
+      <el-menu
+        router
+        :default-active="activeMenu"
+        :ellipsis="false"
+        class="oj-navbar-menu"
+        mode="horizontal"
+      >
         <el-menu-item index="/c-oj/home/question">题库</el-menu-item>
         <el-menu-item index="/c-oj/home/exam">竞赛</el-menu-item>
       </el-menu>
@@ -62,7 +68,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import defaultAvatar from '@/assets/images/headimage.jpg'
 import { logoutService } from '@/apis/user'
 import { getToken, removeToken } from '@/utils/cookie'
@@ -70,7 +76,11 @@ import { clearCurrentUser, fetchCurrentUser, userState } from '@/stores/user'
 import { showAuthExpiredNotice } from '@/utils/authNotice'
 
 const router = useRouter()
+const route = useRoute()
 const avatarUrl = computed(() => userState.profile.headImage || defaultAvatar)
+const activeMenu = computed(() => (
+  route.name === 'exam' ? '/c-oj/home/exam' : '/c-oj/home/question'
+))
 const isLoggingOut = ref(false)
 
 async function loadUserInfo() {
@@ -93,6 +103,10 @@ function goHome() {
   router.push({ name: 'home' })
 }
 
+function goExam() {
+  if (router.currentRoute.value.name !== 'exam') router.push({ name: 'exam' })
+}
+
 function goMessage() {
   router.push('/c-oj/home/message')
 }
@@ -102,7 +116,7 @@ function goUserDetail() {
 }
 
 function goMyExam() {
-  router.push('/c-oj/home/exam')
+  goExam()
 }
 
 async function handleLogout() {
@@ -179,9 +193,16 @@ async function handleLogout() {
       font-size: 16px;
       font-weight: 500;
       background-color: transparent !important;
-      transition: none;
+      transition: color 0.2s ease, border-color 0.2s ease;
       border: none;
+      border-bottom: 2px solid transparent;
       line-height: 60px;
+    }
+
+    .el-menu-item.is-active {
+      color: #25bdf6;
+      font-weight: 600;
+      border-bottom-color: #32c5ff;
     }
   }
 
@@ -268,6 +289,41 @@ async function handleLogout() {
     align-items: center;
     justify-content: center;
     padding: 0 32px;
+  }
+}
+
+@media (max-width: 760px) {
+  .oj-navbar {
+    padding: 0 4px;
+
+    .oj-navbar-menus {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .oj-navbar-logo {
+      margin-right: 18px;
+    }
+
+    .oj-navbar-menu {
+      min-width: 140px;
+      width: auto;
+
+      .el-menu-item {
+        width: auto;
+        margin-right: 8px;
+        padding: 0 10px;
+      }
+    }
+
+    .oj-navbar-name {
+      width: auto;
+      margin-left: 8px;
+      font-size: 0;
+    }
+
+    .oj-head-image { margin-right: 0; }
+    .oj-navbar-login-btn { font-size: 16px; }
   }
 }
 

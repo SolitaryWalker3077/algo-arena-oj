@@ -13,6 +13,60 @@ body {
     padding-top: 60px;
     margin: 0;
 }
+
+@media (max-width: 760px) {
+  body {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .el-date-range-picker {
+    width: calc(100vw - 16px) !important;
+    max-width: 420px;
+  }
+
+  .el-date-range-picker .el-picker-panel__body {
+    min-width: 0 !important;
+  }
+
+  .el-date-range-picker .el-date-range-picker__content {
+    width: 100% !important;
+  }
+
+  .el-date-range-picker .el-date-range-picker__content.is-left {
+    border-right: 0;
+  }
+
+  .el-date-range-picker .el-date-range-picker__content.is-right {
+    display: none;
+  }
+
+  .el-date-range-picker .el-date-range-picker__time-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
+    padding: 8px;
+  }
+
+  .el-date-range-picker .el-date-range-picker__editors-wrap,
+  .el-date-range-picker .el-date-range-picker__time-picker-wrap {
+    min-width: 0;
+  }
+
+  .el-date-range-picker .el-date-range-picker__time-picker-wrap {
+    width: 50%;
+    padding: 0 2px;
+  }
+
+  .el-date-range-picker .el-date-range-picker__editor {
+    width: 100%;
+  }
+
+  .el-date-range-picker .el-date-range-picker__editor .el-input__wrapper,
+  .el-date-range-picker .el-date-range-picker__editor .el-input__inner {
+    min-width: 0;
+    width: 100%;
+  }
+}
 input {
   background-color: transparent;
   border: 0;
