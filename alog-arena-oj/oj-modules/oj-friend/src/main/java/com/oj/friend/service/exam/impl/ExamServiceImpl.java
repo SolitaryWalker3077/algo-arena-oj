@@ -35,15 +35,15 @@ public class ExamServiceImpl implements IExamService {
     @Override
     public TableDataInfo redisList(ExamQueryDto examQueryDto) {
         //从redis当中获取 竞赛列表的数据
-        Long total = examCacheManager.getListSize(examQueryDto.getType());
+        Long total = examCacheManager.getListSize(examQueryDto.getType(),null);
         List<ExamVo> examVoList;
         if (total == null || total <= 0) {
             examVoList = list(examQueryDto);
-            examCacheManager.refreshCache(examQueryDto.getType());
+            examCacheManager.refreshCache(examQueryDto.getType(),null);
             total = new PageInfo<>(examVoList).getTotal();
         } else {
-            examVoList = examCacheManager.getExamVOList(examQueryDto);
-            total = examCacheManager.getListSize(examQueryDto.getType());
+            examVoList = examCacheManager.getExamVOList(examQueryDto,null);
+            total = examCacheManager.getListSize(examQueryDto.getType(),null);
         }
         if (CollectionUtil.isEmpty(examVoList)) {
             return TableDataInfo.empty();

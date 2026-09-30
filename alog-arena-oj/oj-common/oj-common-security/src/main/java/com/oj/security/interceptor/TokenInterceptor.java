@@ -34,21 +34,21 @@ public class TokenInterceptor implements HandlerInterceptor {
         }
         Claims claims = tokenService.getClaims(token, secret);
         Long userId = tokenService.getUserId(claims);
-        ThreadLocalUtil.set(Constants.USER_ID,userId);
-        tokenService.extendToken(token,secret);
+        ThreadLocalUtil.set(Constants.USER_ID, userId);
+        tokenService.extendToken(token, secret);
         return true;
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+            throws Exception {
+        ThreadLocalUtil.remove();
     }
-
 
     private String getToken(HttpServletRequest request) {
         String token = request.getHeader(HttpConstants.AUTHENTICATION);
-        if(!StringUtil.isNullOrEmpty(token) && token.startsWith(HttpConstants.PREFIX)) {
-            token = token.replaceFirst(HttpConstants.PREFIX,"");
+        if (!StringUtil.isNullOrEmpty(token) && token.startsWith(HttpConstants.PREFIX)) {
+            token = token.replaceFirst(HttpConstants.PREFIX, "");
         }
         return token;
     }

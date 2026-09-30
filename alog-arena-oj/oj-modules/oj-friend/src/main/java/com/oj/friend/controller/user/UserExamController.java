@@ -4,18 +4,20 @@ package com.oj.friend.controller.user;
 import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
+import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.exam.dto.ExamDto;
+import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.service.user.IUserExamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "竞赛报名")
 @RestController
 @RequestMapping("/user/exam")
 public class UserExamController extends BaseController {
-
 
 
     @Autowired
@@ -27,4 +29,9 @@ public class UserExamController extends BaseController {
         return  toResult(userExamService.enter(token, examDto.getExamId()));
     }
 
+    @Operation(summary = "我的竞赛列表")
+    @GetMapping("/list")
+    public TableDataInfo list(@Validated ExamQueryDto examQueryDto) {
+        return userExamService.list(examQueryDto);
+    }
 }
