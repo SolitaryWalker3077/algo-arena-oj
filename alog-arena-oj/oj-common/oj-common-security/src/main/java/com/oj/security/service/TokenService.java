@@ -78,11 +78,24 @@ public class TokenService {
         return redisService.deleteObject(getTokenKey(userKey));
     }
 
-    private String getTokenKey(String userKey) {
-        return CacheConstants.LOGIN_TOKEN_KEY + userKey;
+    public Long getUserId(Claims claims) {
+        if (claims == null) return null;
+        return Long.valueOf(JwtUtils.getUserId(claims));  //获取jwt中的key
     }
 
+    public String getUserKey(Claims claims) {
+        if (claims == null) return null;
+        return JwtUtils.getUserKey(claims);  //获取jwt中的key
+    }
+
+
     private String getUserKey(String token,String secret) {
+        Claims claims = getClaims(token, secret);
+        if (claims == null) return null;
+        return JwtUtils.getUserKey(claims);  //获取jwt中的key
+    }
+
+    public Claims getClaims(String token, String secret) {
         Claims claims;
         try {
             claims = JwtUtils.parseToken(token, secret); //获取令牌中信息  解析payload中信息  存储着用户唯一标识信息
@@ -94,6 +107,13 @@ public class TokenService {
             log.error("解析token：{}, 出现异常", token, e);
             return null;
         }
-        return JwtUtils.getUserKey(claims);
+        return claims;
     }
+
+
+    private String getTokenKey(String userKey) {
+        return CacheConstants.LOGIN_TOKEN_KEY + userKey;
+    }
+
+
 }

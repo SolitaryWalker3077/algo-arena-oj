@@ -61,6 +61,12 @@ public class ExamCacheManager {
         return examVOList;
     }
 
+
+    public void addUserExamCache(Long userId,Long examId) {
+        String userExamListKey = getUserExamListKey(userId);
+        redisService.leftPushForList(userExamListKey, examId);
+    }
+
     /**
      * 根据竞赛列表类型从数据库加载有效竞赛，并重建列表缓存和详情缓存。
      *
@@ -159,5 +165,10 @@ public class ExamCacheManager {
      */
     private String getDetailKey(Long examId) {
         return CacheConstants.EXAM_DETAIL + examId;
+    }
+
+
+    private String getUserExamListKey(Long userId) {
+        return CacheConstants.USER_EXAM_LIST + userId;
     }
 }

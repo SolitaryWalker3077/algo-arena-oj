@@ -34,6 +34,11 @@
             <artifactId>oj-common-message</artifactId>
             <version>${oj-common-message.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>oj-common-security</artifactId>
+            <version>${oj-common-security.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

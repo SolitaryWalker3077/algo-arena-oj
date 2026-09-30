@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 
 import com.oj.common.constants.CacheConstants;
+import com.oj.common.constants.Constants;
 import com.oj.common.constants.HttpConstants;
 import com.oj.common.entity.Result;
 import com.oj.common.enums.ResultCode;
@@ -12,6 +13,7 @@ import com.oj.gateway.properties.IgnoreWhiteProperties;
 import com.oj.redis.service.RedisService;
 import com.oj.common.entity.LoginUser;
 import com.oj.security.utils.JwtUtils;
+import com.oj.security.utils.ThreadLocalUtil;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,7 +105,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
         if (url.contains(HttpConstants.FRIEND_URL_PREFIX) && !UserIdentify.ORDINARY.getValue().equals(user.getIdentity())) {
             return unauthorizedResponse(exchange, "令牌验证失败");
         }
-
         return chain.filter(exchange);
     }
 

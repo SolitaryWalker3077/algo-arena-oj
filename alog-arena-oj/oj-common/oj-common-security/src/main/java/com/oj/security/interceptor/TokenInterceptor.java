@@ -1,9 +1,12 @@
 package com.oj.security.interceptor;
 
 
+import com.oj.common.constants.Constants;
 import com.oj.common.constants.HttpConstants;
 import com.oj.security.service.TokenService;
 
+import com.oj.security.utils.ThreadLocalUtil;
+import io.jsonwebtoken.Claims;
 import io.netty.util.internal.StringUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +32,9 @@ public class TokenInterceptor implements HandlerInterceptor {
         if (StringUtils.isEmpty(token)) {
             return true;
         }
+        Claims claims = tokenService.getClaims(token, secret);
+        Long userId = tokenService.getUserId(claims);
+        ThreadLocalUtil.set(Constants.USER_ID,userId);
         tokenService.extendToken(token,secret);
         return true;
     }
