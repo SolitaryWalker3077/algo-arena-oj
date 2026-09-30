@@ -84,6 +84,8 @@ public class ExamCacheManager {
                     .orderByDesc(ExamInfo::getCreateTime));
         }
         if (CollectionUtil.isEmpty(examList)) {
+            // 空结果同样代表一次有效刷新，需要清除可能存在的旧列表缓存。
+            redisService.deleteObject(getExamListKey(examListType));
             return;
         }
 

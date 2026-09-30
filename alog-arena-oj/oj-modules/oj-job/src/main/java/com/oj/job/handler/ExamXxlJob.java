@@ -35,15 +35,16 @@ public class ExamXxlJob {
     public void examListOrganizeHandler() {
         //统一哪些竞赛应该存入未完赛竞赛列表当中,哪些竞赛应该存入历史竞赛列表当中 统计出来之后,存入对应的缓存当中
         log.info("********examListOrganizeHandler*********");
+        LocalDateTime now = LocalDateTime.now();
         List<ExamInfo> unFinishList = examMapper.selectList(new LambdaQueryWrapper<ExamInfo>()
                 .select(ExamInfo::getExamId, ExamInfo::getTitle, ExamInfo::getStartTime, ExamInfo::getEndTime)
-                .gt(ExamInfo::getEndTime, LocalDateTime.now())
+                .gt(ExamInfo::getEndTime, now)
                 .eq(ExamInfo::getStatus, Constants.TRUE)
                 .orderByDesc(BaseEntity::getCreateTime));
         refreshCache(unFinishList,CacheConstants.EXAM_UNFINISHED_LIST);
         List<ExamInfo> historyExamList = examMapper.selectList(new LambdaQueryWrapper<ExamInfo>()
                 .select(ExamInfo::getExamId, ExamInfo::getTitle, ExamInfo::getStartTime, ExamInfo::getEndTime)
-                .le(ExamInfo::getEndTime, LocalDateTime.now())
+                .le(ExamInfo::getEndTime, now)
                 .eq(ExamInfo::getStatus, Constants.TRUE)
                 .orderByDesc(ExamInfo::getCreateTime));
         refreshCache(historyExamList,CacheConstants.EXAM_HISTORY_LIST);
@@ -51,6 +52,8 @@ public class ExamXxlJob {
 
     public void refreshCache(List<ExamInfo> examList, String examListKey) {
         if (CollectionUtil.isEmpty(examList)) {
+            // 数据库列表为空也必须删除旧缓存，否则最后一场竞赛结束后会一直残留在未完赛列表中。
+            redisService.deleteObject(examListKey);
             return;
         }
 
