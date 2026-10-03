@@ -73,6 +73,18 @@ export function belongsToContestList(contest, listType, now = Date.now()) {
 }
 
 /**
+ * Redis 历史缓存可能包含重复竞赛 ID；展示前按 ID 去重，避免同一竞赛重复成卡。
+ */
+export function deduplicateContests(contests) {
+  if (!Array.isArray(contests)) return []
+  return [...new Map(
+    contests
+      .filter((contest) => contest?.examId != null)
+      .map((contest) => [String(contest.examId), contest]),
+  ).values()]
+}
+
+/**
  * 设计图中的唯一状态判定入口，卡片与点击校验共用，避免文案和行为漂移。
  */
 export function getContestPresentation(contest, now = Date.now()) {

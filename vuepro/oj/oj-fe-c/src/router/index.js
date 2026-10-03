@@ -30,7 +30,7 @@ const router = createRouter({
         {
           path: 'question',
           name: 'question',
-          component: () => import('@/views/HomeLanding.vue'),
+          component: () => import('@/views/Question.vue'),
           meta: { showBanner: true },
         },
         {

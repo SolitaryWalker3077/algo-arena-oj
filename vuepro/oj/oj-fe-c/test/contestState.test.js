@@ -4,6 +4,7 @@ import {
   CONTEST_ACTION,
   CONTEST_PHASE,
   belongsToContestList,
+  deduplicateContests,
   formatContestTime,
   getContestPhase,
   getContestPresentation,
@@ -67,6 +68,21 @@ test('答题、练习和排名入口均要求登录', () => {
   assert.equal(requiresContestAuthentication(CONTEST_ACTION.PRACTICE), true)
   assert.equal(requiresContestAuthentication(CONTEST_ACTION.RANKING), true)
   assert.equal(requiresContestAuthentication(CONTEST_ACTION.REGISTER), false)
+})
+
+test('Redis 历史缓存中的重复竞赛只展示一次', () => {
+  const contests = deduplicateContests([
+    { examId: '9007199254740993001', title: '首次缓存' },
+    { examId: '9007199254740993001', title: '重新发布后的缓存' },
+    { examId: '9007199254740993002', title: '另一场竞赛' },
+  ])
+
+  assert.equal(contests.length, 2)
+  assert.deepEqual(contests.map((contest) => contest.examId), [
+    '9007199254740993001',
+    '9007199254740993002',
+  ])
+  assert.equal(contests[0].title, '重新发布后的缓存')
 })
 
 test('兼容 LocalDateTime 数组并格式化到分钟', () => {

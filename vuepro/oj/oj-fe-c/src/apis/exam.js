@@ -1,5 +1,5 @@
 import service from '@/utils/request'
-import { toContestTimestamp } from '@/utils/contestState'
+import { deduplicateContests, toContestTimestamp } from '@/utils/contestState'
 
 const CACHE_TTL = 60 * 1000
 const MAX_CACHE_ENTRIES = 24
@@ -35,13 +35,19 @@ function normalizeResponse(payload) {
 
 function normalizeRows(payload) {
   const data = normalizeResponse(payload)
+  const normalizedRows = data.rows.map((row) => ({
+    ...row,
+    examId: String(row.examId),
+    enter: Boolean(row.enter),
+  }))
+  const rows = deduplicateContests(normalizedRows)
+  const duplicateCount = normalizedRows.length - rows.length
+
   return {
     ...data,
-    rows: data.rows.map((row) => ({
-      ...row,
-      examId: String(row.examId),
-      enter: Boolean(row.enter),
-    })),
+    rows,
+    // 兼容修复部署前已被重复写入的缓存页，至少保证当前页数量与卡片一致。
+    total: Math.max(rows.length, data.total - duplicateCount),
   }
 }
 
