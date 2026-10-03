@@ -219,52 +219,76 @@
           <template #default="{ row }"
             ><div class="row-actions">
               <template v-if="!isTerminalPhase(row)">
-                <el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID">
-                  <span
-                    ><el-button
-                      size="small"
-                      link
-                      type="primary"
-                      :icon="Edit"
-                      :disabled="!row.id"
-                      @click="router.push({ name: 'contestEdit', params: { examId: row.id } })"
-                      >编辑</el-button
-                    ></span
-                  ></el-tooltip
-                ><el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID"
-                  ><span
-                    ><el-button
-                      size="small"
-                      link
-                      type="danger"
-                      :icon="Delete"
-                      :loading="deletingIds.has(row.id)"
-                      :disabled="!row.id || deletingIds.has(row.id) || publishingIds.has(row.id)"
-                      :aria-label="`删除竞赛 ${row.title}`"
-                      @click="requestContestDelete(row)"
-                      >删除</el-button
-                    ></span
-                  ></el-tooltip
-                ><el-tooltip
-                  v-if="canManagePublication"
-                  :disabled="Boolean(row.id)"
-                  content="竞赛列表接口未返回竞赛 ID"
-                >
-                  <span>
-                    <el-button
-                      size="small"
-                      link
-                      :type="row.status === 1 ? 'warning' : 'success'"
-                      :icon="row.status === 1 ? RefreshLeft : Promotion"
-                      :loading="publishingIds.has(row.id)"
-                      :disabled="!row.id || publishingIds.has(row.id) || deletingIds.has(row.id)"
-                      :aria-label="`${row.status === 1 ? '撤销发布' : '发布'}竞赛 ${row.title}`"
-                      @click="togglePublication(row)"
-                    >
-                      {{ row.status === 1 ? '撤销发布' : '发布' }}
-                    </el-button>
-                  </span>
-                </el-tooltip>
+                <template v-if="row.status === 1">
+                  <el-tooltip
+                    v-if="canManagePublication"
+                    :disabled="Boolean(row.id)"
+                    content="竞赛列表接口未返回竞赛 ID"
+                  >
+                    <span>
+                      <el-button
+                        size="small"
+                        link
+                        type="warning"
+                        :icon="RefreshLeft"
+                        :loading="publishingIds.has(row.id)"
+                        :disabled="!row.id || publishingIds.has(row.id)"
+                        :aria-label="`撤销发布竞赛 ${row.title}`"
+                        @click="togglePublication(row)"
+                      >
+                        撤销发布
+                      </el-button>
+                    </span>
+                  </el-tooltip>
+                </template>
+                <template v-else>
+                  <el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID">
+                    <span
+                      ><el-button
+                        size="small"
+                        link
+                        type="primary"
+                        :icon="Edit"
+                        :disabled="!row.id"
+                        @click="requestContestEdit(row)"
+                        >编辑</el-button
+                      ></span
+                    ></el-tooltip
+                  ><el-tooltip :disabled="Boolean(row.id)" content="竞赛列表接口未返回竞赛 ID"
+                    ><span
+                      ><el-button
+                        size="small"
+                        link
+                        type="danger"
+                        :icon="Delete"
+                        :loading="deletingIds.has(row.id)"
+                        :disabled="!row.id || deletingIds.has(row.id) || publishingIds.has(row.id)"
+                        :aria-label="`删除竞赛 ${row.title}`"
+                        @click="requestContestDelete(row)"
+                        >删除</el-button
+                      ></span
+                    ></el-tooltip
+                  ><el-tooltip
+                    v-if="canManagePublication"
+                    :disabled="Boolean(row.id)"
+                    content="竞赛列表接口未返回竞赛 ID"
+                  >
+                    <span>
+                      <el-button
+                        size="small"
+                        link
+                        type="success"
+                        :icon="Promotion"
+                        :loading="publishingIds.has(row.id)"
+                        :disabled="!row.id || publishingIds.has(row.id) || deletingIds.has(row.id)"
+                        :aria-label="`发布竞赛 ${row.title}`"
+                        @click="togglePublication(row)"
+                      >
+                        发布
+                      </el-button>
+                    </span>
+                  </el-tooltip>
+                </template>
               </template>
               <template v-else>
                 <el-tag
@@ -654,8 +678,21 @@ const resetDeleteDialog = () => {
   if (!confirmingDelete.value) pendingDelete.value = null
 }
 
+const requestContestEdit = (row) => {
+  if (!row?.id) return
+  if (row.status === 1) {
+    ElMessage.warning('已发布竞赛需先撤销发布后才能编辑')
+    return
+  }
+  router.push({ name: 'contestEdit', params: { examId: row.id } })
+}
+
 const requestContestDelete = (row) => {
   if (!row?.id || deletingIds.has(row.id)) return
+  if (row.status === 1) {
+    ElMessage.warning('已发布竞赛需先撤销发布后才能删除')
+    return
+  }
   pendingDelete.value = row
   deleteDialogVisible.value = true
 }
@@ -663,6 +700,11 @@ const requestContestDelete = (row) => {
 const confirmContestDelete = async () => {
   const contest = pendingDelete.value
   if (!contest?.id || confirmingDelete.value || deletingIds.has(contest.id)) return
+  if (contest.status === 1) {
+    deleteDialogVisible.value = false
+    ElMessage.warning('已发布竞赛需先撤销发布后才能删除')
+    return
+  }
   if (hasStarted(contest, Date.now())) {
     deleteDialogVisible.value = false
     ElMessage.warning('竞赛已经开始，无法删除')

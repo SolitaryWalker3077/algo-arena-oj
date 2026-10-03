@@ -16,7 +16,7 @@ const contests = Array.from({ length: 12 }, (_, index) => ({
 }))
 
 const setup = async (page, onList = () => {}) => {
-  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key', 'e2e-token'))
+  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key-token', 'e2e-token'))
   await page.route('**/system/**', async (route) => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/sysuser/info'))
@@ -104,13 +104,22 @@ test('发布与撤销发布防止重复提交并即时切换列表状态', async
   await publishButton.click()
   await publishButton.click({ force: true })
   await expect(unpublishedRow.getByRole('button', { name: '撤销发布竞赛 竞赛1' })).toBeVisible()
+  await expect(unpublishedRow.getByRole('button')).toHaveCount(1)
+  await expect(unpublishedRow.getByRole('button', { name: '编辑' })).toHaveCount(0)
+  await expect(unpublishedRow.getByRole('button', { name: '删除竞赛 竞赛1' })).toHaveCount(0)
   await expect(page.getByText('竞赛发布成功')).toBeVisible()
 
   const publishedRow = page
     .locator('.manage-table .el-table__body tr')
     .filter({ has: page.getByText('竞赛2', { exact: true }) })
+  await expect(publishedRow.getByRole('button')).toHaveCount(1)
+  await expect(publishedRow.getByRole('button', { name: '编辑' })).toHaveCount(0)
+  await expect(publishedRow.getByRole('button', { name: '删除竞赛 竞赛2' })).toHaveCount(0)
   await publishedRow.getByRole('button', { name: '撤销发布竞赛 竞赛2' }).click()
   await expect(publishedRow.getByRole('button', { name: '发布竞赛 竞赛2' })).toBeVisible()
+  await expect(publishedRow.getByRole('button')).toHaveCount(3)
+  await expect(publishedRow.getByRole('button', { name: '编辑' })).toBeEnabled()
+  await expect(publishedRow.getByRole('button', { name: '删除竞赛 竞赛2' })).toBeEnabled()
   await expect(page.getByText('竞赛已撤销发布')).toBeVisible()
 
   expect(publicationRequests).toEqual([
@@ -581,7 +590,7 @@ test('opening the list shows the newest contest despite saved ascending sort and
 test('创建竞赛后选择题目，失败时保留选择并可重试', async ({ page }) => {
   const requests = []
   let failAdd = true
-  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key', 'e2e-token'))
+  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key-token', 'e2e-token'))
   await page.route('**/system/**', async (route) => {
     const url = new URL(route.request().url())
     const path = url.pathname
@@ -649,7 +658,7 @@ test('创建竞赛后选择题目，失败时保留选择并可重试', async ({
 
 test('创建接口不返回 ID 时保留已创建状态并阻止重复提交', async ({ page }) => {
   let addCount = 0
-  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key', 'e2e-token'))
+  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key-token', 'e2e-token'))
   await page.route('**/system/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/sysuser/info'))
@@ -675,7 +684,7 @@ test('创建接口不返回 ID 时保留已创建状态并阻止重复提交', a
 
 test('基本信息实时校验、草稿恢复和离开提醒', async ({ page }) => {
   let addCount = 0
-  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key', 'e2e-token'))
+  await page.addInitScript(() => localStorage.setItem('Admin-oj-b-key-token', 'e2e-token'))
   await page.route('**/system/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/sysuser/info'))
