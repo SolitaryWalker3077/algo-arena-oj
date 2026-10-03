@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
 import { getToken, removeToken } from './cookie'
 import { notifyAuthExpired } from './authEvents'
 import { showAuthExpiredNotice } from './authNotice'

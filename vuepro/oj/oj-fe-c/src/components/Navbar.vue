@@ -79,7 +79,9 @@ const router = useRouter()
 const route = useRoute()
 const avatarUrl = computed(() => userState.profile.headImage || defaultAvatar)
 const activeMenu = computed(() => (
-  route.name === 'exam' ? '/c-oj/home/exam' : '/c-oj/home/question'
+  route.name === 'exam' || String(route.name).startsWith('contest-')
+    ? '/c-oj/home/exam'
+    : '/c-oj/home/question'
 ))
 const isLoggingOut = ref(false)
 
@@ -103,10 +105,6 @@ function goHome() {
   router.push({ name: 'home' })
 }
 
-function goExam() {
-  if (router.currentRoute.value.name !== 'exam') router.push({ name: 'exam' })
-}
-
 function goMessage() {
   router.push('/c-oj/home/message')
 }
@@ -116,7 +114,7 @@ function goUserDetail() {
 }
 
 function goMyExam() {
-  goExam()
+  router.push({ name: 'exam', query: { view: 'mine' } })
 }
 
 async function handleLogout() {

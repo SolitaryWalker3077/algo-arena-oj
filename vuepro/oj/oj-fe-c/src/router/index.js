@@ -38,6 +38,24 @@ const router = createRouter({
           component: () => import('@/views/Exam.vue'),
           meta: { showBanner: true },
         },
+        {
+          path: 'exam/:examId/answer',
+          name: 'contest-answer',
+          component: () => import('@/views/ContestDestination.vue'),
+          meta: { showBanner: false, contestMode: 'answer' },
+        },
+        {
+          path: 'exam/:examId/practice',
+          name: 'contest-practice',
+          component: () => import('@/views/ContestDestination.vue'),
+          meta: { showBanner: false, contestMode: 'practice' },
+        },
+        {
+          path: 'exam/:examId/ranking',
+          name: 'contest-ranking',
+          component: () => import('@/views/ContestDestination.vue'),
+          meta: { showBanner: false, contestMode: 'ranking' },
+        },
       ],
     },
     {

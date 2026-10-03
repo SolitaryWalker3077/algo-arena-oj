@@ -247,7 +247,12 @@ async function loginFun() {
     } catch (error) {
       ElMessage.warning(`登录成功，但${error.message || '用户信息加载失败，请稍后重试'}`)
     }
-    await router.replace({ name: 'home' })
+    const redirect = router.currentRoute.value.query.redirect
+    await router.replace(
+      typeof redirect === 'string' && redirect.startsWith('/c-oj/')
+        ? redirect
+        : { name: 'home' },
+    )
   } catch (error) {
     setFeedback('error', error.message || '登录失败，请检查后重试', Boolean(error.retryable), 'login')
   } finally {

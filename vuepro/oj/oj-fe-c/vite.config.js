@@ -8,6 +8,9 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    target: ['chrome90', 'firefox88', 'safari14', 'edge90'],
+  },
   plugins: [
     vue(),
     AutoImport({
@@ -26,7 +29,7 @@ export default defineConfig({
   server: {
    proxy: {
     "/dev-api": {
-       target: "http://127.0.0.1:19090/friend",
+       target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:19090/friend",
        rewrite: (p) => p.replace(/^\/dev-api/, ""),
     },
    },
