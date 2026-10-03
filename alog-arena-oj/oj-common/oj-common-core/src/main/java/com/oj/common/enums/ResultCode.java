@@ -18,7 +18,8 @@ public enum ResultCode {
     //操作失败，但是服务器不存在异常
     FAILED                      (3000, "操作失败"),
     FAILED_UNAUTHORIZED         (3001, "未授权"),
-    FAILED_PARAMS_VALIDATE      (3002, "参数校验失败"), FAILED_NOT_EXISTS(3003, "资源不存在"),
+    FAILED_PARAMS_VALIDATE      (3002, "参数校验失败"),
+    FAILED_NOT_EXISTS           (3003, "资源不存在"),
     FAILED_ALREADY_EXISTS       (3004, "资源已存在"),
 
 

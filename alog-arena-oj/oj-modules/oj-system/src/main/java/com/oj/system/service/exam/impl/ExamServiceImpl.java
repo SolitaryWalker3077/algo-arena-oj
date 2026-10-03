@@ -117,6 +117,7 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
     @Override
     public int  edit(ExamEditDto examEditDto) {
         ExamInfo examInfo = getExamInfo(examEditDto.getExamId());
+        extractIsPublish(examInfo);
         checkExamNotStarted(examInfo);
         checkExamParams(examEditDto,examEditDto.getExamId());
 
@@ -126,9 +127,12 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
         return examMapper.updateById(examInfo);
     }
 
+
+
     @Override
     public int delete(Long examId) {
         ExamInfo examInfo = getExamInfo(examId);
+        extractIsPublish(examInfo);
         checkExamNotStarted(examInfo);
         examQuestionMapper.delete(new LambdaQueryWrapper<ExamQuestionInfo>()
                 .eq(ExamQuestionInfo::getExamId,examId));
@@ -158,6 +162,15 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
         checkExamNotStarted(examInfo);
         examInfo.setStatus(Constants.FALSE);
         return examMapper.updateById(examInfo);
+    }
+
+    /**
+     * 判断竞赛是否发布
+     * */
+    private static void extractIsPublish(ExamInfo examInfo) {
+        if (Constants.TRUE.equals(examInfo.getStatus())) {
+            throw new ServiceException(ResultCode.EXAM_IS_PUBLISH);
+        }
     }
 
     private void checkExamParams(ExamAddDto examSaveDto , Long examId) {

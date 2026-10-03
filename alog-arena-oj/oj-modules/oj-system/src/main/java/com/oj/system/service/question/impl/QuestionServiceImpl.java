@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.github.pagehelper.PageHelper;
 import com.oj.common.enums.ResultCode;
 import com.oj.security.expection.ServiceException;
+import com.oj.system.elasticsearch.QuestionRepository;
+import com.oj.system.entity.es.QuestionEs;
 import com.oj.system.entity.question.QuestionsInfo;
 import com.oj.system.entity.question.dto.QuestionAddDto;
 import com.oj.system.entity.question.dto.QuestionEditDto;
@@ -28,6 +30,10 @@ public class QuestionServiceImpl implements IQuestionService {
     @Autowired
     private QuestionMapper questionMapper;
 
+    @Autowired
+    private QuestionRepository questionRepository;
+
+
     @Override
     public List<QuestionVo> list(QuestionQueryDto questionQueryDto) {
         PageHelper.startPage(questionQueryDto.getPageNum(),questionQueryDto.getPageSize());
@@ -36,7 +42,7 @@ public class QuestionServiceImpl implements IQuestionService {
 
 
     @Override
-    public int add(QuestionAddDto questionAddDto) {
+    public boolean add(QuestionAddDto questionAddDto) {
         List<QuestionsInfo> questionsInfoList = questionMapper.selectList(new LambdaQueryWrapper<QuestionsInfo>()
                 .eq(QuestionsInfo::getTitle, questionAddDto.getTitle()));
 
@@ -47,7 +53,14 @@ public class QuestionServiceImpl implements IQuestionService {
         //将questionAddDto对象转换为questions对象
         //可以使用hutool工具包当中的BeanUtil.copyProperties方法
         BeanUtil.copyProperties(questionAddDto, questionsInfo);
-        return questionMapper.insert(questionsInfo);
+        int insert = questionMapper.insert(questionsInfo);
+        if(insert <= 0) {
+            return false;
+        }
+        QuestionEs questionEs = new QuestionEs();
+        BeanUtil.copyProperties(questionsInfo,questionEs);
+        questionRepository.save(questionEs);
+        return true;
     }
 
 
@@ -78,6 +91,9 @@ public class QuestionServiceImpl implements IQuestionService {
         oldQuestion.setQuestionCase(questionEditDto.getQuestionCase());
         oldQuestion.setDefaultCode(questionEditDto.getDefaultCode());
         oldQuestion.setMainFac(questionEditDto.getMainFac());
+        QuestionEs questionEs = new QuestionEs();
+        BeanUtil.copyProperties(oldQuestion,questionEs);
+        questionRepository.save(questionEs);
         return questionMapper.updateById(oldQuestion);
     }
 
@@ -87,6 +103,7 @@ public class QuestionServiceImpl implements IQuestionService {
         if (question == null) {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
+        questionRepository.deleteById(questionId);
         return questionMapper.deleteById(questionId);
     }
 }
