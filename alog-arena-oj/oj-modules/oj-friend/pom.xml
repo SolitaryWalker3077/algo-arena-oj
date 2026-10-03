@@ -26,6 +26,11 @@
             <artifactId>oj-common-redis</artifactId>
             <version>${oj-common-redis.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>oj-common-elsticsearch</artifactId>
+            <version>${oj-common-elsticsearch.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

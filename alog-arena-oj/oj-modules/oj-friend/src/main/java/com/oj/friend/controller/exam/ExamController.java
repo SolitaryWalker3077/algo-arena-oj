@@ -34,3 +34,5 @@ public class ExamController extends BaseController {
         return examService.redisList(examQueryDto);
     }
 }
+
+
