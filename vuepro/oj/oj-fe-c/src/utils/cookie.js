@@ -1,16 +1,20 @@
-import Cookies from "js-cookie";
-const TokenKey = "Oj-user-Token";
+import Cookies from 'js-cookie'
+
+const TokenKey = 'Oj-user-Token'
+
 export function getToken() {
- return Cookies.get(TokenKey);
+  return Cookies.get(TokenKey)
 }
+
 export function setToken(token) {
- return Cookies.set(TokenKey, token, {
-  expires: 7,
-  sameSite: 'strict',
-  secure: window.location.protocol === 'https:',
-  path: '/',
- });
+  return Cookies.set(TokenKey, token, {
+    expires: 7,
+    sameSite: 'strict',
+    secure: window.location.protocol === 'https:',
+    path: '/',
+  })
 }
+
 export function removeToken() {
- return Cookies.remove(TokenKey);
+  return Cookies.remove(TokenKey, { path: '/' })
 }

@@ -69,7 +69,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import defaultAvatar from '@/assets/images/headimage.jpg'
+import defaultAvatar from '@/assets/user/head_image.png'
 import { logoutService } from '@/apis/user'
 import { getToken, removeToken } from '@/utils/cookie'
 import { clearCurrentUser, fetchCurrentUser, userState } from '@/stores/user'
@@ -106,15 +106,15 @@ function goHome() {
 }
 
 function goMessage() {
-  router.push('/c-oj/home/message')
+  router.push({ name: 'user-message' })
 }
 
 function goUserDetail() {
-  router.push('/c-oj/home/user')
+  router.push({ name: 'user-detail' })
 }
 
 function goMyExam() {
-  router.push({ name: 'exam', query: { view: 'mine' } })
+  router.push({ name: 'user-exam' })
 }
 
 async function handleLogout() {

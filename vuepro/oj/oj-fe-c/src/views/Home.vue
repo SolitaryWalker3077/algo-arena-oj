@@ -67,20 +67,6 @@ import Navbar from '@/components/Navbar.vue'
     background: #fff;
   }
 
-  // banner 图
-  .oj-ship-banner {
-    max-width: 1520px;
-    min-width: 1520;
-    margin: 0 auto;
-    width: 100%;
-    height: 100%;
-    height: 350px;
-    // width: 1677px;
-    color: #ffffff;
-    background: url("@/assets/index_bg.png") left top no-repeat;
-    background-size: cover;
-    overflow: hidden;
-  }
 }
 
 .page-fade-enter-active,

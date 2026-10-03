@@ -175,6 +175,7 @@ import {
   formatContestTime,
   getContestPhase,
   requiresContestAuthentication,
+  toContestTimestamp,
 } from '@/utils/contestState'
 
 const viewTabs = [
@@ -211,7 +212,6 @@ const registeringId = ref('')
 let activeController
 let requestSequence = 0
 let clockTimer
-let lastPublishedRefreshAt = 0
 const recentlyEndedContests = new Map()
 
 const requiresLogin = computed(() => activeView.value === 'mine' && !userState.isAuthenticated)
@@ -252,14 +252,12 @@ function partitionRegistrationRows(rows, referenceTime = Date.now()) {
     .filter((contest) => belongsToContestList(contest, 'history', referenceTime))
 }
 
-async function loadContests(force = false, { background = false } = {}) {
+async function loadContests(force = false) {
   activeController?.abort()
   activeController = new AbortController()
   const sequence = ++requestSequence
-  if (!background) {
-    loading.value = true
-    errorMessage.value = ''
-  }
+  loading.value = true
+  errorMessage.value = ''
   staleNotice.value = false
   syncAuthentication()
 
@@ -283,15 +281,11 @@ async function loadContests(force = false, { background = false } = {}) {
     staleNotice.value = Boolean(result.stale)
   } catch (error) {
     if (activeController.signal.aborted || sequence !== requestSequence) return
-    if (background) {
-      staleNotice.value = true
-      return
-    }
     contests.value = []
     total.value = 0
     errorMessage.value = error.message || '网络连接异常，请检查网络后重试'
   } finally {
-    if (sequence === requestSequence && !background) loading.value = false
+    if (sequence === requestSequence) loading.value = false
   }
 }
 
@@ -415,7 +409,10 @@ function navigateToContest(action, contest) {
   router.push({
     name: destinationRoutes[action],
     params: { examId: contest.examId },
-    query: { title: contest.title || undefined },
+    query: {
+      title: contest.title || undefined,
+      endTime: toContestTimestamp(contest.endTime) ?? undefined,
+    },
   })
 }
 
@@ -443,26 +440,6 @@ function refreshTimePartition() {
   loadContests(true)
 }
 
-function refreshPublishedState() {
-  const refreshAt = Date.now()
-  if (
-    document.visibilityState !== 'visible'
-    || loading.value
-    || activeView.value !== 'registration'
-    || refreshAt - lastPublishedRefreshAt < 750
-  ) return
-
-  lastPublishedRefreshAt = refreshAt
-  // 管理员可能在另一个标签页发布或撤销发布。用户重新聚焦页面时绕过
-  // 60 秒前端缓存并静默拉取，避免旧卡片继续显示或列表闪烁。
-  loadContests(true, { background: true })
-}
-
-function runLiveRefresh() {
-  refreshTimePartition()
-  refreshPublishedState()
-}
-
 watch(
   () => [route.query.view, route.query.status],
   ([view, status]) => {
@@ -479,15 +456,11 @@ watch(
 onMounted(() => {
   syncAuthentication()
   loadContests()
-  window.addEventListener('focus', refreshPublishedState)
-  document.addEventListener('visibilitychange', refreshPublishedState)
-  clockTimer = window.setInterval(runLiveRefresh, 15_000)
+  clockTimer = window.setInterval(refreshTimePartition, 30_000)
 })
 onBeforeUnmount(() => {
   activeController?.abort()
   window.clearInterval(clockTimer)
-  window.removeEventListener('focus', refreshPublishedState)
-  document.removeEventListener('visibilitychange', refreshPublishedState)
   clearExamListCache()
 })
 </script>

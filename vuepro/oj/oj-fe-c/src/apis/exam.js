@@ -226,3 +226,12 @@ export async function enterExam(examId) {
 export function clearExamListCache() {
   cache.clear()
 }
+
+export function getExamRanking(examId, params = {}, options = {}) {
+  return service({
+    url: '/exam/rank/list',
+    method: 'get',
+    params: { examId, ...params },
+    signal: options.signal,
+  })
+}

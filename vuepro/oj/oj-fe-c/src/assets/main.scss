@@ -1,17 +1,22 @@
-body * {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  flex-shrink: 0;
 }
-img{
+img {
   display: block;
+  max-width: 100%;
 }
 body {
-  font-family: PingFangSC-Regular, Roboto, Helvetica Neue, Helvetica, Tahoma,
-    Arial, PingFang SC-Light, Microsoft YaHei;
-    padding: 0 20px;
-    background-color: #F5F7F9;
-    padding-top: 60px;
-    margin: 0;
+  min-width: 320px;
+  margin: 0;
+  padding: 60px 20px 0;
+  color: #26343b;
+  background-color: #f5f7f9;
+  font-family: Inter, PingFangSC-Regular, "PingFang SC", "Microsoft YaHei",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 @media (max-width: 760px) {
@@ -77,6 +82,7 @@ button {
   border: 1px solid transparent;
   outline: none;
   background-color: transparent;
+  font: inherit;
 }
 
 button:active {
@@ -136,4 +142,14 @@ button:active {
 }
 :root{
   --el-color-primary: #32C5FF;
+}
+
+::selection {
+  color: #123b4a;
+  background: rgb(50 197 255 / 25%);
+}
+
+:focus-visible {
+  outline: 2px solid rgb(50 197 255 / 70%);
+  outline-offset: 2px;
 }
