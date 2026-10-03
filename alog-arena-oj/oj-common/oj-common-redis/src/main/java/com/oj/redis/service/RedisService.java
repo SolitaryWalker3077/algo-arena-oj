@@ -184,10 +184,11 @@ public class RedisService {
     }
 
     /**
-     * 底层使用list结构,删除指定数据
+     * 底层使用list结构，删除列表中所有匹配的指定数据。
+     * count 为 0 时 Redis LREM 会清除全部重复项，可用于修复历史重复缓存。
      */
     public <T> Long removeForList(final String key, T value) {
-        return redisTemplate.opsForList().remove(key, 1L, value);
+        return redisTemplate.opsForList().remove(key, 0L, value);
     }
 
 

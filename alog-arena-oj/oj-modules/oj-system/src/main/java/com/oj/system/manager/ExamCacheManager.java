@@ -18,6 +18,9 @@ public class ExamCacheManager {
      * @param exam 需要缓存的竞赛信息
      */
     public void addCache(ExamInfo exam) {
+        // 发布接口允许撤销后重新发布。写入前先移除历史重复项，确保一个竞赛
+        // 在 C 端列表缓存中最多只出现一次。
+        redisService.removeForList(getExamListKey(), exam.getExamId());
         redisService.leftPushForList(getExamListKey(), exam.getExamId());
         redisService.setCacheObject(getDetailKey(exam.getExamId()), exam);
     }

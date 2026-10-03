@@ -151,9 +151,12 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
             throw new ServiceException(ResultCode.EXAM_QUESTION_NOT_EXISTS);
         }
         examInfo.setStatus(Constants.TRUE);
-        //将要发布的竞赛数据存储在redis
-        examCacheManager.addCache(examInfo);
-        return examMapper.updateById(examInfo);
+        int updated = examMapper.updateById(examInfo);
+        if (updated > 0) {
+            // 数据库是发布状态的事实来源；更新成功后再同步 C 端列表缓存。
+            examCacheManager.addCache(examInfo);
+        }
+        return updated;
     }
 
     @Override
@@ -161,7 +164,12 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
         ExamInfo examInfo = getExamInfo(examId);
         checkExamNotStarted(examInfo);
         examInfo.setStatus(Constants.FALSE);
-        return examMapper.updateById(examInfo);
+        int updated = examMapper.updateById(examInfo);
+        if (updated > 0) {
+            // 撤销发布时同步移除列表、详情及题目缓存，避免 C 端继续读到旧数据。
+            examCacheManager.deleteCache(examId);
+        }
+        return updated;
     }
 
     /**
