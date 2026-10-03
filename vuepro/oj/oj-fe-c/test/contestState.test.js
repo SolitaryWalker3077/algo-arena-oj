@@ -7,6 +7,7 @@ import {
   formatContestTime,
   getContestPhase,
   getContestPresentation,
+  requiresContestAuthentication,
   toContestTimestamp,
 } from '../src/utils/contestState.js'
 
@@ -59,6 +60,13 @@ test('结束竞赛只属于历史列表，未结束竞赛只属于未完赛列�
   assert.equal(belongsToContestList(ended, 'history', now), true)
   assert.equal(belongsToContestList(ongoing, 'unfinished', now), true)
   assert.equal(belongsToContestList(upcoming, 'history', now), false)
+})
+
+test('答题、练习和排名入口均要求登录', () => {
+  assert.equal(requiresContestAuthentication(CONTEST_ACTION.ANSWER), true)
+  assert.equal(requiresContestAuthentication(CONTEST_ACTION.PRACTICE), true)
+  assert.equal(requiresContestAuthentication(CONTEST_ACTION.RANKING), true)
+  assert.equal(requiresContestAuthentication(CONTEST_ACTION.REGISTER), false)
 })
 
 test('兼容 LocalDateTime 数组并格式化到分钟', () => {

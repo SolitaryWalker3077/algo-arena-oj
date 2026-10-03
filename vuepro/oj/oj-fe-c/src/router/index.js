@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { getToken } from '@/utils/cookie'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,19 +43,19 @@ const router = createRouter({
           path: 'exam/:examId/answer',
           name: 'contest-answer',
           component: () => import('@/views/ContestDestination.vue'),
-          meta: { showBanner: false, contestMode: 'answer' },
+          meta: { showBanner: false, contestMode: 'answer', requiresAuth: true },
         },
         {
           path: 'exam/:examId/practice',
           name: 'contest-practice',
           component: () => import('@/views/ContestDestination.vue'),
-          meta: { showBanner: false, contestMode: 'practice' },
+          meta: { showBanner: false, contestMode: 'practice', requiresAuth: true },
         },
         {
           path: 'exam/:examId/ranking',
           name: 'contest-ranking',
           component: () => import('@/views/ContestDestination.vue'),
-          meta: { showBanner: false, contestMode: 'ranking' },
+          meta: { showBanner: false, contestMode: 'ranking', requiresAuth: true },
         },
       ],
     },
@@ -68,6 +69,13 @@ const router = createRouter({
       redirect: { name: 'home' },
     },
   ],
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !getToken()) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  return true
 })
 
 export default router

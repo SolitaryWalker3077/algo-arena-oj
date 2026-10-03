@@ -174,6 +174,7 @@ import {
   belongsToContestList,
   formatContestTime,
   getContestPhase,
+  requiresContestAuthentication,
 } from '@/utils/contestState'
 
 const viewTabs = [
@@ -382,6 +383,18 @@ async function confirmRegistration() {
 }
 
 function navigateToContest(action, contest) {
+  syncAuthentication()
+  if (requiresContestAuthentication(action) && !userState.isAuthenticated) {
+    const actionName = {
+      [CONTEST_ACTION.ANSWER]: '开始答题',
+      [CONTEST_ACTION.PRACTICE]: '进行竞赛练习',
+      [CONTEST_ACTION.RANKING]: '查看排名',
+    }[action]
+    ElMessage.warning(`请先登录后再${actionName}`)
+    goLogin()
+    return
+  }
+
   const phase = getContestPhase(contest, Date.now())
   if (action === CONTEST_ACTION.ANSWER && (phase !== CONTEST_PHASE.ONGOING || !contest.enter)) {
     ElMessage.warning('当前不满足开始答题条件，请刷新后重试')

@@ -11,6 +11,16 @@ export const CONTEST_ACTION = Object.freeze({
   RANKING: 'ranking',
 })
 
+const AUTHENTICATED_ACTIONS = new Set([
+  CONTEST_ACTION.ANSWER,
+  CONTEST_ACTION.PRACTICE,
+  CONTEST_ACTION.RANKING,
+])
+
+export function requiresContestAuthentication(action) {
+  return AUTHENTICATED_ACTIONS.has(action)
+}
+
 /**
  * 后端可能返回 ISO 字符串、`yyyy-MM-dd HH:mm:ss` 或 LocalDateTime 数组。
  */
