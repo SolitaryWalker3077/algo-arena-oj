@@ -11,6 +11,7 @@ import com.oj.common.enums.ExamListType;
 import com.oj.friend.entity.exam.ExamInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.entity.exam.vo.ExamVo;
+import com.oj.friend.entity.user.UserExamInfo;
 import com.oj.friend.mapper.exam.ExamMapper;
 import com.oj.friend.mapper.user.UserExamMapper;
 import com.oj.redis.service.RedisService;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class ExamCacheManager {
@@ -65,6 +67,21 @@ public class ExamCacheManager {
         return examVOList;
     }
 
+
+    public List<Long> getAllUserExamList(Long userId) {
+        String examListKey = CacheConstants.USER_EXAM_LIST + userId;
+        List<Long> userExamIdList = redisService.getCacheListByRange(examListKey, 0, -1, Long.class);
+        if (CollectionUtil.isNotEmpty(userExamIdList)) {
+            return userExamIdList;
+        }
+        List<UserExamInfo> userExamInfoList =
+                userExamMapper.selectList(new LambdaQueryWrapper<UserExamInfo>().eq(UserExamInfo::getUserId, userId));
+        if (CollectionUtil.isEmpty(userExamInfoList)) {
+            return null;
+        }
+        refreshCache(ExamListType.USER_EXAM_LIST.getValue(),userId);
+        return userExamInfoList.stream().map(UserExamInfo::getExamId).collect(Collectors.toList());
+    }
 
     public void addUserExamCache(Long userId,Long examId) {
         String userExamListKey = getUserExamListKey(userId);
@@ -191,4 +208,7 @@ public class ExamCacheManager {
     private String getUserExamListKey(Long userId) {
         return CacheConstants.USER_EXAM_LIST + userId;
     }
+
+
+
 }

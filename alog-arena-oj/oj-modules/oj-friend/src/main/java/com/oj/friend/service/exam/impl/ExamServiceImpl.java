@@ -3,12 +3,14 @@ package com.oj.friend.service.exam.impl;
 import cn.hutool.core.collection.CollectionUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.oj.common.constants.Constants;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.entity.exam.vo.ExamVo;
 import com.oj.friend.manager.ExamCacheManager;
 import com.oj.friend.mapper.exam.ExamMapper;
 import com.oj.friend.service.exam.IExamService;
+import com.oj.security.utils.ThreadLocalUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +50,20 @@ public class ExamServiceImpl implements IExamService {
         if (CollectionUtil.isEmpty(examVoList)) {
             return TableDataInfo.empty();
         }
+        assembleExamVoList(examVoList);
         return TableDataInfo.success(examVoList,total);
+    }
+
+    private void assembleExamVoList(List<ExamVo> examVoList) {
+        Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
+        List<Long> userExamIdList = examCacheManager.getAllUserExamList(userId);
+        if (CollectionUtil.isEmpty(userExamIdList)) {
+            return;
+        }
+        for (ExamVo examVo : examVoList) {
+            if (userExamIdList.contains(examVo.getExamId())) {
+                examVo.setEnter(true);
+            }
+        }
     }
 }
