@@ -29,9 +29,9 @@
         用户信息加载失败，点击重试
       </button>
       <el-dropdown v-else-if="userState.isAuthenticated">
-        <div class="oj-navbar-name">
-          <img class="oj-head-image" :src="avatarUrl" alt="用户头像" />
-          <span>{{ userState.profile.nickName }}</span>
+        <div class="oj-navbar-name" :title="userState.profile.nickName">
+          <img class="oj-head-image" :src="avatarUrl" alt="用户头像" @error="handleAvatarError" />
+          <span class="oj-user-nickname">{{ userState.profile.nickName }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -69,7 +69,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import defaultAvatar from '@/assets/user/head_image.png'
+import defaultAvatar from '@/assets/images/headimage.jpg'
 import { logoutService } from '@/apis/user'
 import { getToken, removeToken } from '@/utils/cookie'
 import { clearCurrentUser, fetchCurrentUser, userState } from '@/stores/user'
@@ -115,6 +115,12 @@ function goUserDetail() {
 
 function goMyExam() {
   router.push({ name: 'user-exam' })
+}
+
+function handleAvatarError(event) {
+  if (event.currentTarget.dataset.fallbackApplied) return
+  event.currentTarget.dataset.fallbackApplied = 'true'
+  event.currentTarget.src = defaultAvatar
 }
 
 async function handleLogout() {
@@ -207,6 +213,7 @@ async function handleLogout() {
   .oj-navbar-users {
     display: flex;
     align-items: center;
+    gap: 14px;
   }
 
   .user-loading,
@@ -259,27 +266,49 @@ async function handleLogout() {
   }
 
   .oj-message {
+    width: 22px;
+    height: 22px;
     cursor: pointer;
-    margin-top: 15px;
+    object-fit: contain;
   }
 
   .oj-head-image {
-    width: 30px;
-    height: 30px;
-    border-radius: 30px;
-    margin-right: 10px;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgb(31 93 119 / 16%);
   }
 
   .oj-navbar-name {
-    cursor: pointer;
-    margin-top: 15px;
-    font-weight: 400;
-    color: #000;
-    margin-left: 15px;
-    font-size: 20px;
-    width: 100px;
     display: flex;
     align-items: center;
+    gap: 9px;
+    min-width: 0;
+    max-width: 190px;
+    height: 42px;
+    padding: 4px 10px 4px 5px;
+    border-radius: 22px;
+    color: #26343b;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .oj-navbar-name:hover {
+    color: #19aee8;
+    background: #f1faff;
+  }
+
+  .oj-user-nickname {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .oj-navabar-item {
@@ -315,12 +344,12 @@ async function handleLogout() {
     }
 
     .oj-navbar-name {
-      width: auto;
-      margin-left: 8px;
-      font-size: 0;
+      width: 42px;
+      padding-right: 4px;
+      padding-left: 4px;
     }
 
-    .oj-head-image { margin-right: 0; }
+    .oj-user-nickname { display: none; }
     .oj-navbar-login-btn { font-size: 16px; }
   }
 }
