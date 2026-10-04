@@ -54,7 +54,7 @@ public class UserCacheManager {
         return userVo;
     }
 
-    private void refreshUser(UserInfo userInfo) {
+    public void refreshUser(UserInfo userInfo) {
         //刷新用户缓存
         String userKey = getUserKey(userInfo.getUserId());
         redisService.setCacheObject(userKey, userInfo);

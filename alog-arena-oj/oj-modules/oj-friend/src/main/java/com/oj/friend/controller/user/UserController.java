@@ -5,6 +5,7 @@ import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.entity.user.dto.UserUpdateDto;
 import com.oj.friend.entity.user.vo.UserVo;
 import com.oj.friend.service.user.IUserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,6 +64,14 @@ public class UserController extends BaseController {
     @GetMapping("/detail")
     public Result<UserVo> detail() {
         return Result.success(userService.detail());
+    }
+
+    //用户信息编辑
+    //接口地址: /friend/user/edit
+    @Operation(summary = "用户信息编辑")
+    @PutMapping("/edit")
+    public Result<Void> edit(@RequestBody UserUpdateDto userUpdateDto) {
+        return toResult(userService.edit(userUpdateDto));
     }
 
 }

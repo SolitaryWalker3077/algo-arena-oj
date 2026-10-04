@@ -14,6 +14,7 @@ import com.oj.common.enums.UserIdentify;
 import com.oj.common.enums.UserStatus;
 import com.oj.friend.entity.user.UserInfo;
 import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.entity.user.dto.UserUpdateDto;
 import com.oj.friend.entity.user.vo.UserVo;
 import com.oj.friend.manager.UserCacheManager;
 import com.oj.friend.mapper.user.UserMapper;
@@ -156,6 +157,31 @@ public class UserServiceImpl implements IUserService {
 //            userVo.setHeadImage(downloadUrl+userVo.getHeadImage());
 //        }
         return userVo;
+    }
+
+    @Override
+    public int edit(UserUpdateDto userUpdateDto) {
+        Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
+        if (userId == null) {
+            throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
+        }
+        UserInfo userInfo = userMapper.selectById(userId);
+        if (userInfo == null) {
+            throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
+        }
+        userInfo.setNickName(userUpdateDto.getNickName());
+        userInfo.setSex(userUpdateDto.getSex());
+        userInfo.setSchoolName(userUpdateDto.getSchoolName());
+        userInfo.setMajorName(userUpdateDto.getMajorName());
+        userInfo.setPhone(userUpdateDto.getPhone());
+        userInfo.setEmail(userUpdateDto.getEmail());
+        userInfo.setWechat(userUpdateDto.getWechat());
+        userInfo.setIntroduce(userUpdateDto.getIntroduce());
+        //更新用户缓存
+        userCacheManager.refreshUser(userInfo);
+        tokenService.refreshLoginUser(userInfo.getNickName(),userInfo.getHeadImage(),
+                ThreadLocalUtil.get(Constants.USER_KEY, String.class));
+        return userMapper.updateById(userInfo);
     }
 
     private void checkCode(String phone, String code) {
