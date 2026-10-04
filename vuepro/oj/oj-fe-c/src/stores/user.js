@@ -34,6 +34,12 @@ export function syncAuthentication() {
   state.isAuthenticated = Boolean(getToken())
 }
 
+export function updateCurrentUserProfile(profile) {
+  state.profile = normalizeProfile({ ...state.profile, ...profile })
+  state.hasLoaded = true
+  state.error = ''
+}
+
 export function clearCurrentUser() {
   requestVersion += 1
   pendingRequest = null
