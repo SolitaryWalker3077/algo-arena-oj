@@ -10,7 +10,7 @@ public class CacheConstants {
 
     public final static String PHONE_CODE_KEY = "p:c:";
 
-    public final static String CODE_TIME_KEY = "c:t:";
+    public final static String CODE_TIME_KEY = "c:t:"; //C端用户token
 
     public final static String EXAM_UNFINISHED_LIST = "e:t:l"; // 未完赛竞赛列表
 

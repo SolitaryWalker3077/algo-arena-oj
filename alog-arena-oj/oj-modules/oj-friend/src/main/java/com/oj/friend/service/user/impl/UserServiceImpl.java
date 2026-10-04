@@ -14,12 +14,15 @@ import com.oj.common.enums.UserIdentify;
 import com.oj.common.enums.UserStatus;
 import com.oj.friend.entity.user.UserInfo;
 import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.entity.user.vo.UserVo;
+import com.oj.friend.manager.UserCacheManager;
 import com.oj.friend.mapper.user.UserMapper;
 import com.oj.friend.service.user.IUserService;
 import com.oj.message.service.AliSmsService;
 import com.oj.redis.service.RedisService;
 import com.oj.security.expection.ServiceException;
 import com.oj.security.service.TokenService;
+import com.oj.security.utils.ThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +50,9 @@ public class UserServiceImpl implements IUserService {
     @Autowired
     private RedisService redisService;
 
+    @Autowired
+    private UserCacheManager userCacheManager;
+
     @Value("${sms.code-expiration: 5}")
     private Long phoneCodeExpiration;
 
@@ -58,6 +64,9 @@ public class UserServiceImpl implements IUserService {
 
     @Value("${jwt.secret}")
     private String secret;
+
+//    @Value("${file.oss.downloadUrl}")
+//    private String downloadUrl;
 
     @Override
     public boolean sendCode(UserDto userDto) {
@@ -131,6 +140,22 @@ public class UserServiceImpl implements IUserService {
         loginUserVO.setNickName(loginUser.getNickName());
         loginUserVO.setHeadImage(loginUser.getHeadImage());
         return Result.success(loginUserVO) ;
+    }
+
+    @Override
+    public UserVo detail() {
+        Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
+        if(userId == null) {
+            throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
+        }
+        UserVo userVo = userCacheManager.getUserById(userId);
+        if(userVo == null) {
+            throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
+        }
+//        if(StrUtil.isNotEmpty(userVo.getHeadImage())) {
+//            userVo.setHeadImage(downloadUrl+userVo.getHeadImage());
+//        }
+        return userVo;
     }
 
     private void checkCode(String phone, String code) {

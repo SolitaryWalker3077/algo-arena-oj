@@ -74,12 +74,31 @@
       <aside class="question-aside">
         <section class="daily-card">
           <p class="aside-eyebrow">DAILY PRACTICE</p>
-          <h2>今天也要进步一点</h2>
-          <p>{{ currentDate }}</p>
-          <div class="week-row" aria-label="本周练习进度">
-            <span v-for="day in weekDays" :key="day.label" :class="{ 'is-today': day.today, 'is-past': day.past }">
-              <small>{{ day.label }}</small><b>{{ day.date }}</b>
-            </span>
+          <div class="daily-heading">
+            <h2>今天也要进步一点</h2>
+            <p>{{ currentDate }}</p>
+          </div>
+          <div class="calendar-toolbar">
+            <strong>{{ calendarTitle }}</strong>
+            <div class="calendar-actions">
+              <button type="button" aria-label="查看上个月" @click="changeMonth(-1)">上个月</button>
+              <button type="button" @click="backToToday">今天</button>
+              <button type="button" aria-label="查看下个月" @click="changeMonth(1)">下个月</button>
+            </div>
+          </div>
+          <div class="month-calendar" :aria-label="`${calendarTitle}日历`">
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span v-for="weekday in calendarWeekdays" :key="weekday">{{ weekday }}</span>
+            </div>
+            <div class="calendar-days">
+              <time
+                v-for="day in calendarDays"
+                :key="day.dateTime"
+                :datetime="day.dateTime"
+                :class="{ 'is-adjacent': !day.isCurrentMonth, 'is-today': day.isToday }"
+                :aria-current="day.isToday ? 'date' : undefined"
+              >{{ day.dayNumber }}</time>
+            </div>
           </div>
         </section>
 
@@ -124,18 +143,44 @@ let requestSequence = 0
 
 const isAuthenticated = computed(() => userState.isAuthenticated)
 const hasFilter = computed(() => Boolean(filters.keyword || filters.difficulty))
-const currentDate = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
-const weekDays = computed(() => {
-  const now = new Date()
-  const mondayOffset = (now.getDay() + 6) % 7
-  return ['一', '二', '三', '四', '五', '六', '日'].map((label, index) => {
-    const date = new Date(now)
-    date.setDate(now.getDate() - mondayOffset + index)
-    date.setHours(0, 0, 0, 0)
-    const today = date.toDateString() === now.toDateString()
-    return { label: `周${label}`, date: date.getDate(), today, past: date < new Date(now.toDateString()) }
+const today = new Date()
+today.setHours(0, 0, 0, 0)
+const displayedMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
+const calendarWeekdays = ['日', '一', '二', '三', '四', '五', '六']
+const currentDate = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(today)
+const calendarTitle = computed(() => `${displayedMonth.value.getFullYear()} 年 ${displayedMonth.value.getMonth() + 1} 月`)
+const calendarDays = computed(() => {
+  const year = displayedMonth.value.getFullYear()
+  const month = displayedMonth.value.getMonth()
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cellCount = Math.max(35, Math.ceil((firstWeekday + daysInMonth) / 7) * 7)
+
+  return Array.from({ length: cellCount }, (_, index) => {
+    const date = new Date(year, month, index - firstWeekday + 1)
+    const dateTime = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+      .map((part, partIndex) => partIndex === 0 ? String(part) : String(part).padStart(2, '0'))
+      .join('-')
+    return {
+      dateTime,
+      dayNumber: date.getDate(),
+      isCurrentMonth: date.getMonth() === month,
+      isToday: date.getTime() === today.getTime(),
+    }
   })
 })
+
+function changeMonth(offset) {
+  displayedMonth.value = new Date(
+    displayedMonth.value.getFullYear(),
+    displayedMonth.value.getMonth() + offset,
+    1,
+  )
+}
+
+function backToToday() {
+  displayedMonth.value = new Date(today.getFullYear(), today.getMonth(), 1)
+}
 
 function filterDemoRows() {
   return filterQuestionSummaries(demoQuestions, filters)
@@ -277,11 +322,19 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .daily-card { overflow: hidden; background: linear-gradient(145deg, #eaf9ff, #fff 55%); }
 .aside-eyebrow { margin: 0 0 4px; color: #27b8ed; font-size: 10px; font-weight: 750; letter-spacing: .15em; }
 .daily-card h2, .hot-card h2 { margin: 0; color: #27333a; font-size: 18px; }
-.daily-card > p:not(.aside-eyebrow) { margin: 8px 0 20px; color: #87939a; font-size: 12px; }
-.week-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-.week-row span { display: flex; height: 54px; align-items: center; justify-content: center; flex-direction: column; gap: 4px; border-radius: 8px; color: #8b979d; background: rgb(255 255 255 / 72%); }
-.week-row small { font-size: 9px; }.week-row b { color: #56646b; font-size: 13px; }
-.week-row .is-past b { color: #28b98a; }.week-row .is-today { color: #fff; background: #32c5ff; box-shadow: 0 7px 15px rgb(50 197 255 / 25%); }.week-row .is-today b { color: #fff; }
+.daily-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.daily-heading > p { flex: 0 0 auto; margin: 0 0 2px; color: #87939a; font-size: 11px; }
+.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 22px; }
+.calendar-toolbar > strong { flex: 0 0 auto; color: #27333a; font-size: 14px; font-weight: 700; }
+.calendar-actions { display: flex; align-items: center; gap: 2px; }
+.calendar-actions button { padding: 4px 5px; border-radius: 5px; color: #7f8a91; font-size: 11px; cursor: pointer; transition: color .2s ease, background-color .2s ease; }
+.calendar-actions button:hover { color: #20b9f4; background: rgb(50 197 255 / 9%); }
+.calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendar-weekdays { margin-top: 17px; color: #36bce9; font-size: 11px; font-weight: 650; text-align: center; }
+.calendar-days { gap: 3px 0; margin-top: 6px; }
+.calendar-days time { display: grid; height: 35px; place-items: center; border-radius: 6px; color: #39464d; font-size: 13px; font-style: normal; }
+.calendar-days time.is-adjacent { color: #bcc4c8; }
+.calendar-days time.is-today { color: #20b9f4; background: #eaf8fd; box-shadow: inset 0 0 0 1px rgb(50 197 255 / 10%); font-weight: 700; }
 .aside-title { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #edf1f3; }
 .aside-title > span { color: #a6b0b5; font-size: 10px; }
 .hot-card ol { margin: 4px 0 0; padding: 0; list-style: none; }

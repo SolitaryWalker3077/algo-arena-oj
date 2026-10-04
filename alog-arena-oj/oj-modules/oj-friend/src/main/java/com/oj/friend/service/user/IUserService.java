@@ -3,6 +3,7 @@ package com.oj.friend.service.user;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.entity.user.vo.UserVo;
 
 public interface IUserService {
     boolean sendCode(UserDto userDto);
@@ -12,4 +13,6 @@ public interface IUserService {
     boolean logout(String normalizedToken);
 
     Result<LoginUserVO> info(String normalizedToken);
+
+    UserVo detail();
 }

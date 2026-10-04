@@ -5,6 +5,7 @@ import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.vo.LoginUserVO;
 import com.oj.friend.entity.user.dto.UserDto;
+import com.oj.friend.entity.user.vo.UserVo;
 import com.oj.friend.service.user.IUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,7 +46,7 @@ public class UserController extends BaseController {
     }
 
     //获取用户信息
-    //接口地址: /friend/sysuser/info
+    //接口地址: /friend/user/info
     @Operation(summary = "当前用户信息", description = "根据认证令牌获取当前管理员昵称")
     @GetMapping("/info")
     public Result<LoginUserVO> info(@RequestHeader(HttpConstants.AUTHENTICATION) String token) {
@@ -55,4 +56,13 @@ public class UserController extends BaseController {
                 : token;
         return userService.info(normalizedToken);
     }
+
+    //获取用户详情信息
+    //接口地址: /friend/user/detail
+    @Operation(summary = "当前用户详情信息")
+    @GetMapping("/detail")
+    public Result<UserVo> detail() {
+        return Result.success(userService.detail());
+    }
+
 }
