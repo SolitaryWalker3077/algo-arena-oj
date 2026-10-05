@@ -74,4 +74,11 @@ public class UserController extends BaseController {
         return toResult(userService.edit(userUpdateDto));
     }
 
+
+    @Operation(summary = "用户头像更新")
+    @PutMapping("/head-image/update")
+    public Result<Void> updateHeadImage(@RequestBody UserUpdateDto userUpdateDto) {
+        return toResult(userService.updateHeadImage(userUpdateDto.getHeadImage()));
+    }
+
 }

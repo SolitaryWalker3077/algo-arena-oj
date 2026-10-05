@@ -18,4 +18,6 @@ public interface IUserService {
     UserVo detail();
 
     int edit(UserUpdateDto userUpdateDto);
+
+    int updateHeadImage(String headImage);
 }

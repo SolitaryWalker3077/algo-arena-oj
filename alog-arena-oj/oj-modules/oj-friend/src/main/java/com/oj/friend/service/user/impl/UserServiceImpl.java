@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -139,7 +140,7 @@ public class UserServiceImpl implements IUserService {
         }
         LoginUserVO  loginUserVO = new LoginUserVO();
         loginUserVO.setNickName(loginUser.getNickName());
-        loginUserVO.setHeadImage(loginUser.getHeadImage());
+        loginUserVO.setHeadImage("https://study-project-cz.oss-cn-wuhan-lr.aliyuncs.com/oj-project"+loginUser.getHeadImage());
         return Result.success(loginUserVO) ;
     }
 
@@ -161,6 +162,24 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public int edit(UserUpdateDto userUpdateDto) {
+        return updateCurrentUser(userInfo -> {
+            userInfo.setNickName(userUpdateDto.getNickName());
+            userInfo.setSex(userUpdateDto.getSex());
+            userInfo.setSchoolName(userUpdateDto.getSchoolName());
+            userInfo.setMajorName(userUpdateDto.getMajorName());
+            userInfo.setPhone(userUpdateDto.getPhone());
+            userInfo.setEmail(userUpdateDto.getEmail());
+            userInfo.setWechat(userUpdateDto.getWechat());
+            userInfo.setIntroduce(userUpdateDto.getIntroduce());
+        });
+    }
+
+    @Override
+    public int updateHeadImage(String headImage) {
+        return updateCurrentUser(userInfo -> userInfo.setHeadImage(headImage));
+    }
+
+    private int updateCurrentUser(Consumer<UserInfo> updateAction) {
         Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
         if (userId == null) {
             throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
@@ -169,14 +188,7 @@ public class UserServiceImpl implements IUserService {
         if (userInfo == null) {
             throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
         }
-        userInfo.setNickName(userUpdateDto.getNickName());
-        userInfo.setSex(userUpdateDto.getSex());
-        userInfo.setSchoolName(userUpdateDto.getSchoolName());
-        userInfo.setMajorName(userUpdateDto.getMajorName());
-        userInfo.setPhone(userUpdateDto.getPhone());
-        userInfo.setEmail(userUpdateDto.getEmail());
-        userInfo.setWechat(userUpdateDto.getWechat());
-        userInfo.setIntroduce(userUpdateDto.getIntroduce());
+        updateAction.accept(userInfo);
         //更新用户缓存
         userCacheManager.refreshUser(userInfo);
         tokenService.refreshLoginUser(userInfo.getNickName(),userInfo.getHeadImage(),
