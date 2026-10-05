@@ -7,6 +7,7 @@ import com.oj.friend.entity.question.dto.QuestionQueryDto;
 import com.oj.friend.entity.question.es.QuestionEs;
 import com.oj.friend.entity.question.vo.QuestionDetailVo;
 import com.oj.friend.entity.question.vo.QuestionVo;
+import com.oj.friend.manager.QuestionCacheManager;
 import com.oj.friend.mapper.question.QuestionMapper;
 import com.oj.friend.service.question.IQuestionService;
 
@@ -30,6 +31,9 @@ public class QuestionServiceImpl implements IQuestionService {
 
     @Autowired
     private QuestionMapper questionMapper;
+
+    @Autowired
+    private QuestionCacheManager questionCacheManager;
 
     @Override
     public TableDataInfo list(QuestionQueryDto questionQueryDto) {
@@ -77,6 +81,23 @@ public class QuestionServiceImpl implements IQuestionService {
         return questionDetailVo;
     }
 
+    @Override
+    public String preQuestion(Long questionId) {
+        Long listSize = questionCacheManager.getListSize();
+        if(listSize == null || listSize <=0) {
+            questionCacheManager.refreshCache();
+        }
+        return questionCacheManager.preQuestion(questionId).toString();
+    }
+
+    @Override
+    public String nextQuestion(Long questionId) {
+        Long listSize = questionCacheManager.getListSize();
+        if(listSize == null || listSize <= 0) {
+            questionCacheManager.refreshCache();
+        }
+        return questionCacheManager.nextQuestion(questionId).toString();
+    }
 
 
     /**

@@ -15,6 +15,7 @@ import com.oj.system.entity.question.dto.QuestionEditDto;
 import com.oj.system.entity.question.dto.QuestionQueryDto;
 import com.oj.system.entity.question.vo.QuestionDetailVo;
 import com.oj.system.entity.question.vo.QuestionVo;
+import com.oj.system.manager.QuestionCacheManager;
 import com.oj.system.mapper.question.QuestionMapper;
 import com.oj.system.service.question.IQuestionService;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,8 @@ public class QuestionServiceImpl implements IQuestionService {
     @Autowired
     private QuestionRepository questionRepository;
 
+    @Autowired
+    private QuestionCacheManager questionCacheManager;
 
     @Override
     public List<QuestionVo> list(QuestionQueryDto questionQueryDto) {
@@ -60,6 +63,7 @@ public class QuestionServiceImpl implements IQuestionService {
         QuestionEs questionEs = new QuestionEs();
         BeanUtil.copyProperties(questionsInfo,questionEs);
         questionRepository.save(questionEs);
+        questionCacheManager.addCache(questionsInfo.getQuestionId());
         return true;
     }
 
@@ -104,6 +108,7 @@ public class QuestionServiceImpl implements IQuestionService {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
         questionRepository.deleteById(questionId);
+        questionCacheManager.deleteCache(questionId);
         return questionMapper.deleteById(questionId);
     }
 }

@@ -38,4 +38,16 @@ public class QuestionController extends BaseController {
         return Result.success(questionService.detail(questionId));
     }
 
+    @Operation(summary = "获取上一题题目详情")
+    @GetMapping("/preQuestion")
+    public Result<String> preQuestionDetail(Long questionId) {
+        return Result.success(questionService.preQuestion(questionId));
+    }
+
+    @Operation(summary = "获取下一题题目详情")
+    @GetMapping("/nextQuestion")
+    public Result<String> nextQuestionDetail(Long questionId) {
+        return Result.success(questionService.nextQuestion(questionId));
+    }
+
 }
