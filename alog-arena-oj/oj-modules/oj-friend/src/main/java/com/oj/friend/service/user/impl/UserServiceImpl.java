@@ -140,7 +140,7 @@ public class UserServiceImpl implements IUserService {
         }
         LoginUserVO  loginUserVO = new LoginUserVO();
         loginUserVO.setNickName(loginUser.getNickName());
-        loginUserVO.setHeadImage("https://study-project-cz.oss-cn-wuhan-lr.aliyuncs.com/oj-project"+loginUser.getHeadImage());
+        loginUserVO.setHeadImage("https://study-project-cz.oss-cn-wuhan-lr.aliyuncs.com/oj-project/"+loginUser.getHeadImage());
         return Result.success(loginUserVO) ;
     }
 
