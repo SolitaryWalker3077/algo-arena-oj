@@ -9,9 +9,8 @@ export function normalizeQuestionSummary(row, index = 0) {
     questionId: String(row?.questionId ?? `question-${index}`),
     title: row?.title || '未命名题目',
     difficulty,
-    acceptedRate: Math.min(100, Math.max(0, Number(row?.acceptedRate ?? row?.passRate ?? (72 - difficulty * 8 - index)) || 0)),
     tags: Array.isArray(row?.tags) ? row.tags : [],
-    solved: Boolean(row?.solved ?? row?.pass),
+    solved: row?.solved == null && row?.pass == null ? null : Boolean(row.solved ?? row.pass),
   }
 }
 

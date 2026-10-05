@@ -11,8 +11,6 @@
       </div>
     </PageHeader>
 
-    <PreviewNotice v-if="previewMode" class="preview-banner" />
-
     <section class="question-layout">
       <div class="question-panel">
         <form class="filter-bar" role="search" @submit.prevent="search">
@@ -26,11 +24,18 @@
         </form>
 
         <div class="table-head" aria-hidden="true">
-          <span>状态</span><span>题目</span><span>难度</span><span>通过率</span><span></span>
+          <span>状态</span><span>题目</span><span>难度</span><span></span>
         </div>
 
         <div v-if="loading" class="skeleton-list" aria-label="题目正在加载">
           <el-skeleton v-for="index in 7" :key="index" animated :rows="1" />
+        </div>
+
+        <div v-else-if="listError" class="empty-state" role="alert">
+          <span aria-hidden="true">!</span>
+          <h2>题目加载失败</h2>
+          <p>{{ listError }}</p>
+          <button type="button" @click="loadQuestions">重新加载</button>
         </div>
 
         <div v-else-if="!questions.length" class="empty-state">
@@ -42,7 +47,7 @@
 
         <ol v-else class="question-list">
           <li v-for="question in questions" :key="question.questionId">
-            <span class="question-state" :class="{ 'is-solved': question.solved }" :title="question.solved ? '已通过' : '未作答'">
+            <span class="question-state" :class="{ 'is-solved': question.solved }" :title="question.solved == null ? '暂无作答状态' : question.solved ? '已通过' : '未作答'">
               {{ question.solved ? '✓' : '·' }}
             </span>
             <div class="question-name">
@@ -52,7 +57,6 @@
               </div>
             </div>
             <span class="difficulty" :class="`is-${question.difficulty}`">{{ difficultyLabel(question.difficulty) }}</span>
-            <span class="acceptance">{{ question.acceptedRate }}%</span>
             <button class="practice-button" type="button" @click="openQuestion(question)">
               {{ isAuthenticated ? '开始答题' : '登录后答题' }}
             </button>
@@ -104,6 +108,9 @@
 
         <section class="hot-card">
           <div class="aside-title"><div><p class="aside-eyebrow">TRENDING</p><h2>热门题目</h2></div><span>TOP 5</span></div>
+          <p v-if="hotLoading" class="aside-empty" role="status">正在加载热门题目…</p>
+          <p v-else-if="hotError" class="aside-error" role="alert">{{ hotError }} <button type="button" @click="loadHotQuestions">重试</button></p>
+          <p v-else-if="!hotQuestions.length" class="aside-empty">暂无题目</p>
           <ol>
             <li v-for="(question, index) in hotQuestions" :key="question.questionId">
               <b :class="{ 'is-top': index < 3 }">{{ String(index + 1).padStart(2, '0') }}</b>
@@ -122,23 +129,23 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
-import PreviewNotice from '@/components/PreviewNotice.vue'
 import QuestionSelector from '@/components/QuestionSelector.vue'
 import { getHotQuestionListService, getQuestionListService } from '@/apis/question'
-import { demoQuestions } from '@/data/demoData'
 import { userState } from '@/stores/user'
-import { withPreviewFallback } from '@/utils/previewFallback'
 import { filterQuestionSummaries, getDifficultyLabel, normalizeQuestionSummary } from '@/utils/question'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
-const previewMode = ref(false)
+const listError = ref('')
+const hotError = ref('')
+const hotLoading = ref(true)
 const questions = ref([])
 const hotQuestions = ref([])
 const total = ref(0)
 const filters = reactive({ pageNum: 1, pageSize: 10, difficulty: '', keyword: '' })
 let controller
+let hotController
 let requestSequence = 0
 
 const isAuthenticated = computed(() => userState.isAuthenticated)
@@ -182,57 +189,59 @@ function backToToday() {
   displayedMonth.value = new Date(today.getFullYear(), today.getMonth(), 1)
 }
 
-function filterDemoRows() {
-  return filterQuestionSummaries(demoQuestions, filters)
-}
-
 async function loadQuestions() {
   controller?.abort()
   controller = new AbortController()
   const activeController = controller
   const sequence = ++requestSequence
   loading.value = true
+  listError.value = ''
   try {
-    const fallbackRows = filterDemoRows()
     const fallbackStart = (filters.pageNum - 1) * filters.pageSize
     const filteredRequest = hasFilter.value
       ? { ...filters, pageNum: 1, pageSize: 500 }
       : filters
-    const result = await withPreviewFallback(
-      () => getQuestionListService(filteredRequest, { signal: activeController.signal }),
-      {
-        rows: hasFilter.value
-          ? fallbackRows
-          : fallbackRows.slice(fallbackStart, fallbackStart + filters.pageSize),
-        total: fallbackRows.length,
-      },
-    )
+    const result = await getQuestionListService(filteredRequest, { signal: activeController.signal })
     if (sequence !== requestSequence) return
-    previewMode.value = previewMode.value || result.preview
-    const normalizedRows = (Array.isArray(result.data?.rows) ? result.data.rows : []).map(normalizeQuestionSummary)
+    if (!Array.isArray(result.rows)) throw new Error('题目数据格式异常，请稍后重试')
+    const normalizedRows = result.rows.map(normalizeQuestionSummary)
     if (hasFilter.value) {
       const filteredRows = filterQuestionSummaries(normalizedRows, filters)
       questions.value = filteredRows.slice(fallbackStart, fallbackStart + filters.pageSize)
       total.value = filteredRows.length
     } else {
       questions.value = normalizedRows
-      total.value = Math.max(0, Number(result.data?.total) || normalizedRows.length)
+      total.value = Math.max(0, Number(result.total) || normalizedRows.length)
     }
   } catch (error) {
-    if (error?.name !== 'CanceledError' && error?.name !== 'AbortError' && error?.code !== 3001) throw error
+    if (sequence !== requestSequence || error?.name === 'CanceledError' || error?.name === 'AbortError') return
+    questions.value = []
+    total.value = 0
+    listError.value = error?.message || '请检查网络后重试'
   } finally {
     if (sequence === requestSequence) loading.value = false
   }
 }
 
 async function loadHotQuestions() {
-  const result = await withPreviewFallback(
-    () => getHotQuestionListService({ signal: controller?.signal }),
-    demoQuestions.slice(0, 5),
-  )
-  previewMode.value = previewMode.value || result.preview
-  const rows = Array.isArray(result.data?.data) ? result.data.data : result.data
-  hotQuestions.value = (Array.isArray(rows) ? rows : demoQuestions).slice(0, 5).map(normalizeQuestionSummary)
+  hotController?.abort()
+  const activeController = new AbortController()
+  hotController = activeController
+  hotError.value = ''
+  hotLoading.value = true
+  try {
+    const result = await getHotQuestionListService({ signal: activeController.signal })
+    if (hotController !== activeController) return
+    const rows = Array.isArray(result.data?.data) ? result.data.data : result.data
+    if (!Array.isArray(rows)) throw new Error('热门题目数据格式异常，请稍后重试')
+    hotQuestions.value = rows.slice(0, 5).map(normalizeQuestionSummary)
+  } catch (error) {
+    if (hotController !== activeController || error?.name === 'CanceledError' || error?.name === 'AbortError') return
+    hotQuestions.value = []
+    hotError.value = error?.status === 404 ? '热门题目接口暂未开放' : error?.message || '热门题目加载失败'
+  } finally {
+    if (hotController === activeController) hotLoading.value = false
+  }
 }
 
 function search() {
@@ -270,14 +279,18 @@ onMounted(async () => {
   if (typeof route.query.keyword === 'string') filters.keyword = route.query.keyword
   await Promise.all([loadQuestions(), loadHotQuestions()])
 })
-onBeforeUnmount(() => controller?.abort())
+onBeforeUnmount(() => {
+  controller?.abort()
+  hotController?.abort()
+})
 </script>
 
 <style lang="scss" scoped>
 .question-page { max-width: 1520px; margin: 0 auto; padding: 30px 0 64px; }
 .learning-stat { display: flex; align-items: baseline; gap: 7px; color: #869198; font-size: 13px; }
 .learning-stat strong { color: #23b9f1; font-size: 26px; }
-.preview-banner { margin-top: 20px; }
+.aside-error, .aside-empty { margin: 16px 0 0; color: #87939a; font-size: 12px; }
+.aside-error button { color: #20b9f4; cursor: pointer; }
 .question-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; margin-top: 24px; }
 .question-panel, .daily-card, .hot-card { border: 1px solid #edf2f4; border-radius: 14px; background: #fff; box-shadow: 0 10px 30px rgb(38 65 79 / 5%); }
 .question-panel { min-width: 0; overflow: hidden; }
@@ -292,7 +305,7 @@ onBeforeUnmount(() => controller?.abort())
 .primary-button:hover { background: #20b9f4; transform: translateY(-1px); }
 .reset-button { color: #77848b; border-color: #e0e6e9; background: #fff; }
 button:disabled { cursor: not-allowed; opacity: .55; }
-.table-head, .question-list li { display: grid; grid-template-columns: 54px minmax(260px, 1fr) 100px 100px 120px; align-items: center; }
+.table-head, .question-list li { display: grid; grid-template-columns: 54px minmax(260px, 1fr) 100px 120px; align-items: center; }
 .table-head { height: 42px; padding: 0 20px; color: #96a0a6; background: #f5fbfd; font-size: 12px; font-weight: 650; }
 .question-list { margin: 0; padding: 0 20px; list-style: none; }
 .question-list li { min-height: 68px; border-bottom: 1px solid #f0f3f5; }
@@ -307,7 +320,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .difficulty { justify-self: start; padding: 4px 10px; border-radius: 12px; color: #1aa975; background: #ecfaf5; font-size: 12px; }
 .difficulty.is-2 { color: #c78017; background: #fff7e9; }
 .difficulty.is-3 { color: #e65d56; background: #fff0ef; }
-.acceptance { color: #78858c; font-size: 13px; }
 .practice-button { width: 100px; height: 34px; padding: 0 10px; border: 1px solid #aee6fa; color: #1eb9f2; background: #f5fcff; }
 .practice-button:hover { color: #fff; background: #32c5ff; }
 .pagination { justify-content: flex-end; padding: 18px 20px 22px; border-top: 1px solid #f0f3f5; }
@@ -341,6 +353,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .hot-card li { display: grid; min-height: 52px; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; border-bottom: 1px solid #f1f3f4; }
 .hot-card li:last-child { border-bottom: 0; }.hot-card li b { color: #aeb7bc; font-size: 12px; }.hot-card li b.is-top { color: #2bbcf1; }
 .hot-card li button { overflow: hidden; color: #46545c; font-size: 13px; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }.hot-card li button:hover { color: #22b8ef; }.hot-card li > span { color: #9ba6ac; font-size: 11px; }
-@media (max-width: 1050px) { .question-layout { grid-template-columns: 1fr; }.question-aside { display: grid; grid-template-columns: 1fr 1fr; }.table-head, .question-list li { grid-template-columns: 46px minmax(220px, 1fr) 80px 80px 110px; } }
-@media (max-width: 760px) { .question-page { padding-top: 24px; }.filter-bar { flex-wrap: wrap; padding: 14px; }.search-field { flex-basis: 100%; }.difficulty-select { flex: 1; }.table-head { display: none; }.question-list { padding: 0 14px; }.question-list li { grid-template-columns: 34px minmax(0, 1fr) auto; padding: 10px 0; }.acceptance { display: none; }.practice-button { grid-column: 2 / 4; width: 100%; margin-top: 5px; }.question-aside { grid-template-columns: 1fr; }.difficulty { grid-column: 3; grid-row: 1; }.learning-stat { display: none; } }
+@media (max-width: 1050px) { .question-layout { grid-template-columns: 1fr; }.question-aside { display: grid; grid-template-columns: 1fr 1fr; }.table-head, .question-list li { grid-template-columns: 46px minmax(220px, 1fr) 80px 110px; } }
+@media (max-width: 760px) { .question-page { padding-top: 24px; }.filter-bar { flex-wrap: wrap; padding: 14px; }.search-field { flex-basis: 100%; }.difficulty-select { flex: 1; }.table-head { display: none; }.question-list { padding: 0 14px; }.question-list li { grid-template-columns: 34px minmax(0, 1fr) auto; padding: 10px 0; }.practice-button { grid-column: 2 / 4; width: 100%; margin-top: 5px; }.question-aside { grid-template-columns: 1fr; }.difficulty { grid-column: 3; grid-row: 1; }.learning-stat { display: none; } }
 </style>

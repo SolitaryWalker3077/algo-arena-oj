@@ -6,8 +6,13 @@ test('兼容后端 difficult 字段并规范化题目摘要', () => {
   const result = normalizeQuestionSummary({ questionId: 9, title: '示例', difficult: 2, passRate: 48 })
   assert.equal(result.questionId, '9')
   assert.equal(result.difficulty, 2)
-  assert.equal(result.acceptedRate, 48)
+  assert.equal('acceptedRate' in result, false)
   assert.deepEqual(result.tags, [])
+})
+
+test('后端未提供作答状态时不生成演示状态', () => {
+  const result = normalizeQuestionSummary({ questionId: '123', title: '真实题目', difficult: 1 })
+  assert.equal(result.solved, null)
 })
 
 test('题目搜索同时匹配标题、标签和难度', () => {
