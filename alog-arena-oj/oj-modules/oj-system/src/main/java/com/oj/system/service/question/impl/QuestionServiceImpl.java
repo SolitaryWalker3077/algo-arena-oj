@@ -86,7 +86,6 @@ public class QuestionServiceImpl implements IQuestionService {
         if (oldQuestion == null) {
             throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
         }
-
         oldQuestion.setTitle(questionEditDto.getTitle());
         oldQuestion.setDifficult(questionEditDto.getDifficult());
         oldQuestion.setTimeLimit(questionEditDto.getTimeLimit());
