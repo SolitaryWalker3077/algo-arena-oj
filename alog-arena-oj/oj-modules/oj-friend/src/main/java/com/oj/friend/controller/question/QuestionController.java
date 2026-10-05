@@ -2,8 +2,10 @@ package com.oj.friend.controller.question;
 
 
 import com.oj.common.controller.BaseController;
+import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.question.dto.QuestionQueryDto;
+import com.oj.friend.entity.question.vo.QuestionDetailVo;
 import com.oj.friend.service.question.IQuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,8 +27,15 @@ public class QuestionController extends BaseController {
 
 
     @Operation(summary = "C端题目列表")
-    @GetMapping("/semiLogin/list")
+    @GetMapping("/semiLogin/list") //semiLogin是为了让所有的用户包括游客也可以使用
     public TableDataInfo list(@Validated @ParameterObject QuestionQueryDto questionQueryDto) {
         return questionService.list(questionQueryDto);
     }
+
+    @Operation(summary = "获取题目详情")
+    @GetMapping("/detail")
+    public Result<QuestionDetailVo> detail(Long questionId) {
+        return Result.success(questionService.detail(questionId));
+    }
+
 }

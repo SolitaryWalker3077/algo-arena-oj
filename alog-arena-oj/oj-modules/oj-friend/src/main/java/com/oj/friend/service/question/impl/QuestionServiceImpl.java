@@ -5,6 +5,7 @@ import com.oj.friend.elasticsearch.QuestionRepository;
 import com.oj.friend.entity.question.QuestionInfo;
 import com.oj.friend.entity.question.dto.QuestionQueryDto;
 import com.oj.friend.entity.question.es.QuestionEs;
+import com.oj.friend.entity.question.vo.QuestionDetailVo;
 import com.oj.friend.entity.question.vo.QuestionVo;
 import com.oj.friend.mapper.question.QuestionMapper;
 import com.oj.friend.service.question.IQuestionService;
@@ -59,12 +60,39 @@ public class QuestionServiceImpl implements IQuestionService {
         return TableDataInfo.success(questionVOList, total);
     }
 
+    @Override
+    public QuestionDetailVo detail(Long questionId) {
+        QuestionEs questionEs = questionRepository.findById(questionId).orElse(null);
+        QuestionDetailVo questionDetailVo = new QuestionDetailVo();
+        if(questionEs != null) {
+            BeanUtil.copyProperties(questionEs,questionDetailVo);
+            return questionDetailVo;
+        }
+        QuestionInfo questionInfo = questionMapper.selectById(questionId);
+        if(questionInfo == null) {
+            return null;
+        }
+        refreshQuestion();
+        BeanUtil.copyProperties(questionInfo,questionDetailVo);
+        return questionDetailVo;
+    }
+
+
+
+    /**
+     * 将数据库中的全部题目同步到 Elasticsearch，供题目列表和详情查询使用。
+     * 按题目 ID 新增或覆盖索引文档，不会删除仅存在于 Elasticsearch 中的旧文档。
+     */
     private void refreshQuestion() {
+        // 全量查询数据库中的题目。
         List<QuestionInfo> questionInfoList = questionMapper.selectList(new LambdaQueryWrapper<QuestionInfo>());
+        // 数据库中没有题目时直接返回，不执行索引写入。
         if(CollectionUtil.isEmpty(questionInfoList)) {
             return;
         }
+        // 将数据库实体转换为 Elasticsearch 文档对象。
         List<QuestionEs> questionEsList = BeanUtil.copyToList(questionInfoList, QuestionEs.class);
+        // 批量保存文档：相同 ID 的文档更新，不存在的文档新增。
         questionRepository.saveAll(questionEsList);
     }
 }
