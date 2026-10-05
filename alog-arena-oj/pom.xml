@@ -28,6 +28,7 @@
         <oj-common-mybatis.version>1.0-SNAPSHOT</oj-common-mybatis.version>
         <oj-common-message.version>1.0-SNAPSHOT</oj-common-message.version>
         <oj-common-elsticsearch.version>1.0-SNAPSHOT</oj-common-elsticsearch.version>
+        <oj-common-file.version>1.0-SNAPSHOT</oj-common-file.version>
         <springdoc-openapi.version>2.2.0</springdoc-openapi.version>
         <fastjson2.version>2.0.43</fastjson2.version>
         <jjwt.version>0.9.1</jjwt.version>
@@ -36,6 +37,10 @@
         <pagehelper.boot.version>2.0.0</pagehelper.boot.version>
         <xxl-job-core.version>2.4.0</xxl-job-core.version>
         <transmittable-thread-local.version>2.14.4</transmittable-thread-local.version>
+        <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
+        <jaxb-api.version>2.3.1</jaxb-api.version>
+        <activation.version>1.1.1</activation.version>
+        <jaxb-runtime.version>2.3.3</jaxb-runtime.version>
     </properties>
 
     <dependencies>
