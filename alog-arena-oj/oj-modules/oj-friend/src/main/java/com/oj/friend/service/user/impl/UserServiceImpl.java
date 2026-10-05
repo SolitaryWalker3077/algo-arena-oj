@@ -67,8 +67,8 @@ public class UserServiceImpl implements IUserService {
     @Value("${jwt.secret}")
     private String secret;
 
-//    @Value("${file.oss.downloadUrl}")
-//    private String downloadUrl;
+    @Value("${file.oss.downloadUrl}")
+    private String downloadUrl;
 
     @Override
     public boolean sendCode(UserDto userDto) {
@@ -140,7 +140,10 @@ public class UserServiceImpl implements IUserService {
         }
         LoginUserVO  loginUserVO = new LoginUserVO();
         loginUserVO.setNickName(loginUser.getNickName());
-        loginUserVO.setHeadImage("https://study-project-cz.oss-cn-wuhan-lr.aliyuncs.com/oj-project/"+loginUser.getHeadImage());
+        if(StrUtil.isNotEmpty(loginUser.getHeadImage())) {
+            loginUserVO.setHeadImage(downloadUrl + loginUser.getHeadImage());
+        }
+
         return Result.success(loginUserVO) ;
     }
 
@@ -154,9 +157,9 @@ public class UserServiceImpl implements IUserService {
         if(userVo == null) {
             throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
         }
-//        if(StrUtil.isNotEmpty(userVo.getHeadImage())) {
-//            userVo.setHeadImage(downloadUrl+userVo.getHeadImage());
-//        }
+        if(StrUtil.isNotEmpty(userVo.getHeadImage())) {
+            userVo.setHeadImage(downloadUrl+userVo.getHeadImage());
+        }
         return userVo;
     }
 
