@@ -11,6 +11,9 @@ export function validateAvatarFile(file) {
   if (!file || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
     throw createAvatarError('请选择 JPG、JPEG、PNG 或 WebP 格式的图片', 'INVALID_AVATAR_TYPE')
   }
+  if (!Number.isFinite(file.size) || file.size <= 0) {
+    throw createAvatarError('图片文件为空，请重新选择', 'AVATAR_EMPTY')
+  }
   if (file.size > MAX_AVATAR_FILE_SIZE) {
     throw createAvatarError('头像原图不能超过 5 MB', 'AVATAR_TOO_LARGE')
   }
@@ -65,6 +68,7 @@ export async function compressAvatar(file, options = {}) {
   if (!blob) throw createAvatarError('头像压缩失败，请更换图片后重试', 'AVATAR_COMPRESS_FAILED')
 
   return {
+    file: new File([blob], 'avatar.' + (blob.type === 'image/webp' ? 'webp' : blob.type === 'image/jpeg' ? 'jpg' : 'png'), { type: blob.type }),
     dataUrl: await readAsDataUrl(blob),
     originalSize: file.size,
     compressedSize: blob.size,

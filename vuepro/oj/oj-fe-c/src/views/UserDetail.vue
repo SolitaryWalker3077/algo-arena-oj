@@ -12,7 +12,7 @@
       </button>
     </PageHeader>
 
-    <section class="profile-card" :class="{ 'is-editing': editing }" aria-live="polite" :aria-busy="loading">
+    <section class="profile-card" :class="{ 'is-editing': editing }" aria-live="polite" :aria-busy="loading || saving || avatarProcessing">
       <div v-if="loading" class="profile-loading" role="status">
         <span class="sr-only">正在加载个人资料</span>
         <div class="loading-header">
@@ -57,7 +57,7 @@
 
         <section class="avatar-section" aria-label="头像和昵称">
           <div class="avatar-frame" :class="{ 'is-processing': avatarProcessing }">
-            <img :src="avatarSource" :alt="`${displayNickname}的头像`" @error="handleAvatarError">
+            <img :key="avatarSource" :src="avatarSource" :alt="`${displayNickname}的头像`" @error="handleAvatarError">
             <span v-if="avatarProcessing" class="avatar-spinner" aria-label="正在压缩头像"></span>
           </div>
           <div class="avatar-copy">
@@ -68,9 +68,9 @@
               <div class="avatar-actions">
                 <el-button class="upload-button" type="primary" plain round :disabled="avatarProcessing || saving" @click="chooseAvatar">
                   <el-icon><UploadFilled /></el-icon>
-                  {{ avatarProcessing ? '正在压缩…' : '上传头像' }}
+                  {{ avatarProcessing ? '正在压缩…' : avatarSaving ? '正在上传并更新…' : '上传头像' }}
                 </el-button>
-                <el-button v-if="form.headImage" class="remove-avatar-button" round :disabled="avatarProcessing || saving" @click="removeAvatar">
+                <el-button v-if="form.headImage || avatarPreview" class="remove-avatar-button" round :disabled="avatarProcessing || saving" @click="removeAvatar">
                   <el-icon><RefreshLeft /></el-icon>
                   恢复默认头像
                 </el-button>
@@ -256,13 +256,13 @@
               <p v-else>确认信息无误后保存，修改将同步到个人中心。</p>
             </div>
             <div class="form-actions">
-              <el-button class="cancel-button" size="large" round :disabled="saving" @click="cancelEditing">
+              <el-button class="cancel-button" size="large" round :disabled="saving || avatarProcessing" @click="cancelEditing">
                 <el-icon><Close /></el-icon>
                 取消编辑
               </el-button>
               <el-button class="save-button" type="primary" size="large" round :loading="saving" :disabled="avatarProcessing" @click="saveProfile">
                 <el-icon v-if="!saving"><Check /></el-icon>
-                {{ saving ? '正在保存…' : submitError ? '重新保存' : '保存资料' }}
+                {{ saving ? (avatarSaving ? '正在更新头像…' : '正在保存…') : submitError ? '重新保存' : '保存资料' }}
               </el-button>
             </div>
           </footer>
@@ -279,7 +279,7 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import defaultAvatar from '@/assets/user/head_image.png'
-import { editUserService, getUserDetailService } from '@/apis/user'
+import { editUserService, getUserDetailService, updateHeadImageService } from '@/apis/user'
 import { updateCurrentUserProfile } from '@/stores/user'
 import {
   getDisplayNickname,
@@ -295,6 +295,9 @@ import {
   validateProfileForm,
 } from '@/utils/profileForm'
 import { compressAvatar } from '@/utils/profileImage'
+import { uploadAvatarService } from '@/apis/file'
+import { createAvatarSaveTask, resolveAvatarUrl } from '@/utils/avatarUpload'
+import { getToken } from '@/utils/cookie'
 
 const router = useRouter()
 const route = useRoute()
@@ -305,6 +308,11 @@ const authExpired = ref(false)
 const editing = ref(false)
 const saving = ref(false)
 const avatarProcessing = ref(false)
+const avatarSaving = ref(false)
+const avatarPreview = ref('')
+let savedAvatarPreview = ''
+let avatarSaveTask = null
+let disposed = false
 const avatarError = ref('')
 const avatarNotice = ref('')
 const submitError = ref('')
@@ -323,7 +331,7 @@ const currentNickname = computed(() => editing.value ? form.nickName : profile.v
 const displayNickname = computed(() => getDisplayNickname(currentNickname.value))
 const avatarSource = computed(() => {
   const source = editing.value ? form.headImage : profile.value?.headImage
-  return source || defaultAvatar
+  return avatarPreview.value || resolveAvatarUrl(source, import.meta.env.VITE_AVATAR_BASE_URL) || defaultAvatar
 })
 const statusPresentation = computed(() => getStatusPresentation(profile.value?.status))
 
@@ -374,6 +382,8 @@ async function loadProfile() {
 
 function startEditing() {
   assignForm(profile.value)
+  avatarPreview.value = savedAvatarPreview
+  avatarSaveTask = null
   clearValidation()
   avatarError.value = ''
   avatarNotice.value = ''
@@ -382,8 +392,10 @@ function startEditing() {
 }
 
 function cancelEditing() {
-  if (saving.value) return
+  if (saving.value || avatarProcessing.value) return
   assignForm(profile.value)
+  avatarPreview.value = savedAvatarPreview
+  avatarSaveTask = null
   clearValidation()
   avatarError.value = ''
   avatarNotice.value = ''
@@ -421,18 +433,45 @@ async function saveProfile() {
 
   saving.value = true
   submitError.value = ''
+  let avatarStage = Boolean(avatarSaveTask || form.headImage !== profile.value.headImage)
   try {
+    if (!getToken()) throw new Error('请先登录后重试')
+    if (avatarStage) {
+      avatarSaving.value = true
+      let name = form.headImage
+      if (avatarSaveTask) name = await avatarSaveTask()
+      else await updateHeadImageService({ headImage: name })
+      if (disposed) return
+      form.headImage = name
+      profile.value.headImage = name
+      savedAvatarPreview = avatarPreview.value
+      updateCurrentUserProfile({ headImage: avatarPreview.value || name })
+      avatarSaveTask = null
+      avatarSaving.value = false
+      avatarStage = false
+      ElMessage.success('更新头像成功')
+    }
     const payload = createProfileUpdatePayload(form)
-    await editUserService(payload)
-    profile.value = { ...profile.value, ...payload }
-    updateCurrentUserProfile({ nickName: payload.nickName, headImage: payload.headImage })
+    delete payload.headImage
+    const previous = createProfileUpdatePayload(profile.value)
+    if (Object.keys(payload).some((key) => payload[key] !== previous[key])) {
+      await editUserService(payload)
+      if (disposed) return
+      profile.value = { ...profile.value, ...payload }
+      updateCurrentUserProfile({ nickName: payload.nickName })
+      ElMessage.success('个人资料已更新')
+    }
     editing.value = false
     avatarNotice.value = ''
-    ElMessage.success('个人资料已更新')
   } catch (error) {
-    submitError.value = error?.message || '保存失败，请检查网络后重试。'
+    if (disposed) return
+    submitError.value = avatarStage
+      ? '上传头像失败：' + (error?.message || '请检查网络后重试') + '。可点击“重新保存”重试。'
+      : error?.message || '保存失败，请检查网络后重试。'
+    if (avatarStage) ElMessage.error('上传头像失败')
   } finally {
     saving.value = false
+    avatarSaving.value = false
   }
 }
 
@@ -443,14 +482,16 @@ function chooseAvatar() {
 async function handleAvatarSelected(event) {
   const file = event.target.files?.[0]
   event.target.value = ''
-  if (!file) return
+  if (!file || saving.value || avatarProcessing.value) return
 
   avatarProcessing.value = true
   avatarError.value = ''
   avatarNotice.value = ''
   try {
     const result = await compressAvatar(file)
-    form.headImage = result.dataUrl
+    if (disposed) return
+    avatarPreview.value = result.dataUrl
+    avatarSaveTask = createAvatarSaveTask(result.file, { upload: uploadAvatarService, update: updateHeadImageService })
     const savedPercent = result.originalSize
       ? Math.max(0, Math.round((1 - result.compressedSize / result.originalSize) * 100))
       : 0
@@ -466,6 +507,9 @@ async function handleAvatarSelected(event) {
 }
 
 function removeAvatar() {
+  if (saving.value || avatarProcessing.value) return
+  avatarPreview.value = ''
+  avatarSaveTask = null
   form.headImage = ''
   avatarError.value = ''
   avatarNotice.value = '已选择默认头像，保存资料后生效。'
@@ -476,8 +520,6 @@ function handleAvatarError(event) {
   if (event.currentTarget.dataset.fallbackApplied) return
   event.currentTarget.dataset.fallbackApplied = 'true'
   event.currentTarget.src = defaultAvatar
-  if (editing.value) form.headImage = ''
-  else if (profile.value) profile.value.headImage = ''
 }
 
 function goLogin() {
@@ -486,6 +528,7 @@ function goLogin() {
 
 onMounted(loadProfile)
 onBeforeUnmount(() => {
+  disposed = true
   controller?.abort()
   validationTimers.forEach((timer) => window.clearTimeout(timer))
 })

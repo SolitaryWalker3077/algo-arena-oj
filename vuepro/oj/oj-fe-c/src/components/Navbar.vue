@@ -30,7 +30,7 @@
       </button>
       <el-dropdown v-else-if="userState.isAuthenticated">
         <div class="oj-navbar-name" :title="userState.profile.nickName">
-          <img class="oj-head-image" :src="avatarUrl" alt="用户头像" @error="handleAvatarError" />
+          <img class="oj-head-image" :key="avatarUrl" :src="avatarUrl" alt="用户头像" @error="handleAvatarError" />
           <span class="oj-user-nickname">{{ userState.profile.nickName }}</span>
         </div>
         <template #dropdown>
@@ -73,11 +73,12 @@ import defaultAvatar from '@/assets/images/headimage.jpg'
 import { logoutService } from '@/apis/user'
 import { getToken, removeToken } from '@/utils/cookie'
 import { clearCurrentUser, fetchCurrentUser, userState } from '@/stores/user'
+import { resolveAvatarUrl } from '@/utils/avatarUpload'
 import { showAuthExpiredNotice } from '@/utils/authNotice'
 
 const router = useRouter()
 const route = useRoute()
-const avatarUrl = computed(() => userState.profile.headImage || defaultAvatar)
+const avatarUrl = computed(() => resolveAvatarUrl(userState.profile.headImage, import.meta.env.VITE_AVATAR_BASE_URL) || defaultAvatar)
 const activeMenu = computed(() => (
   route.name === 'exam' || String(route.name).startsWith('contest-')
     ? '/c-oj/home/exam'

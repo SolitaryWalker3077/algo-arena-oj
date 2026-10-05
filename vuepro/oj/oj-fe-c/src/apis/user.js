@@ -52,6 +52,7 @@ export function editUserService(data) {
 export function updateHeadImageService(data) {
   return service({
     url: '/user/head-image/update',
+    requireAuth: true,
     method: 'put',
     data,
   })

@@ -11,6 +11,7 @@ const service = axios.create({
 
 service.interceptors.request.use((config) => {
   const token = getToken()
+  if (config.requireAuth && !token) throw expireAuthentication('请先登录后重试', 401)
   if (token && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -59,6 +60,7 @@ service.interceptors.response.use(
     return payload
   },
   (error) => {
+    if (error.code === 3001) return Promise.reject(error)
     if (axios.isCancel(error)) return Promise.reject(error)
 
     const status = error.response?.status
