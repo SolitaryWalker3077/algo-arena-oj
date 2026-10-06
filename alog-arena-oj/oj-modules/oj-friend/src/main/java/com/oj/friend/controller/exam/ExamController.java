@@ -42,6 +42,18 @@ public class ExamController extends BaseController {
         // 代码逻辑： 获取竞赛中题目的顺序列表   先从redis  redis中没有数据查询数据库  list  数据类型  key: e:q:l:examId   value : questionId
         return Result.success(examService.getFirstQuestion(examId));
     }
+
+    @Operation(summary = "获取上一题题目详情")
+    @GetMapping("/preQuestion")
+    public Result<String> preQuestionDetail(Long examId,Long questionId) {
+        return Result.success(examService.preQuestion(examId,questionId));
+    }
+
+    @Operation(summary = "获取下一题题目详情")
+    @GetMapping("/nextQuestion")
+    public Result<String> nextQuestionDetail(Long examId,Long questionId) {
+        return Result.success(examService.nextQuestion(examId,questionId));
+    }
 }
 
 

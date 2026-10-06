@@ -8,6 +8,7 @@ import com.github.pagehelper.PageHelper;
 import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.Constants;
 import com.oj.common.enums.ExamListType;
+import com.oj.common.enums.ResultCode;
 import com.oj.friend.entity.exam.ExamInfo;
 import com.oj.friend.entity.exam.ExamQuestionInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
@@ -17,6 +18,7 @@ import com.oj.friend.mapper.exam.ExamMapper;
 import com.oj.friend.mapper.exam.ExamQuestionMapper;
 import com.oj.friend.mapper.user.UserExamMapper;
 import com.oj.redis.service.RedisService;
+import com.oj.security.expection.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -195,6 +197,23 @@ public class ExamCacheManager {
      * */
     public Long getFirstQuestion(Long examId) {
         return redisService.indexForList(getExamQuestionListKey(examId),0, Long.class);
+    }
+    //获取上一题
+    public Long getPreQuestion(Long examId, Long questionId) {
+        Long index = redisService.indexOfForList(getExamQuestionListKey(examId), questionId);
+        if (index == 0) {
+            throw new ServiceException(ResultCode.FAILED_FIRST_QUESTION);
+        }
+        return redisService.indexForList(getExamQuestionListKey(examId), index - 1, Long.class);
+    }
+    //获取下一题
+    public Long getNextQuestion(Long examId, Long questionId) {
+        Long index = redisService.indexOfForList(getExamQuestionListKey(examId), questionId);
+        long lastIndex = getExamQuestionListSize(examId) - 1;
+        if (index == lastIndex) {
+            throw new ServiceException(ResultCode.FAILED_LAST_QUESTION);
+        }
+        return redisService.indexForList(getExamQuestionListKey(examId), index + 1, Long.class);
     }
 
     /**

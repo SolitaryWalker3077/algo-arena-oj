@@ -13,4 +13,8 @@ public interface IExamService {
     TableDataInfo redisList(ExamQueryDto examQueryDto);
 
     String getFirstQuestion(Long examId);
+
+    String preQuestion(Long examId, Long questionId);
+
+    String nextQuestion(Long examId, Long questionId);
 }

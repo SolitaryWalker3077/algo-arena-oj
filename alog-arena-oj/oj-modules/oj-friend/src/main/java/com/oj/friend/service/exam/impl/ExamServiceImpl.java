@@ -56,12 +56,25 @@ public class ExamServiceImpl implements IExamService {
 
     @Override
     public String getFirstQuestion(Long examId) {
-        Long listSize = examCacheManager.getExamQuestionListSize(examId);
-        if(listSize == null || listSize <= 0) {
-            examCacheManager.refreshExamQuestionCache(examId);
-        }
+        checkAndRefresh(examId);
         return examCacheManager.getFirstQuestion(examId).toString();
     }
+
+
+
+    @Override
+    public String preQuestion(Long examId, Long questionId) {
+        checkAndRefresh(examId);
+        return examCacheManager.getPreQuestion(examId,questionId).toString();
+    }
+
+    @Override
+    public String nextQuestion(Long examId, Long questionId) {
+        checkAndRefresh(examId);
+        return examCacheManager.getNextQuestion(examId,questionId).toString();
+    }
+
+
 
     private void assembleExamVoList(List<ExamVo> examVoList) {
         Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
@@ -73,6 +86,13 @@ public class ExamServiceImpl implements IExamService {
             if (userExamIdList.contains(examVo.getExamId())) {
                 examVo.setEnter(true);
             }
+        }
+    }
+
+    private void checkAndRefresh(Long examId) {
+        Long listSize = examCacheManager.getExamQuestionListSize(examId);
+        if(listSize == null || listSize <= 0) {
+            examCacheManager.refreshExamQuestionCache(examId);
         }
     }
 }
