@@ -9,20 +9,24 @@ import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.Constants;
 import com.oj.common.enums.ExamListType;
 import com.oj.friend.entity.exam.ExamInfo;
+import com.oj.friend.entity.exam.ExamQuestionInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.entity.exam.vo.ExamVo;
 import com.oj.friend.entity.user.UserExamInfo;
 import com.oj.friend.mapper.exam.ExamMapper;
+import com.oj.friend.mapper.exam.ExamQuestionMapper;
 import com.oj.friend.mapper.user.UserExamMapper;
 import com.oj.redis.service.RedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
@@ -36,6 +40,10 @@ public class ExamCacheManager {
 
     @Autowired
     private UserExamMapper userExamMapper;
+
+    @Autowired
+    private ExamQuestionMapper examQuestionMapper;
+
     /**
      * 获取指定类型的竞赛列表缓存数量。
      *
@@ -45,6 +53,15 @@ public class ExamCacheManager {
     public Long getListSize(Integer examListType,Long userId) {
         String examListKey = getExamListKey(examListType,userId);
         return redisService.getListSize(examListKey);
+    }
+
+    /**
+     * 获取竞赛题目列表缓存数量
+     * @param examId 竞赛id
+     * */
+    public Long getExamQuestionListSize(Long examId) {
+        String examQuestionListKey = getExamQuestionListKey(examId);
+        return redisService.getListSize(examQuestionListKey);
     }
 
     /**
@@ -135,6 +152,26 @@ public class ExamCacheManager {
     }
 
     /**
+     * 刷新竞赛题目列表缓存
+     * */
+    public void refreshExamQuestionCache(Long examId) {
+        List<ExamQuestionInfo> examQuestionList = examQuestionMapper.selectList(new LambdaQueryWrapper<ExamQuestionInfo>()
+                .select(ExamQuestionInfo::getQuestionId)
+                .eq(ExamQuestionInfo::getExamId, examId)
+                .orderByAsc(ExamQuestionInfo::getQuestionOrder));
+        if (CollectionUtil.isEmpty(examQuestionList)) {
+            return;
+        }
+        List<Long> examQuestionIdList = examQuestionList.stream().map(ExamQuestionInfo::getQuestionId).toList();
+        redisService.rightPushAll(getExamQuestionListKey(examId), examQuestionIdList);
+        //节省 redis缓存资源
+        long seconds = ChronoUnit.SECONDS.between(LocalDateTime.now(),
+                LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0));
+        redisService.expire(getExamQuestionListKey(examId), seconds, TimeUnit.SECONDS);
+    }
+
+
+    /**
      * 按查询条件从数据库分页查询竞赛列表。
      *
      * @param examQueryDto 竞赛列表查询条件
@@ -151,6 +188,13 @@ public class ExamCacheManager {
             return examMapper.selectExamList(examQueryDto);
         }
 
+    }
+
+    /**
+     * 从redis当中获取首道题目
+     * */
+    public Long getFirstQuestion(Long examId) {
+        return redisService.indexForList(getExamQuestionListKey(examId),0, Long.class);
     }
 
     /**
@@ -207,6 +251,10 @@ public class ExamCacheManager {
 
     private String getUserExamListKey(Long userId) {
         return CacheConstants.USER_EXAM_LIST + userId;
+    }
+
+    private String getExamQuestionListKey(Long examId) {
+        return CacheConstants.EXAM_QUESTION_LIST + examId;
     }
 
 

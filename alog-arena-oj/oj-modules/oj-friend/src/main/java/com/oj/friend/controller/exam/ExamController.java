@@ -1,6 +1,7 @@
 package com.oj.friend.controller.exam;
 
 import com.oj.common.controller.BaseController;
+import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.service.exam.IExamService;
@@ -32,6 +33,14 @@ public class ExamController extends BaseController {
     @GetMapping("/semiLogin/redis/list")
     public TableDataInfo RedisList(@Validated ExamQueryDto examQueryDto) {
         return examService.redisList(examQueryDto);
+    }
+
+
+    @GetMapping("/getFirstQuestion")
+    public Result<String> getFirstQuestion(Long examId) {
+        //获取竞赛中的题目顺序列表,把排在第一个的题目返回给前端
+        // 代码逻辑： 获取竞赛中题目的顺序列表   先从redis  redis中没有数据查询数据库  list  数据类型  key: e:q:l:examId   value : questionId
+        return Result.success(examService.getFirstQuestion(examId));
     }
 }
 

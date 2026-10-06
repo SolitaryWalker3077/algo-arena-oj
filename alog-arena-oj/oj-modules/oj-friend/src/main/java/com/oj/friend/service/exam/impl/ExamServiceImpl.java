@@ -54,6 +54,15 @@ public class ExamServiceImpl implements IExamService {
         return TableDataInfo.success(examVoList,total);
     }
 
+    @Override
+    public String getFirstQuestion(Long examId) {
+        Long listSize = examCacheManager.getExamQuestionListSize(examId);
+        if(listSize == null || listSize <= 0) {
+            examCacheManager.refreshExamQuestionCache(examId);
+        }
+        return examCacheManager.getFirstQuestion(examId).toString();
+    }
+
     private void assembleExamVoList(List<ExamVo> examVoList) {
         Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
         List<Long> userExamIdList = examCacheManager.getAllUserExamList(userId);

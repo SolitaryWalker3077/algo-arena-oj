@@ -38,6 +38,11 @@ public class QuestionController extends BaseController {
         return Result.success(questionService.detail(questionId));
     }
 
+
+    /**
+     * 获取题目列表顺序:先从redis当中拿 redis当中没有数据再去查询数据库,并且更新redis;
+     * */
+
     @Operation(summary = "获取上一题题目详情")
     @GetMapping("/preQuestion")
     public Result<String> preQuestionDetail(Long questionId) {

@@ -66,6 +66,7 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
     public boolean questionAdd(ExamQuestionAddDto examQuestionAddDto) {
         ExamInfo examInfo = getExamInfo(examQuestionAddDto.getExamId());
         checkExamNotStarted(examInfo);
+        extractIsPublish(examInfo);
         Set<Long> questionIdSet = examQuestionAddDto.getQuestionIdSet();
         if (CollectionUtil.isEmpty(questionIdSet)) {
             //一条题目不添加
@@ -84,7 +85,7 @@ public class ExamServiceImpl extends ServiceImpl<ExamQuestionMapper,ExamQuestion
     public int questionDelete(Long examId, Long questionId) {
         ExamInfo examInfo = getExamInfo(examId);
         checkExamNotStarted(examInfo);
-
+        extractIsPublish(examInfo);
         return examQuestionMapper.delete(new LambdaQueryWrapper<ExamQuestionInfo>()
                 .eq(ExamQuestionInfo::getExamId,examId).eq(ExamQuestionInfo::getQuestionId,questionId));
     }
