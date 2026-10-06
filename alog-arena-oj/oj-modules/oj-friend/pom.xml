@@ -36,6 +36,11 @@
             <artifactId>oj-common-file</artifactId>
             <version>${oj-common-file.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>oj-api</artifactId>
+            <version>${oj-api.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
