@@ -5,34 +5,29 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.example</groupId>
-        <artifactId>alog-arena-oj</artifactId>
+        <artifactId>oj-common</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>oj-common</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>oj-common-core</module>
-        <module>oj-common-swagger</module>
-        <module>oj-common-security</module>
-        <module>oj-common-redis</module>
-        <module>oj-common-mybatis</module>
-        <module>oj-common-message</module>
-        <module>oj-common-elsticsearch</module>
-        <module>oj-common-file</module>
-        <module>oj-common-rabbitmq</module>
-    </modules>
+    <artifactId>oj-common-rabbitmq</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
     <dependencies>
+        <!--rabbitmq-->
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>oj-common-core</artifactId>
+            <version>${oj-common-core.version}</version>
         </dependency>
     </dependencies>
+
 </project>
