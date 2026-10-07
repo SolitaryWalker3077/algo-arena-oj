@@ -9,6 +9,8 @@ import com.oj.api.entity.vo.UserQuestionResultVo;
 import com.oj.common.constants.Constants;
 import com.oj.common.constants.JudgeConstants;
 import com.oj.common.enums.CodeRunStatus;
+import com.oj.common.enums.ResultCode;
+import com.oj.security.expection.ServiceException;
 import com.oj.judge.entity.SandBoxExecuteResult;
 import com.oj.judge.entity.UserSubmit;
 import com.oj.judge.mapper.UserSubmitMapper;
@@ -33,6 +35,10 @@ public class JudgeServiceImpl implements IJudgeService {
 
     @Override
     public UserQuestionResultVo doJudgeJavaCode(JudgeSubmitDto judgeSubmitDTO) {
+        if (judgeSubmitDTO.getDifficult() == null) {
+            log.warn("判题请求缺少题目难度，questionId={}", judgeSubmitDTO.getQuestionId());
+            throw new ServiceException(ResultCode.FAILED_QUESTION_DIFFICULT_MISSING);
+        }
         log.info("---- 判题逻辑开始 -------");
         SandBoxExecuteResult sandBoxExecuteResult =
                 sandboxService.exeJavaCode(judgeSubmitDTO.getUserId(), judgeSubmitDTO.getUserCode(), judgeSubmitDTO.getInputList());
@@ -46,7 +52,7 @@ public class JudgeServiceImpl implements IJudgeService {
 
         } else {
             userQuestionResultVo.setPass(Constants.FALSE);
-            if(sandBoxExecuteResult != null) {
+            if(sandBoxExecuteResult != null && sandBoxExecuteResult.getExeMessage() != null) {
                 userQuestionResultVo.setExeMessage(sandBoxExecuteResult.getExeMessage());
             } else {
                 userQuestionResultVo.setExeMessage(CodeRunStatus.UNKNOWN_FAILED.getMsg());
@@ -120,7 +126,8 @@ public class JudgeServiceImpl implements IJudgeService {
             return userQuestionResultVO;
         }
         userQuestionResultVO.setPass(Constants.TRUE);
-        int score = judgeSubmitDTO.getDifficulty() * JudgeConstants.DEFAULT_SCORE;
+        userQuestionResultVO.setExeMessage(CodeRunStatus.SUCCEED.getMsg());
+        int score = judgeSubmitDTO.getDifficult() * JudgeConstants.DEFAULT_SCORE;
         userQuestionResultVO.setScore(score);
         return userQuestionResultVO;
     }
@@ -135,7 +142,7 @@ public class JudgeServiceImpl implements IJudgeService {
         userSubmit.setExamId(judgeSubmitDTO.getExamId());
         userSubmit.setProgramType(judgeSubmitDTO.getProgramType());
         userSubmit.setUserCode(judgeSubmitDTO.getUserCode());
-        userSubmit.setCaseJudgeRes(JSON.toJSONString(userQuestionResultVo.getUserExeResultList()));
+//        userSubmit.setCaseJudgeRes(JSON.toJSONString(userQuestionResultVo.getUserExeResultList()));
         userSubmit.setCreateBy(judgeSubmitDTO.getUserId());
         userSubmitMapper.delete(new LambdaQueryWrapper<UserSubmit>()
                 .eq(UserSubmit::getUserId, judgeSubmitDTO.getUserId())

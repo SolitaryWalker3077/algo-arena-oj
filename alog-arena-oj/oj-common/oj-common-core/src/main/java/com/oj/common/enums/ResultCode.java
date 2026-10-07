@@ -54,6 +54,7 @@ public enum ResultCode {
     FAILED_LAST_QUESTION                (3502, "当前题目已经是最后一题了哦"),
 
     FAILED_NOT_SUPPORT_PROGRAM          (3601, "当前不支持此语言"),
+    FAILED_QUESTION_DIFFICULT_MISSING    (3602, "题目难度缺失，请完善题目难度后重新提交"),
 
     FAILED_RABBIT_PRODUCE               (3701, "mq生产消息异常");
 

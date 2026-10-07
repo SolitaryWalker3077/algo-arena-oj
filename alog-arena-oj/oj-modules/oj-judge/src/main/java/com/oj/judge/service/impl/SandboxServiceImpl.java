@@ -67,12 +67,18 @@ public class SandboxServiceImpl implements ISandboxService {
         initDockerSanBox();
         //编译代码
         CompileResult compileResult = compileCodeByDocker();
-        if(!compileResult.isCompiled()) {
+
+        if (!compileResult.isCompiled()) {
             deleteContainer();
             deleteUserCodeFile();
-            SandBoxExecuteResult.fail(CodeRunStatus.COMPILE_FAILED,compileResult.getExeMessage());
+
+            return SandBoxExecuteResult.fail(
+                    CodeRunStatus.COMPILE_FAILED,
+                    compileResult.getExeMessage()
+            );
         }
-        //执行代码
+
+        // 编译成功才执行代码
         return executeJavaCodeByDocker(inputList);
     }
 
@@ -110,6 +116,7 @@ public class SandboxServiceImpl implements ISandboxService {
                 .withAttachStderr(true)
                 .withAttachStdout(true)
                 .withTty(true)
+                .withCmd("tail", "-f", "/dev/null")
                 .exec();
         //记录容器id
         containerId = createContainerResponse.getId();

@@ -57,15 +57,20 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
         Long questionId = submitDto.getQuestionId();
         QuestionEs questionEs = questionRepository.findById(questionId).orElse(null);
         JudgeSubmitDto judgeSubmitDto = new JudgeSubmitDto();
-        if(questionEs != null) {
-            BeanUtil.copyProperties(questionEs, judgeSubmitDto);
-        } else {
+        if (questionEs == null || questionEs.getDifficult() == null) {
             QuestionInfo questionInfo = questionMapper.selectById(questionId);
-            BeanUtil.copyProperties(questionInfo,judgeSubmitDto);
+            if (questionInfo == null) {
+                throw new ServiceException(ResultCode.FAILED_NOT_EXISTS);
+            }
+            if (questionInfo.getDifficult() == null) {
+                throw new ServiceException(ResultCode.FAILED_QUESTION_DIFFICULT_MISSING);
+            }
             questionEs = new QuestionEs();
             BeanUtil.copyProperties(questionInfo,questionEs);
             questionRepository.save(questionEs);
         }
+        BeanUtil.copyProperties(questionEs, judgeSubmitDto);
+        judgeSubmitDto.setDifficult(questionEs.getDifficult());
         judgeSubmitDto.setUserId(ThreadLocalUtil.get(Constants.USER_ID, Long.class));
         judgeSubmitDto.setExamId(submitDto.getExamId());
         judgeSubmitDto.setProgramType(submitDto.getProgramType());

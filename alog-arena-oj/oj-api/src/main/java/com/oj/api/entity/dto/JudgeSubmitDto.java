@@ -17,7 +17,7 @@ public class JudgeSubmitDto {
     private Long questionId;
 
     //题目难度
-    private Integer difficulty;
+    private Integer difficult;
 
     //时间限制 ms
     private Long timeLimit;

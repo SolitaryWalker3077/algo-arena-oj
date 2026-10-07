@@ -24,7 +24,7 @@ public class JudgeConstants {
 
     public static final String USER_CODE_JAVA_FILE_NAME = "Solution";
 
-    public static final String JAVA_ENV_IMAGE = "openjdk:8-jdk-alpine";
+    public static final String JAVA_ENV_IMAGE = "eclipse-temurin:8-jdk-alpine";
 
     public static final String JAVA_CONTAINER_PREFIX = "/";
 
