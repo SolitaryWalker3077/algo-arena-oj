@@ -29,4 +29,10 @@ public class UserQuestionController extends BaseController {
     public Result<UserQuestionResultVo> submit(@RequestBody UserSubmitDto submitDto) {
         return userQuestionService.submit(submitDto);
     }
+
+    @Operation(summary = "rabbit版本用户代码提交")
+    @PostMapping("/rabbit/submit")
+    public Result<Void>  rabbitSubmit(@RequestBody UserSubmitDto submitDto) {
+        return toResult(userQuestionService.rabbitSubmit(submitDto));
+    }
 }

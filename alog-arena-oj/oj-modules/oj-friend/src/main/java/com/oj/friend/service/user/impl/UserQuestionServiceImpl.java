@@ -14,6 +14,7 @@ import com.oj.friend.entity.question.es.QuestionEs;
 import com.oj.friend.entity.user.dto.UserSubmitDto;
 
 import com.oj.friend.mapper.question.QuestionMapper;
+import com.oj.friend.rabbit.JudgeProducer;
 import com.oj.friend.service.user.IUserQuestionService;
 import com.oj.security.expection.ServiceException;
 import com.oj.security.utils.ThreadLocalUtil;
@@ -37,6 +38,9 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
     @Autowired
     private QuestionMapper questionMapper;
 
+    @Autowired
+    private JudgeProducer judgeProducer;
+
     @Override
     public Result<UserQuestionResultVo> submit(UserSubmitDto submitDto) {
         Integer programType = submitDto.getProgramType();
@@ -45,6 +49,22 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
             JudgeSubmitDto judgeSubmitDto = assembleJudgeSubmitDTO(submitDto);
             return remoteJudgeService.doJudgeJavaCode(judgeSubmitDto);
 
+        } else if (ProgramType.CPP.getValue().equals(programType)) {
+            //TODO按照C++逻辑处理
+        } else if (ProgramType.GO.getValue().equals(programType)){
+            //TODO 按照GO语言逻辑处理
+        }
+        throw new ServiceException(ResultCode.FAILED_NOT_SUPPORT_PROGRAM);
+    }
+
+    @Override
+    public boolean rabbitSubmit(UserSubmitDto submitDto) {
+        Integer programType = submitDto.getProgramType();
+        if (ProgramType.JAVA.getValue().equals(programType)) {
+            //按照java逻辑处理
+            JudgeSubmitDto judgeSubmitDto = assembleJudgeSubmitDTO(submitDto);
+            judgeProducer.produceMsg(judgeSubmitDto);
+            return true;
         } else if (ProgramType.CPP.getValue().equals(programType)) {
             //TODO按照C++逻辑处理
         } else if (ProgramType.GO.getValue().equals(programType)){

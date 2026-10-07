@@ -7,4 +7,6 @@ import com.oj.api.entity.vo.UserQuestionResultVo;
 
 public interface IUserQuestionService {
     Result<UserQuestionResultVo> submit(UserSubmitDto userSubmitDto);
+
+    boolean rabbitSubmit(UserSubmitDto submitDto);
 }
