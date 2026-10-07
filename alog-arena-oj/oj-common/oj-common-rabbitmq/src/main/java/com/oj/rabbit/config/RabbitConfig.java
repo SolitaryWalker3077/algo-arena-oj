@@ -1,4 +1,4 @@
-package com.oj.rabbitmq.config;
+package com.oj.rabbit.config;
 
 import com.oj.common.constants.RabbitMQConstants;
 import org.springframework.amqp.core.Queue;

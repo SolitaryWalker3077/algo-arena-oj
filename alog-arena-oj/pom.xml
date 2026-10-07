@@ -31,6 +31,7 @@
         <oj-common-message.version>1.0-SNAPSHOT</oj-common-message.version>
         <oj-common-elsticsearch.version>1.0-SNAPSHOT</oj-common-elsticsearch.version>
         <oj-common-file.version>1.0-SNAPSHOT</oj-common-file.version>
+        <oj-common-rabbitmq.version>1.0-SNAPSHOT</oj-common-rabbitmq.version>
         <springdoc-openapi.version>2.2.0</springdoc-openapi.version>
         <fastjson2.version>2.0.43</fastjson2.version>
         <jjwt.version>0.9.1</jjwt.version>

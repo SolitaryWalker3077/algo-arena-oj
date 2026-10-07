@@ -32,6 +32,11 @@
             <artifactId>docker-java</artifactId>
             <version>${docker-java.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>oj-common-rabbitmq</artifactId>
+            <version>${oj-common-rabbitmq.version}</version>
+        </dependency>
     </dependencies>
 
 </project>
