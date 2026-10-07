@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { createServer as createHttpServer } from 'node:http'
 import { createServer } from 'vite'
-import { formatSubmissionTime, pollJudgeResult } from '../src/utils/judge.js'
+import { readFile } from 'node:fs/promises'
+import vm from 'node:vm'
+import { createSubmissionContext, formatSubmissionTime, pollJudgeResult } from '../src/utils/judge.js'
 
 let vite, upstream, submitQuestionService, getQuestionResultService
 const requests = []
@@ -61,4 +63,40 @@ test('竞赛提交与查询保留相同的大整数 examId', async () => {
   await getQuestionResultService({ ...identity, currentTime: '2026-10-08 09:02:03' })
   assert.equal(JSON.parse(requests.at(-2).body).examId, identity.examId)
   assert.equal(requests.at(-1).params.examId, identity.examId)
+})
+
+test('答题页收到无 data 的成功回执后继续查询，使用 POST 前的时间', async () => {
+  const source = await readFile(new URL('../src/views/Answer.vue', import.meta.url), 'utf8')
+  // Execute the page handlers themselves so receipt validation regressions are caught.
+  const handlers = source.slice(source.indexOf('async function submitCode()'), source.indexOf('async function resumePolling()'))
+  let now = new Date('2026-10-08T01:02:03Z')
+  const start = requests.length
+  pass = 3
+  const context = vm.createContext({
+    AbortController,
+    loading: { value: false }, submitting: { value: false }, question: { value: {} },
+    noticeIsError: { value: false }, code: { value: 'class Solution {}' },
+    questionId: '2107382429077155841', examId: { value: '' },
+    submissionContext: { value: null }, judgeState: { value: 'idle' },
+    resultMessage: { value: '' }, judgeResult: { cases: [] }, judgeController: undefined,
+    isCanceled: (error) => error.name === 'AbortError',
+    createSubmissionContext: (identity) => createSubmissionContext(identity, now),
+    submitQuestionService: async (...args) => {
+      // Simulate a POST returning after the judge has completed.
+      now = new Date('2026-10-08T01:02:08Z')
+      return submitQuestionService(...args)
+    },
+    getQuestionResultService,
+    pollJudgeResult: (fetchResult, options) => pollJudgeResult(fetchResult, { ...options, wait: async () => {} }),
+  })
+  await new vm.Script(`${handlers}\nsubmitCode()`).runInContext(context)
+  assert.equal(context.judgeState.value, 'accepted')
+  assert.equal(context.submitting.value, false)
+  assert.equal(context.judgeResult.cases[0].passed, true)
+  const pageRequests = requests.slice(start)
+  assert.equal(pageRequests.filter((req) => req.method === 'POST').length, 1)
+  assert.equal(pageRequests.filter((req) => req.method === 'GET').length, 2)
+  for (const req of pageRequests.filter((req) => req.method === 'GET')) {
+    assert.deepEqual(req.params, { questionId: '2107382429077155841', currentTime: '2026-10-08 09:02:03' })
+  }
 })

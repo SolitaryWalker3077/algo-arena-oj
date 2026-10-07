@@ -67,7 +67,7 @@ import {
   getQuestionResultService,
   submitQuestionService,
 } from '@/apis/question'
-import { formatSubmissionTime, pollJudgeResult } from '@/utils/judge'
+import { createSubmissionContext, pollJudgeResult } from '@/utils/judge'
 import { adjacentQuestionId, normalizeQuestionDetail, questionBoundaryMessage } from '@/utils/questionDetail'
 import { getDifficultyLabel } from '@/utils/question'
 
@@ -208,10 +208,7 @@ async function submitCode() {
   const activeController = new AbortController()
   judgeController = activeController
   // Record before enqueueing: a fast judge may finish before the POST returns.
-  submissionContext.value = {
-    questionId, ...(examId.value ? { examId: examId.value } : {}),
-    currentTime: formatSubmissionTime(),
-  }
+  submissionContext.value = createSubmissionContext({ questionId, examId: examId.value })
   submitting.value = true
   judgeState.value = 'running'
   resultMessage.value = ''
@@ -274,7 +271,7 @@ function handleSubmitShortcut(event) {
 function formatMemory(value) {
   const number = Number(value)
   if (!Number.isFinite(number)) return '--'
-  return number < 1024 ? `${number} KB` : `${Number((number / 1024).toFixed(2))} MB`
+  return `${number} MB`
 }
 
 function goBack() {

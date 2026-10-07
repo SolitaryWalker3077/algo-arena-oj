@@ -103,13 +103,14 @@ public class DockerSandboxPool {
         //创建容器  限制资源   控制权限
         HostConfig hostConfig = getHostConfig(containerName);
         CreateContainerCmd containerCmd = dockerClient
-                .createContainerCmd(JudgeConstants.JAVA_ENV_IMAGE)
+                .createContainerCmd(sandboxImage)
                 .withName(containerName);
         CreateContainerResponse createContainerResponse = containerCmd
                 .withHostConfig(hostConfig)
                 .withAttachStderr(true)
                 .withAttachStdout(true)
                 .withTty(true)
+                .withCmd("tail", "-f", "/dev/null")
                 .exec();
         //记录容器id
         String containerId = createContainerResponse.getId();

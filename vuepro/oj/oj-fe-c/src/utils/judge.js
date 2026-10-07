@@ -1,4 +1,14 @@
 // Backend QuestionResType: 0 failed, 1 passed, 2 not submitted, 3 judging.
+// rabbit/submit returns Result<Void>; exe/result identifies the submission by time.
+// Capture this before the POST, since judging can finish before it returns.
+export function createSubmissionContext(identity, date = new Date()) {
+  return {
+    questionId: identity.questionId,
+    ...(identity.examId ? { examId: identity.examId } : {}),
+    currentTime: formatSubmissionTime(date),
+  }
+}
+
 export function formatSubmissionTime(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
