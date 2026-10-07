@@ -2,6 +2,7 @@ package com.oj.friend.service.user.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.oj.api.RemoteJudgeService;
 import com.oj.common.constants.Constants;
 import com.oj.common.entity.Result;
 import com.oj.common.enums.ProgramType;
@@ -28,6 +29,9 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
 
 
     @Autowired
+    private RemoteJudgeService remoteJudgeService;
+
+    @Autowired
     private QuestionRepository questionRepository;
 
     @Autowired
@@ -39,7 +43,7 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
         if (ProgramType.JAVA.getValue().equals(programType)) {
             //按照java逻辑处理
             JudgeSubmitDto judgeSubmitDto = assembleJudgeSubmitDTO(submitDto);
-
+            return remoteJudgeService.doJudgeJavaCode(judgeSubmitDto);
 
         } else if (ProgramType.CPP.getValue().equals(programType)) {
             //TODO按照C++逻辑处理

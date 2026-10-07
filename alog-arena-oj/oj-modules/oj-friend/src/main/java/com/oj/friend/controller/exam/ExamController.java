@@ -36,6 +36,7 @@ public class ExamController extends BaseController {
     }
 
 
+    @Operation(summary = "获取第一题题目详情")
     @GetMapping("/getFirstQuestion")
     public Result<String> getFirstQuestion(Long examId) {
         //获取竞赛中的题目顺序列表,把排在第一个的题目返回给前端

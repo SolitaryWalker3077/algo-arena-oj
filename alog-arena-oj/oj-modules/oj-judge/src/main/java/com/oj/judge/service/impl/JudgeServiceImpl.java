@@ -1,6 +1,7 @@
 package com.oj.judge.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.oj.api.entity.UserExeResult;
 import com.oj.api.entity.dto.JudgeSubmitDto;
@@ -134,6 +135,8 @@ public class JudgeServiceImpl implements IJudgeService {
         userSubmit.setExamId(judgeSubmitDTO.getExamId());
         userSubmit.setProgramType(judgeSubmitDTO.getProgramType());
         userSubmit.setUserCode(judgeSubmitDTO.getUserCode());
+        userSubmit.setCaseJudgeRes(JSON.toJSONString(userQuestionResultVo.getUserExeResultList()));
+        userSubmit.setCreateBy(judgeSubmitDTO.getUserId());
         userSubmitMapper.delete(new LambdaQueryWrapper<UserSubmit>()
                 .eq(UserSubmit::getUserId, judgeSubmitDTO.getUserId())
                 .eq(UserSubmit::getQuestionId, judgeSubmitDTO.getQuestionId())

@@ -28,7 +28,7 @@ public class JudgeConstants {
 
     public static final String JAVA_CONTAINER_PREFIX = "/";
 
-    public static final String JAVA_CONTAINER_NAME = "oj-jdk";
+    public static final String JAVA_CONTAINER_NAME = "oj-jdk8";
 
     public static final String[] DOCKER_JAVAC_CMD = new String[] {"javac", "/usr/share/java/Solution.java"};
 
