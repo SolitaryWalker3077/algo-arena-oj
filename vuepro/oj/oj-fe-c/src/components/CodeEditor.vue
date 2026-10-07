@@ -5,7 +5,7 @@
       <label>
         <span class="sr-only">编程语言</span>
         <select v-model="language" :disabled="readonly">
-          <option value="java">Java 17</option>
+          <option value="java">Java</option>
           <option value="cpp" disabled>C++（即将支持）</option>
           <option value="python" disabled>Python（即将支持）</option>
         </select>
@@ -45,6 +45,7 @@ const lines = computed(() => Array.from(
 ).join('\n'))
 
 function insertTab(event) {
+  if (props.readonly) return
   const target = event.target
   const start = target.selectionStart
   const end = target.selectionEnd

@@ -61,17 +61,20 @@ export function getFirstExamQuestionService(examId, options = {}) {
   })
 }
 
-export function submitQuestionService(data) {
+export function submitQuestionService(data, options = {}) {
   return service({
     url: '/user/question/rabbit/submit',
     method: 'post',
     data,
+    signal: options.signal,
+    requireAuth: true,
   })
 }
 
 export function getQuestionResultService(params, options = {}) {
   return service({
     url: '/user/question/exe/result',
+    requireAuth: true,
     method: 'get',
     params,
     signal: options.signal,

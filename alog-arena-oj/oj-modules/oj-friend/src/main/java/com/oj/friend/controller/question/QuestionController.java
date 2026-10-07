@@ -6,6 +6,7 @@ import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.question.dto.QuestionQueryDto;
 import com.oj.friend.entity.question.vo.QuestionDetailVo;
+import com.oj.friend.entity.question.vo.QuestionVo;
 import com.oj.friend.service.question.IQuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +16,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Tag(name = "C端题目")
 @RestController
@@ -30,6 +33,13 @@ public class QuestionController extends BaseController {
     @GetMapping("/semiLogin/list") //semiLogin是为了让所有的用户包括游客也可以使用
     public TableDataInfo list(@Validated @ParameterObject QuestionQueryDto questionQueryDto) {
         return questionService.list(questionQueryDto);
+    }
+
+
+    @Operation(summary = "热点题目")
+    @GetMapping("/semiLogin/hotList")
+    public Result<List<QuestionVo>> hotList() {
+        return Result.success(questionService.hotList());
     }
 
     @Operation(summary = "获取题目详情")

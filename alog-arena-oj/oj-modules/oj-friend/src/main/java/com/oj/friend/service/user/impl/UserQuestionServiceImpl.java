@@ -1,19 +1,25 @@
 package com.oj.friend.service.user.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import com.oj.api.RemoteJudgeService;
+import com.oj.api.entity.UserExeResult;
 import com.oj.common.constants.Constants;
 import com.oj.common.entity.Result;
 import com.oj.common.enums.ProgramType;
+import com.oj.common.enums.QuestionResType;
 import com.oj.common.enums.ResultCode;
 import com.oj.friend.elasticsearch.QuestionRepository;
 import com.oj.friend.entity.question.QuestionCase;
 import com.oj.friend.entity.question.QuestionInfo;
 import com.oj.friend.entity.question.es.QuestionEs;
+import com.oj.friend.entity.user.UserSubmit;
 import com.oj.friend.entity.user.dto.UserSubmitDto;
 
 import com.oj.friend.mapper.question.QuestionMapper;
+import com.oj.friend.mapper.user.UserSubmitMapper;
 import com.oj.friend.rabbit.JudgeProducer;
 import com.oj.friend.service.user.IUserQuestionService;
 import com.oj.security.expection.ServiceException;
@@ -37,6 +43,9 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
 
     @Autowired
     private QuestionMapper questionMapper;
+
+    @Autowired
+    private UserSubmitMapper userSubmitMapper;
 
     @Autowired
     private JudgeProducer judgeProducer;
@@ -71,6 +80,23 @@ public class UserQuestionServiceImpl implements IUserQuestionService {
             //TODO 按照GO语言逻辑处理
         }
         throw new ServiceException(ResultCode.FAILED_NOT_SUPPORT_PROGRAM);
+    }
+
+    @Override
+    public UserQuestionResultVo exeResult(Long examId, Long questionId, String currentTime) {
+        Long userId = ThreadLocalUtil.get(Constants.USER_ID, Long.class);
+        UserSubmit userSubmit = userSubmitMapper.selectCurrentUserSubmit(userId, examId, questionId, currentTime);
+        UserQuestionResultVo resultVo = new UserQuestionResultVo();
+        if (userSubmit == null) {
+            resultVo.setPass(QuestionResType.IN_JUDGE.getValue());
+        } else {
+            resultVo.setPass(userSubmit.getPass());
+            resultVo.setExeMessage(userSubmit.getExeMessage());
+            if (StrUtil.isNotEmpty(userSubmit.getCaseJudgeRes())) {
+                resultVo.setUserExeResultList(JSON.parseArray(userSubmit.getCaseJudgeRes(), UserExeResult.class));
+            }
+        }
+        return resultVo;
     }
 
     private JudgeSubmitDto assembleJudgeSubmitDTO(UserSubmitDto submitDto) {

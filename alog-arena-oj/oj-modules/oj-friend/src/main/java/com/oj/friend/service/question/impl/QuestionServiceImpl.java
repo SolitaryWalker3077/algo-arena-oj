@@ -1,5 +1,7 @@
 package com.oj.friend.service.question.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.oj.common.constants.Constants;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.elasticsearch.QuestionRepository;
 import com.oj.friend.entity.question.QuestionInfo;
@@ -7,8 +9,10 @@ import com.oj.friend.entity.question.dto.QuestionQueryDto;
 import com.oj.friend.entity.question.es.QuestionEs;
 import com.oj.friend.entity.question.vo.QuestionDetailVo;
 import com.oj.friend.entity.question.vo.QuestionVo;
+import com.oj.friend.entity.user.UserSubmit;
 import com.oj.friend.manager.QuestionCacheManager;
 import com.oj.friend.mapper.question.QuestionMapper;
+import com.oj.friend.mapper.user.UserSubmitMapper;
 import com.oj.friend.service.question.IQuestionService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 import java.util.List;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
@@ -31,6 +37,9 @@ public class QuestionServiceImpl implements IQuestionService {
 
     @Autowired
     private QuestionMapper questionMapper;
+    
+    @Autowired
+    private UserSubmitMapper userSubmitMapper;
 
     @Autowired
     private QuestionCacheManager questionCacheManager;
@@ -63,6 +72,21 @@ public class QuestionServiceImpl implements IQuestionService {
         List<QuestionVo> questionVOList = BeanUtil.copyToList(questionESList, QuestionVo.class);
         return TableDataInfo.success(questionVOList, total);
     }
+
+    @Override
+    public List<QuestionVo> hotList() {
+        Long total = questionCacheManager.getHostListSize();
+        List<Long> hotQuestionIdList;
+        if (total == null || total <= 0) {
+            PageHelper.startPage(Constants.HOST_QUESTION_LIST_START, Constants.HOST_QUESTION_LIST_END);
+            hotQuestionIdList = userSubmitMapper.selectHostQuestionList();
+            questionCacheManager.refreshHotQuestionList(hotQuestionIdList);
+        } else {
+            hotQuestionIdList = questionCacheManager.getHostList();
+        }
+        return assembleQuestionVOList(hotQuestionIdList);
+    }
+
 
     @Override
     public QuestionDetailVo detail(Long questionId) {
@@ -115,5 +139,19 @@ public class QuestionServiceImpl implements IQuestionService {
         List<QuestionEs> questionEsList = BeanUtil.copyToList(questionInfoList, QuestionEs.class);
         // 批量保存文档：相同 ID 的文档更新，不存在的文档新增。
         questionRepository.saveAll(questionEsList);
+    }
+
+    private List<QuestionVo> assembleQuestionVOList(List<Long> hotQuestionIdList) {
+        if (CollectionUtil.isEmpty(hotQuestionIdList)) {
+            return new ArrayList<>();
+        }
+        List<QuestionVo> resultList = new ArrayList<>();
+        for (Long questionId : hotQuestionIdList) {
+            QuestionVo questionVO = new QuestionVo();
+            QuestionDetailVo detail = detail(questionId);
+            questionVO.setTitle(detail.getTitle());
+            resultList.add(questionVO);
+        }
+        return resultList;
     }
 }

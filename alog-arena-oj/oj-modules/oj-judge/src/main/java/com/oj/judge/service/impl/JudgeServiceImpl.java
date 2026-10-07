@@ -10,6 +10,7 @@ import com.oj.common.constants.Constants;
 import com.oj.common.constants.JudgeConstants;
 import com.oj.common.enums.CodeRunStatus;
 import com.oj.common.enums.ResultCode;
+import com.oj.judge.service.ISandboxPoolService;
 import com.oj.security.expection.ServiceException;
 import com.oj.judge.entity.SandBoxExecuteResult;
 import com.oj.judge.entity.UserSubmit;
@@ -31,6 +32,9 @@ public class JudgeServiceImpl implements IJudgeService {
     private ISandboxService sandboxService;
 
     @Autowired
+    private ISandboxPoolService sandboxPoolService;
+
+    @Autowired
     private UserSubmitMapper userSubmitMapper;
 
     @Override
@@ -41,7 +45,7 @@ public class JudgeServiceImpl implements IJudgeService {
         }
         log.info("---- 判题逻辑开始 -------");
         SandBoxExecuteResult sandBoxExecuteResult =
-                sandboxService.exeJavaCode(judgeSubmitDTO.getUserId(), judgeSubmitDTO.getUserCode(), judgeSubmitDTO.getInputList());
+                sandboxPoolService.exeJavaCode(judgeSubmitDTO.getUserId(), judgeSubmitDTO.getUserCode(), judgeSubmitDTO.getInputList());
         UserQuestionResultVo userQuestionResultVo = new UserQuestionResultVo();
         if(sandBoxExecuteResult != null && CodeRunStatus.SUCCEED.equals(sandBoxExecuteResult.getRunStatus())) {
             //对比直接结果 时间限制 空间限制的对比
@@ -142,7 +146,7 @@ public class JudgeServiceImpl implements IJudgeService {
         userSubmit.setExamId(judgeSubmitDTO.getExamId());
         userSubmit.setProgramType(judgeSubmitDTO.getProgramType());
         userSubmit.setUserCode(judgeSubmitDTO.getUserCode());
-//        userSubmit.setCaseJudgeRes(JSON.toJSONString(userQuestionResultVo.getUserExeResultList()));
+        userSubmit.setCaseJudgeRes(JSON.toJSONString(userQuestionResultVo.getUserExeResultList()));
         userSubmit.setCreateBy(judgeSubmitDTO.getUserId());
         userSubmitMapper.delete(new LambdaQueryWrapper<UserSubmit>()
                 .eq(UserSubmit::getUserId, judgeSubmitDTO.getUserId())

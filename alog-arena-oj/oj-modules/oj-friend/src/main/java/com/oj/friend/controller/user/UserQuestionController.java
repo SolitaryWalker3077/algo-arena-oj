@@ -10,10 +10,7 @@ import com.oj.api.entity.vo.UserQuestionResultVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "用户答题")
@@ -34,5 +31,10 @@ public class UserQuestionController extends BaseController {
     @PostMapping("/rabbit/submit")
     public Result<Void>  rabbitSubmit(@RequestBody UserSubmitDto submitDto) {
         return toResult(userQuestionService.rabbitSubmit(submitDto));
+    }
+
+    @GetMapping("/exe/result")
+    public  Result<UserQuestionResultVo> exeResult(Long examId, Long questionId, String currentTime) {
+        return Result.success(userQuestionService.exeResult(examId, questionId, currentTime));
     }
 }
