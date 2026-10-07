@@ -15,6 +15,7 @@ import com.oj.friend.mapper.question.QuestionMapper;
 import com.oj.friend.mapper.user.UserSubmitMapper;
 import com.oj.friend.service.question.IQuestionService;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +31,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 @Service
+@Slf4j
 public class QuestionServiceImpl implements IQuestionService {
 
     @Autowired
@@ -141,17 +143,43 @@ public class QuestionServiceImpl implements IQuestionService {
         questionRepository.saveAll(questionEsList);
     }
 
+//    private List<QuestionVo> assembleQuestionVOList(List<Long> hotQuestionIdList) {
+//        if (CollectionUtil.isEmpty(hotQuestionIdList)) {
+//            return new ArrayList<>();
+//        }
+//        List<QuestionVo> resultList = new ArrayList<>();
+//        for (Long questionId : hotQuestionIdList) {
+//            QuestionVo questionVO = new QuestionVo();
+//            QuestionDetailVo detail = detail(questionId);
+//            questionVO.setTitle(detail.getTitle());
+//            resultList.add(questionVO);
+//        }
+//        return resultList;
+//    }
+
     private List<QuestionVo> assembleQuestionVOList(List<Long> hotQuestionIdList) {
+
         if (CollectionUtil.isEmpty(hotQuestionIdList)) {
             return new ArrayList<>();
         }
+
         List<QuestionVo> resultList = new ArrayList<>();
+
         for (Long questionId : hotQuestionIdList) {
-            QuestionVo questionVO = new QuestionVo();
+
             QuestionDetailVo detail = detail(questionId);
-            questionVO.setTitle(detail.getTitle());
-            resultList.add(questionVO);
+
+            if (detail == null) {
+                log.warn("热点题目不存在，questionId={}", questionId);
+                continue;
+            }
+
+            QuestionVo questionVo = new QuestionVo();
+            questionVo.setTitle(detail.getTitle());
+
+            resultList.add(questionVo);
         }
+
         return resultList;
     }
 }
