@@ -1,4 +1,4 @@
-package com.oj.job.entity;
+package com.oj.job.entity.user;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
