@@ -13,6 +13,7 @@ import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.entity.exam.vo.ExamVo;
 import com.oj.friend.entity.user.UserExamInfo;
 import com.oj.friend.manager.ExamCacheManager;
+import com.oj.friend.manager.UserCacheManager;
 import com.oj.friend.mapper.exam.ExamMapper;
 import com.oj.friend.mapper.user.UserExamMapper;
 import com.oj.friend.service.user.IUserExamService;
@@ -41,8 +42,11 @@ public class UserExamServiceImpl implements IUserExamService {
     @Autowired
     private ExamCacheManager examCacheManager;
 
+    private UserCacheManager userCacheManager;
+
     @Value("${jwt.secret}")
     private String secret;
+
 
     @Override
     public int enter(String token, Long examId) {

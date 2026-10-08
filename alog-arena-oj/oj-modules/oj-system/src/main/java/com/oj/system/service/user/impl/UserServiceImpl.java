@@ -7,6 +7,7 @@ import com.oj.system.entity.user.UserInfo;
 import com.oj.system.entity.user.dto.UserDto;
 import com.oj.system.entity.user.dto.UserQueryDto;
 import com.oj.system.entity.user.vo.UserVo;
+import com.oj.system.manager.UserCacheManager;
 import com.oj.system.mapper.user.UserMapper;
 import com.oj.system.service.user.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,11 @@ public class UserServiceImpl implements IUserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private UserCacheManager userCacheManager;
+
+
 
     @Override
     public List<UserVo> list(UserQueryDto userQueryDTO) {
@@ -34,6 +40,7 @@ public class UserServiceImpl implements IUserService {
             throw new ServiceException(ResultCode.FAILED_USER_NOT_EXISTS);
         }
         userInfo.setStatus(userDto.getStatus());
+        userCacheManager.updateStatus(userInfo.getUserId(), userDto.getStatus());
         return userMapper.updateById(userInfo);
     }
 }

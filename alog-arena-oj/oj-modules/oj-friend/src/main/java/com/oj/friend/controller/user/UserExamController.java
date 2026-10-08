@@ -5,6 +5,7 @@ import com.oj.common.constants.HttpConstants;
 import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
+import com.oj.friend.aspect.CheckUserStatus;
 import com.oj.friend.entity.exam.dto.ExamDto;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
 import com.oj.friend.service.user.IUserExamService;
@@ -23,6 +24,7 @@ public class UserExamController extends BaseController {
     @Autowired
     private IUserExamService userExamService;
 
+    @CheckUserStatus
     @PostMapping("/enter")
     @Operation(summary = "新增竞赛报名信息")
     public Result<Void> enter(@RequestHeader(HttpConstants.AUTHENTICATION) String token , @RequestBody ExamDto examDto) {

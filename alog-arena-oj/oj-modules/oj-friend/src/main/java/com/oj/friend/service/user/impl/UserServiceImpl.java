@@ -3,6 +3,7 @@ package com.oj.friend.service.user.impl;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.oj.common.constants.CacheConstants;
 import com.oj.common.constants.Constants;
 import com.oj.common.constants.HttpConstants;
@@ -112,11 +113,18 @@ public class UserServiceImpl implements IUserService {
     public String codeLogin(String phone, String code) {
         checkCode(phone, code);
         UserInfo user = userMapper.selectOne(new LambdaQueryWrapper<UserInfo>().eq(UserInfo::getPhone, phone));
-        if(user == null) {
-            //注册逻辑
+        if (user == null) {
             user = new UserInfo();
+
+            Long userId = IdWorker.getId();
+
+            user.setUserId(userId);
             user.setPhone(phone);
             user.setStatus(UserStatus.Normal.getValue());
+
+            user.setCreateBy(userId);
+            user.setUpdateBy(userId);
+
             userMapper.insert(user);
         }
         return tokenService.createToken(user.getUserId(),
