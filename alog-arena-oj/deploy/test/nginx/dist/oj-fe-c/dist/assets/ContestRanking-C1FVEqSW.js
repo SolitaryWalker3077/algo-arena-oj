@@ -1,0 +1,1 @@
+import{Fn as e,pn as t}from"./cookie-DcBUvhex.js";import n from"./Exam-QOsPHRsk.js";var r={__name:`ContestRanking`,setup(r){return(r,i)=>(e(),t(n))}};export{r as default};

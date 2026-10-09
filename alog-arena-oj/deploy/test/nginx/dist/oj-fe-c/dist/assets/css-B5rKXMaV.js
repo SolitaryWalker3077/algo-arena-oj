@@ -1,0 +1,1 @@
+import"./cookie-DcBUvhex.js";import"./css-BRbAa-TV.js";var e=(...e)=>t=>{e.forEach(e=>{e.value=t})};export{e as t};

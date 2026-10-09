@@ -1,0 +1,16 @@
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: oj-gateway
+  profiles:
+    active: local
+  cloud:
+    nacos:
+      discovery:
+        namespace: 0091cfaf-af96-48b6-b7a7-36deed608204
+        server-addr: ${NACOS_SERVER_ADDR:http://localhost:8750}
+      config:
+        namespace: 0091cfaf-af96-48b6-b7a7-36deed608204
+        server-addr: ${NACOS_SERVER_ADDR:http://localhost:8750}
+        file-extension: yaml
