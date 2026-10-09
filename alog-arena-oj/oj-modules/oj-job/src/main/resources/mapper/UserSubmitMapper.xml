@@ -6,19 +6,19 @@
 
     <select id="selectUserScoreList" resultType="com.oj.job.entity.user.UserScore">
         SELECT
-        exam_id,
-        user_id,
+            exam_id,
+            user_id,
         sum(score) as score
         FROM
-        tb_user_submit
+            tb_user_submit
         WHERE
-        <foreach collection="examIdSet" open="exam_id in ( " close=" ) " item="examId" separator=",">
-            #{examId}
-        </foreach>
+            <foreach collection="examIdSet" open="exam_id in ( " close=" ) " item="examId" separator=",">
+                #{examId}
+            </foreach>
         GROUP BY
-        exam_id,user_id
+            exam_id,user_id
         ORDER BY
-        score DESC
+            score DESC
     </select>
 
 

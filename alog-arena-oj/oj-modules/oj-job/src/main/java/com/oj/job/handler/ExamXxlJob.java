@@ -70,6 +70,7 @@ public class ExamXxlJob {
 
     @XxlJob("examResultHandler")
     public void examResultHandler() {
+        log.info("*************examResultHandler**************");
         //围绕竞赛结果
         LocalDateTime now = LocalDateTime.now();
         //得到前一天的时间

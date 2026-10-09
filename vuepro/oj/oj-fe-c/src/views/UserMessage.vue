@@ -8,11 +8,7 @@
 
     <section class="message-panel">
       <header class="message-toolbar">
-        <div class="message-tabs" role="tablist" aria-label="消息类型">
-          <button v-for="tab in tabs" :key="tab.value" type="button" :class="{ 'is-active': activeTab === tab.value }" @click="activeTab = tab.value">
-            {{ tab.label }}<span v-if="tab.value === 'unread' && unreadCount">{{ unreadCount }}</span>
-          </button>
-        </div>
+        <div class="message-label">全部消息</div>
         <button class="read-all" type="button" :disabled="!unreadCount" @click="markAllRead">全部标为已读</button>
       </header>
 
@@ -21,7 +17,7 @@
       </div>
 
       <div v-else-if="!visibleMessages.length" class="empty-state">
-        <div aria-hidden="true">✓</div><h2>{{ activeTab === 'unread' ? '消息都已读完' : '暂无消息' }}</h2><p>有新的动态时，我们会第一时间通知你。</p>
+        <div aria-hidden="true">✓</div><h2>暂无消息</h2><p>有新的动态时，我们会第一时间通知你。</p>
       </div>
 
       <ul v-else class="message-list">
@@ -35,13 +31,13 @@
         </li>
       </ul>
 
-      <el-pagination v-if="filteredMessages.length > pageSize" class="pagination" background layout="prev, pager, next" :current-page="pageNum" :page-size="pageSize" :total="filteredMessages.length" @current-change="pageNum = $event" />
+      <el-pagination v-if="messages.length > pageSize" class="pagination" background layout="prev, pager, next" :current-page="pageNum" :page-size="pageSize" :total="messages.length" @current-change="pageNum = $event" />
     </section>
   </main>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
@@ -51,18 +47,15 @@ import { demoMessages } from '@/data/demoData'
 import { withPreviewFallback } from '@/utils/previewFallback'
 
 const router = useRouter()
-const tabs = [{ label: '全部消息', value: 'all' }, { label: '未读', value: 'unread' }]
 const messages = ref([])
 const loading = ref(true)
 const previewMode = ref(false)
-const activeTab = ref('all')
 const pageNum = ref(1)
 const pageSize = 8
 let controller
 
 const unreadCount = computed(() => messages.value.filter((item) => !item.read).length)
-const filteredMessages = computed(() => activeTab.value === 'unread' ? messages.value.filter((item) => !item.read) : messages.value)
-const visibleMessages = computed(() => filteredMessages.value.slice((pageNum.value - 1) * pageSize, pageNum.value * pageSize))
+const visibleMessages = computed(() => messages.value.slice((pageNum.value - 1) * pageSize, pageNum.value * pageSize))
 
 function normalizeMessage(item, index) {
   return {
@@ -122,7 +115,6 @@ function goBack() {
   router.back()
 }
 
-watch(activeTab, () => { pageNum.value = 1 })
 onMounted(loadMessages)
 onBeforeUnmount(() => controller?.abort())
 </script>
@@ -133,11 +125,8 @@ onBeforeUnmount(() => controller?.abort())
 .preview-banner { margin-top: 20px; }
 .message-panel { margin-top: 22px; overflow: hidden; border: 1px solid #eaf0f2; border-radius: 14px; background: #fff; box-shadow: 0 12px 36px rgb(38 65 79 / 5%); }
 .message-toolbar { display: flex; min-height: 66px; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid #edf1f3; }
-.message-tabs { display: flex; align-self: stretch; gap: 28px; }
-.message-tabs button { position: relative; color: #849097; font-size: 14px; cursor: pointer; }
-.message-tabs button.is-active { color: #26343b; font-weight: 650; }
-.message-tabs button.is-active::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: #32c5ff; content: ''; }
-.message-tabs button span { display: inline-grid; min-width: 18px; height: 18px; place-items: center; margin-left: 6px; border-radius: 9px; color: #fff; background: #ff766f; font-size: 10px; }
+.message-label { position: relative; display: flex; align-items: center; align-self: stretch; color: #26343b; font-size: 14px; font-weight: 650; }
+.message-label::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: #32c5ff; content: ''; }
 .read-all { color: #1bb6ee; font-size: 13px; cursor: pointer; }.read-all:disabled { color: #b4bdc2; cursor: default; }
 .message-list { margin: 0; padding: 0 22px; list-style: none; }
 .message-list li { display: grid; min-height: 112px; grid-template-columns: 48px minmax(0, 1fr) 54px; align-items: center; gap: 16px; padding: 18px 4px; border-bottom: 1px solid #eff2f3; cursor: pointer; transition: background .18s; }
@@ -148,6 +137,6 @@ onBeforeUnmount(() => controller?.abort())
 .delete-button { visibility: hidden; color: #e26963; font-size: 12px; cursor: pointer; }.message-list li:hover .delete-button, .delete-button:focus { visibility: visible; }
 .message-loading { display: grid; gap: 28px; padding: 30px 26px; }.empty-state { display: grid; min-height: 360px; place-items: center; align-content: center; color: #98a4aa; text-align: center; }.empty-state div { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; color: #27b988; background: #edfaf5; font-size: 24px; }.empty-state h2 { margin: 15px 0 6px; color: #4f5d64; font-size: 18px; }.empty-state p { margin: 0; font-size: 13px; }
 .pagination { justify-content: flex-end; padding: 18px 22px; border-top: 1px solid #edf1f3; }
-@media (max-width: 640px) { .message-page { padding-top: 24px; }.message-toolbar { padding: 0 14px; }.message-list { padding: 0 12px; }.message-list li { min-height: 126px; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; }.message-icon { width: 40px; height: 40px; }.message-title-row { align-items: flex-start; flex-wrap: wrap; }.message-title-row time { width: 100%; margin-left: 0; }.message-content p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }.delete-button { display: none; }.read-all { font-size: 12px; }.message-tabs { gap: 16px; } }
+@media (max-width: 640px) { .message-page { padding-top: 24px; }.message-toolbar { padding: 0 14px; }.message-list { padding: 0 12px; }.message-list li { min-height: 126px; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; }.message-icon { width: 40px; height: 40px; }.message-title-row { align-items: flex-start; flex-wrap: wrap; }.message-title-row time { width: 100%; margin-left: 0; }.message-content p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }.delete-button { display: none; }.read-all { font-size: 12px; } }
 </style>
 
