@@ -12,6 +12,8 @@ import com.oj.common.enums.ResultCode;
 import com.oj.friend.entity.exam.ExamInfo;
 import com.oj.friend.entity.exam.ExamQuestionInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
+import com.oj.friend.entity.exam.dto.ExamRankDto;
+import com.oj.friend.entity.exam.vo.ExamRankVo;
 import com.oj.friend.entity.exam.vo.ExamVo;
 import com.oj.friend.entity.user.UserExamInfo;
 import com.oj.friend.mapper.exam.ExamMapper;
@@ -67,6 +69,14 @@ public class ExamCacheManager {
     }
 
     /**
+     * 得到排名列表的大小
+     * */
+    public Long getRankListSize(Long examId) {
+        String  examRankListKey = getExamRankListKey(examId);
+        return redisService.getListSize(examRankListKey);
+    }
+
+    /**
      * 分页获取竞赛列表，优先从 Redis 读取；缓存缺失或数据不完整时回源数据库并刷新缓存。
      *
      * @param examQueryDTO 竞赛列表查询条件
@@ -85,6 +95,14 @@ public class ExamCacheManager {
         }
         return examVOList;
     }
+    /**
+     * 获取竞赛排名列表
+     * */
+    public List<ExamRankVo> getExamRankList(ExamRankDto examRankDto) {
+        int start = (examRankDto.getPageNum() - 1) * examRankDto.getPageSize();
+        int end = start + examRankDto.getPageSize() - 1; //下标需要 -1
+        return redisService.getCacheListByRange(getExamRankListKey(examRankDto.getExamId()), start, end, ExamRankVo.class);
+    }
 
 
     public List<Long> getAllUserExamList(Long userId) {
@@ -101,6 +119,8 @@ public class ExamCacheManager {
         refreshCache(ExamListType.USER_EXAM_LIST.getValue(),userId);
         return userExamInfoList.stream().map(UserExamInfo::getExamId).collect(Collectors.toList());
     }
+
+
 
     public void addUserExamCache(Long userId,Long examId) {
         String userExamListKey = getUserExamListKey(userId);
@@ -172,6 +192,17 @@ public class ExamCacheManager {
         redisService.expire(getExamQuestionListKey(examId), seconds, TimeUnit.SECONDS);
     }
 
+    /**
+     * 刷新竞赛排名列表缓存
+     * */
+    public void refreshExamRankCache(Long examId) {
+        List<ExamRankVo> examRankVOList = userExamMapper.selectExamRankList(examId);
+        if (CollectionUtil.isEmpty(examRankVOList)) {
+            return;
+        }
+        redisService.rightPushAll(getExamRankListKey(examId), examRankVOList);
+    }
+
 
     /**
      * 按查询条件从数据库分页查询竞赛列表。
@@ -191,6 +222,7 @@ public class ExamCacheManager {
         }
 
     }
+
 
     /**
      * 从redis当中获取首道题目
@@ -257,6 +289,7 @@ public class ExamCacheManager {
         }
     }
 
+
     /**
      * 生成指定竞赛的详情缓存键。
      *
@@ -277,5 +310,7 @@ public class ExamCacheManager {
     }
 
 
-
+    private String getExamRankListKey(Long examId) {
+        return CacheConstants.EXAM_RANK_LIST + examId;
+    }
 }

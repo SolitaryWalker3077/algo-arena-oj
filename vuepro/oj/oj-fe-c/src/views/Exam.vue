@@ -125,6 +125,13 @@
       />
     </section>
 
+    <ContestRankingDialog
+      v-model="rankingDialogVisible"
+      :exam-id="rankingTarget?.examId"
+      :contest-title="rankingTarget?.title"
+      @update:model-value="handleRankingVisibility"
+    />
+
     <el-dialog
       v-model="registrationDialogVisible"
       class="registration-dialog"
@@ -161,6 +168,7 @@ import { Calendar, Search, Warning } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import ContestCard from '@/components/contest/ContestCard.vue'
+import ContestRankingDialog from '@/components/contest/ContestRankingDialog.vue'
 import {
   clearExamListCache,
   enterExam,
@@ -196,7 +204,7 @@ const route = useRoute()
 const router = useRouter()
 const pageSize = 9
 const activeView = ref(route.query.view === 'mine' ? 'mine' : 'registration')
-const activeStatus = ref(route.query.status === 'history' ? 'history' : 'unfinished')
+const activeStatus = ref(route.query.status === 'history' || route.name === 'contest-ranking' ? 'history' : 'unfinished')
 const dateRange = ref(null)
 const pageNum = ref(1)
 const contests = ref([])
@@ -208,6 +216,10 @@ const now = ref(Date.now())
 const registrationDialogVisible = ref(false)
 const registrationTarget = ref(null)
 const registeringId = ref('')
+const rankingDialogVisible = ref(route.name === 'contest-ranking')
+const rankingTarget = ref(route.name === 'contest-ranking'
+  ? { examId: route.params.examId, title: typeof route.query.title === 'string' ? route.query.title : '' }
+  : null)
 
 let activeController
 let requestSequence = 0
@@ -406,6 +418,11 @@ function navigateToContest(action, contest) {
     ElMessage.warning('竞赛结束后才可使用此功能')
     return
   }
+  if (action === CONTEST_ACTION.RANKING) {
+    rankingTarget.value = contest
+    rankingDialogVisible.value = true
+    return
+  }
   router.push({
     name: destinationRoutes[action],
     params: { examId: contest.examId },
@@ -419,6 +436,12 @@ function navigateToContest(action, contest) {
 function handleContestAction(action, contest) {
   if (action === CONTEST_ACTION.REGISTER) requestRegistration(contest)
   else navigateToContest(action, contest)
+}
+
+function handleRankingVisibility(visible) {
+  if (!visible && route.name === 'contest-ranking') {
+    router.replace({ name: 'exam', query: { status: 'history' } })
+  }
 }
 
 function refreshTimePartition() {

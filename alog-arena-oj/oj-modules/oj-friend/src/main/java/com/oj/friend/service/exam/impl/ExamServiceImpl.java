@@ -6,9 +6,14 @@ import com.github.pagehelper.PageInfo;
 import com.oj.common.constants.Constants;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
+import com.oj.friend.entity.exam.dto.ExamRankDto;
+import com.oj.friend.entity.exam.vo.ExamRankVo;
 import com.oj.friend.entity.exam.vo.ExamVo;
+import com.oj.friend.entity.user.vo.UserVo;
 import com.oj.friend.manager.ExamCacheManager;
+import com.oj.friend.manager.UserCacheManager;
 import com.oj.friend.mapper.exam.ExamMapper;
+import com.oj.friend.mapper.user.UserExamMapper;
 import com.oj.friend.service.exam.IExamService;
 import com.oj.security.utils.ThreadLocalUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +30,13 @@ public class ExamServiceImpl implements IExamService {
     private ExamMapper examMapper;
 
     @Autowired
+    private UserExamMapper userExamMapper;
+
+    @Autowired
     private ExamCacheManager examCacheManager;
+
+    @Autowired
+    private UserCacheManager userCacheManager;
 
 
     @Override
@@ -52,6 +63,25 @@ public class ExamServiceImpl implements IExamService {
         }
         assembleExamVoList(examVoList);
         return TableDataInfo.success(examVoList,total);
+    }
+
+    @Override
+    public TableDataInfo rankList(ExamRankDto examRankDto) {
+        Long total = examCacheManager.getRankListSize(examRankDto.getExamId());
+        List<ExamRankVo> examRankVOList;
+        if (total == null || total <= 0) {
+            PageHelper.startPage(examRankDto.getPageNum(), examRankDto.getPageSize());
+            examRankVOList = userExamMapper.selectExamRankList(examRankDto.getExamId());
+            examCacheManager.refreshExamRankCache(examRankDto.getExamId());
+            total = new PageInfo<>(examRankVOList).getTotal();
+        } else {
+            examRankVOList = examCacheManager.getExamRankList(examRankDto);
+        }
+        if (CollectionUtil.isEmpty(examRankVOList)) {
+            return TableDataInfo.empty();
+        }
+        assembleExamRankVOList(examRankVOList);
+        return TableDataInfo.success(examRankVOList, total);
     }
 
     @Override
@@ -86,6 +116,17 @@ public class ExamServiceImpl implements IExamService {
             if (userExamIdList.contains(examVo.getExamId())) {
                 examVo.setEnter(true);
             }
+        }
+    }
+
+    private void assembleExamRankVOList(List<ExamRankVo> examRankVOList) {
+        if (CollectionUtil.isEmpty(examRankVOList)) {
+            return;
+        }
+        for (ExamRankVo examRankVO : examRankVOList) {
+            Long userId = examRankVO.getUserId();
+            UserVo user = userCacheManager.getUserById(userId);
+            examRankVO.setNickName(user.getNickName());
         }
     }
 

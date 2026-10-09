@@ -4,6 +4,7 @@ import com.oj.common.controller.BaseController;
 import com.oj.common.entity.Result;
 import com.oj.common.entity.TableDataInfo;
 import com.oj.friend.entity.exam.dto.ExamQueryDto;
+import com.oj.friend.entity.exam.dto.ExamRankDto;
 import com.oj.friend.service.exam.IExamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,12 @@ public class ExamController extends BaseController {
         return examService.redisList(examQueryDto);
     }
 
+
+    @Operation(summary = "竞赛排名")
+    @GetMapping("/rank/list")
+    public TableDataInfo rankList(@Validated ExamRankDto examRankDto) {
+        return examService.rankList(examRankDto);
+    }
 
     @Operation(summary = "获取第一题题目详情")
     @GetMapping("/getFirstQuestion")
