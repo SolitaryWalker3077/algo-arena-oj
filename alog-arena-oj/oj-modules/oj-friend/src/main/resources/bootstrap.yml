@@ -6,9 +6,17 @@ spring:
   cloud:
     nacos:
       discovery:
-        namespace: 0091cfaf-af96-48b6-b7a7-36deed608204
-        server-addr: ${NACOS_SERVER_ADDR:http://localhost:8750}
+        namespace: 932fc9c1-1e59-4d36-a3d7-9df6efbdbfcc
+        server-addr: http://10.2.0.15:8848
+        username: nacos
+        password: 20040614
+        ip: ${HOST_IP}
       config:
-        namespace: 0091cfaf-af96-48b6-b7a7-36deed608204
-        server-addr: ${NACOS_SERVER_ADDR:http://localhost:8750}
+        namespace: 932fc9c1-1e59-4d36-a3d7-9df6efbdbfcc
+        server-addr: http://10.2.0.15:8848
         file-extension: yaml
+        username: nacos
+        password: 20040614
+
+
+
